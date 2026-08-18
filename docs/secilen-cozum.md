@@ -7,11 +7,11 @@ Seçilen nihai yaklaşım Adaptive Multi-Signal Semantic Chunking olarak korunma
 | Sürüm | İçerik | Durum |
 |---|---|---|
 | V1 | `1↔1` cosine, fixed threshold, interval selector, token kısıtları | Uygulandı |
-| V2 | Section/document adaptive semantic threshold | Uygulanmadı |
+| V2 | Hierarchical section/parent/document adaptive semantic threshold | Uygulandı |
 | V3 | `1↔1`, `2↔2`, `3↔3` multi-scale semantic shift | Uygulanmadı |
 | V4 | Bounded heading assistance, protected boundary ve güvenli tail/merge | Uygulanmadı |
 
-V1 üretim çözümü değil; final algoritmanın veri sözleşmesi, embedding, seçim ve provenance temellerini doğrulayan PoC basamağıdır.
+V1 ve V2 üretim çözümü değildir; final algoritmanın veri sözleşmesi, embedding, seçim ve provenance temellerini doğrulayan PoC basamaklarıdır.
 
 ## Girdi ve semantic unit
 
@@ -118,10 +118,58 @@ Semantic candidate'lar içinden en yüksek skor seçilir. Aday yoksa soft max a�
 
 V1 tail kuralı yalnızca final chunk `min_tokens` altında kaldığında çalışır. Aradaki boundary `size_fallback`/`hard_limit_fallback` ve non-semantic ise, birleşik metin configured hard cap'i aşmamak koşuluyla kaldırılır. Gerçek semantic boundary hiçbir durumda tail uğruna kaldırılmaz. Genel cohesion-aware merge V4'e aittir.
 
+## V2 hierarchical adaptive threshold
+
+V2'nin V1'den tek algoritmik farkı semantic candidate üretimidir. `1↔1` cosine, exact-text embedding cache, heading exclusion, token politikası, interval selector skoru ve fallback/tail davranışı korunur.
+
+Her boundary'nin başlangıç scope'u komşu content unit'lerin `section_path` değerlerinin en uzun ortak prefix'idir. Threshold'lar selection başlamadan önce dokümandaki bütün semantic boundary'lerden hazırlanır. Bir scope'un örnekleri, o scope ve tüm descendant scope'lardaki boundary'leri içerir. Çözümleme en derin section'dan parent section'lara, ardından document dağılımına çıkar.
+
+Yeterli örnekte robust hesap:
+
+```text
+median = median(S)
+mad = median(abs(S - median))
+robust_scale = 1.4826 × mad
+
+MAD yetersizse:
+  robust_scale = (Q75 - Q25) / 1.349
+
+raw_threshold = median + mad_lambda × robust_scale
+threshold = min(Q90, max(Q75, raw_threshold))
+```
+
+IQR her zaman gerçek `Q75 - Q25` değeridir. Config'teki `quantile_floor` ve `quantile_ceiling` yalnızca son threshold clamp quantile'larını belirler; dispersion hesabını değiştirmez. Provenance yöntemi kullanılan scale'e göre `mad_quantile` veya `iqr_quantile` olarak ayrılır.
+
+MAD ve IQR sıfır olup positive tail varsa en küçük median-üstü değer kullanılır. Tamamen eşit section dağılımı parent'a çıkar; yeterli örnekli tamamen eşit document dağılımı semantic candidate üretmez.
+
+Document boundary sayısı `min_document_boundaries=8` değerinin altındaysa Q75 gibi veri-türetilmiş bir eşik kullanılmaz. Açık PoC parametresi `short_document_fallback_threshold=0.20` uygulanır ve provenance şunları taşır:
+
+```text
+method = short_document_fixed_fallback
+low_confidence = true
+threshold_scope_kind = document
+```
+
+Normal scope provenance'ında threshold, scope, sample count, median/MAD/scale/quantile değerleri, yöntem ve `threshold_scope_kind=section|parent_section|document` bulunur. V2 semantic chunk sınırı `adaptive_semantic_boundary` olarak işaretlenir.
+
+Selector V2'de bilinçli olarak değiştirilmemiştir:
+
+```text
+selection_score =
+    0.80 × raw_semantic_shift
+  + 0.20 × (1 - target_distance)
+```
+
+Farklı local threshold'lardan gelen candidate'ların raw semantic shift ile karşılaştırılması V2'nin bilinen limitation'ıdır. Percentile, threshold-relative margin veya normalize boundary quality sonraki sürüme bırakılmıştır.
+
 ## Başlangıç parametreleri
 
 ```text
 fixed_threshold = 0.20
+V2 mad_lambda = 1.5
+V2 min_section_boundaries = 20
+V2 min_document_boundaries = 8
+V2 short_document_fallback_threshold = 0.20
 min_tokens = 160
 target_tokens = 700
 soft_max_tokens = 900
@@ -130,7 +178,7 @@ semantic_weight = 0.80
 size_weight = 0.20
 ```
 
-Bu değerler optimize edilmiş parametreler değildir. `configs/v1.yaml` ve çıktı `parameter_status=poc_initial_not_optimized` alanı bunu açıkça belirtir. V2'de kullanılacak MAD lambda da başlangıç parametresi olarak ele alınacaktır.
+Bu değerler optimize edilmiş parametreler değildir. `configs/v1.yaml`, `configs/v2.yaml` ve çıktı `parameter_status=poc_initial_not_optimized` alanı bunu açıkça belirtir.
 
 ## Açıklanabilir çıktı
 
@@ -146,9 +194,7 @@ Her chunk şunları taşır:
 - token counter kimliği ve hard-cap semantics,
 - algoritma sürümü ve config hash.
 
-## V2–V4 tasarım yönü
-
-V2'de threshold yalnızca semantic dağılımdan üretilecektir. Yeterli örneği olan en derin ortak section kullanılacak; veri yetersizse parent ve document fallback uygulanacaktır. Heading, final-score dağılımına katılmak yerine semantic threshold'u sınırlı ölçüde gevşeten ikinci aşama sinyal olacaktır.
+## V3–V4 tasarım yönü
 
 V3, heading'leri dışarıda tutarak `1↔1`, `2↔2`, `3↔3` pencerelerini ve tüm scale provenance'ını ekleyecektir.
 
@@ -158,5 +204,5 @@ V4, heading-assisted sınırları, yüksek güvenli protected boundary'leri, int
 
 - Gold boundary annotation tüm faaliyet raporu için zorunlu değildir; 5–10 kritik bölüm yeterlidir.
 - Retrieval değerlendirmesi için 30–50 gold question/evidence hedeflenir.
-- V1'de retrieval evaluator, BM25/RRF, rerank ve Langfuse entegrasyonu yoktur.
+- V1/V2'de retrieval evaluator, BM25/RRF, rerank ve Langfuse entegrasyonu yoktur.
 - PDF/IDP parsing ve chunk sınırı için LLM/API çağrısı kapsam dışıdır.

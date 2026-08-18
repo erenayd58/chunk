@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -128,6 +128,25 @@ class EmbeddingBatch:
     provenance: tuple[SemanticEmbeddingProvenance, ...]
 
 
+class AdaptiveThresholdProvenance(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    value: float
+    scope: list[str]
+    threshold_scope_kind: Literal["section", "parent_section", "document"]
+    sample_count: int = Field(ge=0)
+    method: str
+    median: float | None = None
+    mad: float | None = None
+    robust_scale: float | None = None
+    q25: float | None = None
+    q75: float | None = None
+    q90: float | None = None
+    mad_lambda: float | None = None
+    low_confidence: bool
+    degenerate: bool
+
+
 class BoundaryEvidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -136,7 +155,8 @@ class BoundaryEvidence(BaseModel):
     right_unit_id: str
     cosine_similarity: float
     semantic_shift: float
-    fixed_threshold: float
+    fixed_threshold: float | None = None
+    adaptive_threshold: AdaptiveThresholdProvenance | None = None
     semantic_candidate: bool
     candidate_chunk_tokens: int | None = None
     target_distance: float | None = None
@@ -154,6 +174,8 @@ class ChunkBoundary(BaseModel):
     cosine_similarity: float | None = None
     semantic_shift: float | None = None
     fixed_threshold: float | None = None
+    adaptive_threshold: AdaptiveThresholdProvenance | None = None
+    semantic_candidate: bool | None = None
     selection_score: float | None = None
 
 

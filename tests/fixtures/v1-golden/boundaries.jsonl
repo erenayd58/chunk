@@ -1,0 +1,1 @@
+{"boundary_index":0,"left_unit_id":"p-1","right_unit_id":"p-2","cosine_similarity":0.0,"semantic_shift":0.5,"fixed_threshold":0.2,"semantic_candidate":true,"candidate_chunk_tokens":8,"target_distance":0.3333333333333333,"selection_score":0.5333333333333334,"selected_reason":"fixed_semantic_boundary"}

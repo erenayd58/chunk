@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 from collections.abc import Iterable, Sequence
+from dataclasses import asdict, dataclass
 
-from .config import V1Config
+from .config import V1Config, V2Config
 from .embeddings import SemanticBoundaryEmbedder
 from .features import AdjacentSemanticFeatureExtractor
 from .models import (
@@ -15,7 +15,15 @@ from .models import (
     RawDocumentUnit,
     SemanticEmbeddingProvenance,
 )
-from .selection import IntervalBoundarySelector
+from .selection import (
+    IntervalBoundarySelector,
+    V2TailResolver,
+)
+from .thresholds import (
+    FixedThresholdEstimator,
+    HierarchicalAdaptiveThresholdEstimator,
+    SemanticThresholdEstimator,
+)
 from .tokenization import TokenCounter
 from .units import HeadingAttachmentBuilder, RenderedTokenBudgeter, render_units
 
@@ -29,31 +37,34 @@ class _ChunkDraft:
     removed_tail_boundary_reason: str | None = None
 
 
-class V1Chunker:
+@dataclass(frozen=True)
+class _SemanticRun:
+    start: int
+    end: int
+    units: tuple[ContentUnit, ...]
+    raw_boundaries: tuple[BoundaryEvidence, ...]
+
+
+class _BaseChunker:
+    algorithm_version: str
+
     def __init__(
         self,
         *,
-        config: V1Config,
+        config: V1Config | V2Config,
         token_counter: TokenCounter,
         boundary_embedder: SemanticBoundaryEmbedder,
+        threshold_estimator: SemanticThresholdEstimator,
+        selector: IntervalBoundarySelector,
     ) -> None:
         self.config = config
         self.token_counter = token_counter
         self.boundary_embedder = boundary_embedder
-        self.budgeter = RenderedTokenBudgeter(
-            token_counter=token_counter,
-            hard_max_tokens=config.tokens.hard_max_tokens,
-        )
+        self.threshold_estimator = threshold_estimator
+        self.selector = selector
+        self.budgeter = selector.budgeter
         self.unit_builder = HeadingAttachmentBuilder(self.budgeter)
-        self.feature_extractor = AdjacentSemanticFeatureExtractor(
-            config.semantic.fixed_threshold
-        )
-        self.selector = IntervalBoundarySelector(
-            budgeter=self.budgeter,
-            token_limits=config.tokens,
-            semantic=config.semantic,
-            selection=config.selection,
-        )
+        self.feature_extractor = AdjacentSemanticFeatureExtractor()
 
     def chunk(self, raw_units: Sequence[RawDocumentUnit]) -> ChunkingResult:
         if not raw_units:
@@ -62,19 +73,28 @@ class V1Chunker:
         if not prepared:
             raise ValueError("Document produced no prepared units")
 
+        runs, raw_boundaries, provenance_by_unit = self._embed_and_extract(prepared)
+        units_by_id = {unit.unit_id: unit for unit in prepared}
+        resolved_boundaries = self.threshold_estimator.apply(
+            raw_boundaries, units_by_id
+        )
+        resolved_by_index = {
+            boundary.boundary_index: boundary for boundary in resolved_boundaries
+        }
+
         drafts: list[_ChunkDraft] = []
         all_boundaries: list[BoundaryEvidence] = []
-        provenance_by_unit: dict[str, SemanticEmbeddingProvenance] = {}
-        boundary_offset = 0
-
+        run_by_start = {run.start: run for run in runs}
         cursor = 0
         while cursor < len(prepared):
-            if prepared[cursor].text_for_embedding is None:
+            run = run_by_start.get(cursor)
+            if run is None:
+                unit = prepared[cursor]
                 drafts.append(
                     _ChunkDraft(
-                        units=[prepared[cursor]],
+                        units=[unit],
                         end_boundary=ChunkBoundary(
-                            reason=prepared[cursor].forced_split_reason
+                            reason=unit.forced_split_reason
                             or "nonsemantic_heading_boundary"
                         ),
                         unmerged_short_tail_reason=None,
@@ -83,29 +103,16 @@ class V1Chunker:
                 cursor += 1
                 continue
 
-            run_end = cursor
-            while (
-                run_end < len(prepared)
-                and prepared[run_end].text_for_embedding is not None
-            ):
-                run_end += 1
-            run = prepared[cursor:run_end]
-            texts = [unit.text_for_embedding or "" for unit in run]
-            batch = self.boundary_embedder.embed_units(texts)
-            for unit, provenance in zip(run, batch.provenance, strict=True):
-                provenance_by_unit[unit.unit_id] = provenance
-
-            boundaries = self.feature_extractor.compute(
-                run, batch, boundary_index_offset=boundary_offset
-            )
-            segments, updated = self.selector.select(run, boundaries)
+            boundaries = [
+                resolved_by_index[boundary.boundary_index]
+                for boundary in run.raw_boundaries
+            ]
+            segments, updated = self.selector.select(run.units, boundaries)
             all_boundaries.extend(updated)
-            boundary_offset += len(boundaries)
-
             for segment in segments:
                 drafts.append(
                     _ChunkDraft(
-                        units=list(run[segment.start : segment.end]),
+                        units=list(run.units[segment.start : segment.end]),
                         end_boundary=segment.end_boundary,
                         unmerged_short_tail_reason=(
                             segment.unmerged_short_tail_reason
@@ -116,7 +123,7 @@ class V1Chunker:
                         ),
                     )
                 )
-            cursor = run_end
+            cursor = run.end
 
         for draft in drafts[:-1]:
             if draft.end_boundary.reason == "document_end":
@@ -131,6 +138,54 @@ class V1Chunker:
             boundaries=all_boundaries,
             provenance_by_unit=provenance_by_unit,
         )
+
+    def _embed_and_extract(
+        self, prepared: Sequence[ContentUnit]
+    ) -> tuple[
+        list[_SemanticRun],
+        list[BoundaryEvidence],
+        dict[str, SemanticEmbeddingProvenance],
+    ]:
+        runs: list[_SemanticRun] = []
+        all_boundaries: list[BoundaryEvidence] = []
+        provenance_by_unit: dict[str, SemanticEmbeddingProvenance] = {}
+        boundary_offset = 0
+        cursor = 0
+
+        while cursor < len(prepared):
+            if prepared[cursor].text_for_embedding is None:
+                cursor += 1
+                continue
+            run_end = cursor
+            while (
+                run_end < len(prepared)
+                and prepared[run_end].text_for_embedding is not None
+            ):
+                run_end += 1
+            run_units = tuple(prepared[cursor:run_end])
+            texts = [unit.text_for_embedding or "" for unit in run_units]
+            batch = self.boundary_embedder.embed_units(texts)
+            for unit, provenance in zip(run_units, batch.provenance, strict=True):
+                provenance_by_unit[unit.unit_id] = provenance
+
+            boundaries = self.feature_extractor.compute_raw(
+                run_units,
+                batch,
+                boundary_index_offset=boundary_offset,
+            )
+            runs.append(
+                _SemanticRun(
+                    start=cursor,
+                    end=run_end,
+                    units=run_units,
+                    raw_boundaries=tuple(boundaries),
+                )
+            )
+            all_boundaries.extend(boundaries)
+            boundary_offset += len(boundaries)
+            cursor = run_end
+
+        return runs, all_boundaries, provenance_by_unit
 
     def _materialize(
         self,
@@ -185,7 +240,7 @@ class V1Chunker:
                         draft.removed_tail_boundary_reason
                     ),
                     semantic_embeddings=semantic_provenance,
-                    algorithm_version="amsc-v1",
+                    algorithm_version=self.algorithm_version,
                     boundary_embedding_model=self.boundary_embedder.model_id,
                     boundary_prefix_policy=self.boundary_embedder.prefix_policy,
                     boundary_model_input_limit=(
@@ -202,6 +257,7 @@ class V1Chunker:
             document_id=document_id,
             chunks=chunks,
             boundaries=boundaries,
+            algorithm_version=self.algorithm_version,
             parameter_status=self.config.algorithm.tuning_status,
         )
 
@@ -238,3 +294,72 @@ class V1Chunker:
                 seen.add(key)
                 result.append(value)
         return result
+
+
+class V1Chunker(_BaseChunker):
+    algorithm_version = "amsc-v1"
+
+    def __init__(
+        self,
+        *,
+        config: V1Config,
+        token_counter: TokenCounter,
+        boundary_embedder: SemanticBoundaryEmbedder,
+    ) -> None:
+        budgeter = RenderedTokenBudgeter(
+            token_counter=token_counter,
+            hard_max_tokens=config.tokens.hard_max_tokens,
+        )
+        estimator = FixedThresholdEstimator(config.semantic.fixed_threshold)
+        selector = IntervalBoundarySelector(
+            budgeter=budgeter,
+            token_limits=config.tokens,
+            semantic=config.semantic,
+            selection=config.selection,
+            semantic_boundary_reason=estimator.semantic_boundary_reason,
+        )
+        super().__init__(
+            config=config,
+            token_counter=token_counter,
+            boundary_embedder=boundary_embedder,
+            threshold_estimator=estimator,
+            selector=selector,
+        )
+        # Preserve the V1 feature-extractor facade while orchestration uses
+        # compute_raw + FixedThresholdEstimator internally.
+        self.feature_extractor = AdjacentSemanticFeatureExtractor(
+            config.semantic.fixed_threshold
+        )
+
+
+class V2Chunker(_BaseChunker):
+    algorithm_version = "amsc-v2"
+
+    def __init__(
+        self,
+        *,
+        config: V2Config,
+        token_counter: TokenCounter,
+        boundary_embedder: SemanticBoundaryEmbedder,
+    ) -> None:
+        budgeter = RenderedTokenBudgeter(
+            token_counter=token_counter,
+            hard_max_tokens=config.tokens.hard_max_tokens,
+        )
+        estimator = HierarchicalAdaptiveThresholdEstimator(config.semantic)
+        selector = IntervalBoundarySelector(
+            budgeter=budgeter,
+            token_limits=config.tokens,
+            semantic=None,
+            selection=config.selection,
+            semantic_boundary_reason=estimator.semantic_boundary_reason,
+            tail_resolver=V2TailResolver(budgeter, config.tokens),
+            removed_tail_selected_reason="removed_by_v2_tail_coalescing",
+        )
+        super().__init__(
+            config=config,
+            token_counter=token_counter,
+            boundary_embedder=boundary_embedder,
+            threshold_estimator=estimator,
+            selector=selector,
+        )

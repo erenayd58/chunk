@@ -8,10 +8,43 @@ from .models import BoundaryEvidence, ContentUnit, EmbeddingBatch
 
 
 class AdjacentSemanticFeatureExtractor:
-    def __init__(self, fixed_threshold: float) -> None:
+    """Computes raw 1-to-1 cosine features.
+
+    ``fixed_threshold`` remains as a backwards-compatible convenience for the
+    public V1 feature-extractor API. New orchestration calls ``compute_raw`` and
+    delegates candidate decisions to a SemanticThresholdEstimator.
+    """
+
+    def __init__(self, fixed_threshold: float | None = None) -> None:
         self.fixed_threshold = fixed_threshold
 
     def compute(
+        self,
+        units: Sequence[ContentUnit],
+        embeddings: EmbeddingBatch,
+        *,
+        boundary_index_offset: int = 0,
+    ) -> list[BoundaryEvidence]:
+        boundaries = self.compute_raw(
+            units,
+            embeddings,
+            boundary_index_offset=boundary_index_offset,
+        )
+        if self.fixed_threshold is None:
+            return boundaries
+        return [
+            boundary.model_copy(
+                update={
+                    "fixed_threshold": self.fixed_threshold,
+                    "semantic_candidate": (
+                        boundary.semantic_shift >= self.fixed_threshold
+                    ),
+                }
+            )
+            for boundary in boundaries
+        ]
+
+    def compute_raw(
         self,
         units: Sequence[ContentUnit],
         embeddings: EmbeddingBatch,
@@ -40,9 +73,7 @@ class AdjacentSemanticFeatureExtractor:
                     right_unit_id=units[index + 1].unit_id,
                     cosine_similarity=cosine,
                     semantic_shift=shift,
-                    fixed_threshold=self.fixed_threshold,
-                    semantic_candidate=shift >= self.fixed_threshold,
+                    semantic_candidate=False,
                 )
             )
         return boundaries
-

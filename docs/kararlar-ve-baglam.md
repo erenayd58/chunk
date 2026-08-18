@@ -79,3 +79,13 @@ Aşağıdakiler tasarımın önünü kesmez, fakat gerçek entegrasyondan önce 
 - `multilingual-e5-base` symmetric semantic similarity girdileri `query: ` prefix'iyle hazırlanır. 512 model-token sınırını aşan birimler sessizce truncate edilmez; deterministik sentence fragment + token-weighted pooling uygulanır.
 - `160/700/900`, sabit threshold ve skor ağırlıkları optimize edilmiş üretim değerleri değil, PoC başlangıç parametreleridir. Gelecekteki `mad_lambda` için de aynı durum geçerlidir.
 - Gold boundary annotation tüm dokümana zorunlu değildir; 5–10 kritik bölüm yeterlidir. Retrieval değerlendirmesinde 30–50 gold question/evidence hedefi korunur.
+
+## V2 uygulama kararları
+
+- V1 davranışı dondurulmuştur; V2'nin tek algoritmik farkı fixed semantic threshold yerine hierarchical adaptive threshold'dur.
+- Threshold scope'u komşu content unit'lerin `section_path` longest-common-prefix'idir. Yeterli örnek yoksa en derin section'dan parent'a ve document'a çıkılır; parent sample setleri descendant boundary'leri kapsar.
+- `min_section_boundaries=20`, `min_document_boundaries=8`, `mad_lambda=1.5`, quantile sınırları ve `short_document_fallback_threshold=0.20` optimize edilmiş değerler değil PoC başlangıç parametreleridir.
+- Sekizden az document boundary'sinde Q75 kullanılmaz; sabit short-document fallback uygulanır ve `method=short_document_fixed_fallback`, `low_confidence=true` yazılır.
+- `threshold_scope_kind=section|parent_section|document`, scope kullanım oranlarının boundary JSONL üzerinden raporlanabilmesi için korunur.
+- Selector skoru değiştirilmemiştir. Farklı local threshold'lardaki candidate'ların raw semantic shift ile kıyaslanması bilinen V2 limitation'ıdır; percentile/threshold-relative kalite sonraki sürüme bırakılmıştır.
+- `2↔2`/`3↔3`, heading boost, protected boundary, cohesion-aware merge ve retrieval evaluator V2 kapsamında değildir.

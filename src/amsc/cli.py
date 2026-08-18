@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 
 from .cache import FileEmbeddingCache
-from .chunker import V1Chunker
-from .config import V1Config
+from .chunker import V1Chunker, V2Chunker
+from .config import V1Config, V2Config, load_config
 from .embeddings import (
     CachedSemanticBoundaryEmbedder,
     SentenceTransformerBoundaryEmbedder,
@@ -26,7 +26,7 @@ def _parser() -> argparse.ArgumentParser:
     validate = subcommands.add_parser("validate", help="Validate canonical JSONL")
     validate.add_argument("--input", required=True, type=Path)
 
-    chunk = subcommands.add_parser("chunk", help="Run the V1 chunker")
+    chunk = subcommands.add_parser("chunk", help="Run the configured V1/V2 chunker")
     chunk.add_argument("--input", required=True, type=Path)
     chunk.add_argument("--config", required=True, type=Path)
     chunk.add_argument("--output", required=True, type=Path)
@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
-    config = V1Config.from_yaml(args.config)
+    config = load_config(args.config)
     token_counter = TiktokenTokenCounter(config.token_counter.encoding)
     embedder = SentenceTransformerBoundaryEmbedder.from_pretrained(
         config.boundary_embedding.model,
@@ -66,11 +66,12 @@ def main(argv: list[str] | None = None) -> int:
         embedder,
         FileEmbeddingCache(config.boundary_embedding.cache_dir),
     )
-    result = V1Chunker(
+    chunker_type = V1Chunker if isinstance(config, V1Config) else V2Chunker
+    result = chunker_type(
         config=config,
         token_counter=token_counter,
         boundary_embedder=cached,
-    ).chunk(units)
+    ).chunk(units)  # type: ignore[arg-type]
     write_chunking_result(result, args.output)
     write_resolved_config(config, args.output)
     print(
@@ -89,4 +90,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

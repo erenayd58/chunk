@@ -1,0 +1,44 @@
+algorithm:
+  version: v2
+  tuning_status: poc_initial_not_optimized
+
+token_counter:
+  provider: tiktoken
+  encoding: cl100k_base
+  # This cap is guaranteed only according to this configured PoC counter.
+  # The tokenizer behind KKB's production 1126-token limit is not yet known.
+  cap_semantics: configured_poc_counter_only
+
+boundary_embedding:
+  model: intfloat/multilingual-e5-base
+  revision: null
+  device: auto
+  prefix_policy: symmetric_query
+  prefix: "query: "
+  max_input_tokens_override: null
+  overlength_strategy: sentence_fragment_token_weighted_pooling
+  normalize_embeddings: true
+  cache_dir: .cache/boundary-embeddings
+
+semantic:
+  strategy: hierarchical_adaptive
+  # PoC starting values; none are optimized parameters.
+  mad_lambda: 1.5
+  quantile_floor: 0.75
+  quantile_ceiling: 0.90
+  min_section_boundaries: 20
+  min_document_boundaries: 8
+  short_document_fallback_threshold: 0.20
+  dispersion_epsilon: 1.0e-8
+
+tokens:
+  # PoC starting values; not optimized production parameters.
+  min_tokens: 160
+  target_tokens: 700
+  soft_max_tokens: 900
+  hard_max_tokens: 1126
+
+selection:
+  # V1 scoring is deliberately unchanged; these are PoC starting weights.
+  semantic_weight: 0.80
+  size_weight: 0.20

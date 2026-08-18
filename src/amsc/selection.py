@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Protocol
 
 from .config import SelectionConfig, SemanticConfig, TokenLimitsConfig
 from .models import (
@@ -17,13 +18,28 @@ class IntervalBoundarySelector:
         self,
         budgeter: RenderedTokenBudgeter,
         token_limits: TokenLimitsConfig,
-        semantic: SemanticConfig,
+        semantic: SemanticConfig | None,
         selection: SelectionConfig,
+        *,
+        semantic_boundary_reason: str = "fixed_semantic_boundary",
+        tail_resolver: TailResolver | None = None,
+        removed_tail_selected_reason: str = "removed_by_v1_tail_coalescing",
     ) -> None:
         self.budgeter = budgeter
         self.limits = token_limits
         self.semantic = semantic
         self.selection = selection
+        self.semantic_boundary_reason = semantic_boundary_reason
+        if tail_resolver is None:
+            if semantic is None:
+                raise ValueError("A tail resolver is required without V1 semantic config")
+            tail_resolver = V1TailResolver(
+                budgeter=self.budgeter,
+                limits=self.limits,
+                fixed_threshold=semantic.fixed_threshold,
+            )
+        self.tail_resolver = tail_resolver
+        self.removed_tail_selected_reason = removed_tail_selected_reason
 
     def select(
         self,
@@ -48,7 +64,7 @@ class IntervalBoundarySelector:
 
             if semantic_candidates:
                 end, selected = self._choose(semantic_candidates)
-                reason = "fixed_semantic_boundary"
+                reason = self.semantic_boundary_reason
             elif remaining_tokens <= self.limits.soft_max_tokens:
                 segments.append(
                     SelectedSegment(
@@ -102,11 +118,7 @@ class IntervalBoundarySelector:
             for segment in segments
             if segment.end_boundary.boundary_index is not None
         }
-        segments = V1TailResolver(
-            budgeter=self.budgeter,
-            limits=self.limits,
-            fixed_threshold=self.semantic.fixed_threshold,
-        ).resolve(units, segments)
+        segments = self.tail_resolver.resolve(units, segments)
         selected_after_tail = {
             segment.end_boundary.boundary_index
             for segment in segments
@@ -116,7 +128,7 @@ class IntervalBoundarySelector:
         for index, item in enumerate(evidence):
             if item.boundary_index in removed:
                 evidence[index] = item.model_copy(
-                    update={"selected_reason": "removed_by_v1_tail_coalescing"}
+                    update={"selected_reason": self.removed_tail_selected_reason}
                 )
         return segments, evidence
 
@@ -211,8 +223,22 @@ class IntervalBoundarySelector:
             cosine_similarity=evidence.cosine_similarity,
             semantic_shift=evidence.semantic_shift,
             fixed_threshold=evidence.fixed_threshold,
+            adaptive_threshold=evidence.adaptive_threshold,
+            semantic_candidate=(
+                evidence.semantic_candidate
+                if evidence.adaptive_threshold is not None
+                else None
+            ),
             selection_score=evidence.selection_score,
         )
+
+
+class TailResolver(Protocol):
+    def resolve(
+        self,
+        units: Sequence[ContentUnit],
+        segments: list[SelectedSegment],
+    ) -> list[SelectedSegment]: ...
 
 
 class V1TailResolver:
@@ -251,6 +277,56 @@ class V1TailResolver:
             removed_boundary.semantic_shift is not None
             and removed_boundary.semantic_shift >= self.fixed_threshold
         ):
+            tail.unmerged_short_tail_reason = "preceding_boundary_is_semantic"
+            return segments
+
+        combined_tokens = self.budgeter.count_units(
+            units[previous.start : tail.end]
+        )
+        if combined_tokens > self.limits.hard_max_tokens:
+            tail.unmerged_short_tail_reason = "combined_chunk_exceeds_configured_cap"
+            return segments
+
+        previous.end = tail.end
+        previous.end_boundary = tail.end_boundary
+        previous.tail_coalesced = True
+        previous.metadata["removed_tail_boundary_reason"] = removed_boundary.reason
+        return segments[:-1]
+
+
+class V2TailResolver:
+    """V1 tail policy using the already resolved adaptive candidate decision."""
+
+    def __init__(
+        self,
+        budgeter: RenderedTokenBudgeter,
+        limits: TokenLimitsConfig,
+    ) -> None:
+        self.budgeter = budgeter
+        self.limits = limits
+
+    def resolve(
+        self,
+        units: Sequence[ContentUnit],
+        segments: list[SelectedSegment],
+    ) -> list[SelectedSegment]:
+        if len(segments) < 2:
+            return segments
+
+        tail = segments[-1]
+        tail_tokens = self.budgeter.count_units(units[tail.start : tail.end])
+        if tail_tokens >= self.limits.min_tokens:
+            return segments
+
+        previous = segments[-2]
+        removed_boundary = previous.end_boundary
+        if removed_boundary.reason not in {
+            "size_fallback",
+            "hard_limit_fallback",
+        }:
+            tail.unmerged_short_tail_reason = "preceding_boundary_is_not_fallback"
+            return segments
+        if removed_boundary.semantic_candidate is not False:
             tail.unmerged_short_tail_reason = "preceding_boundary_is_semantic"
             return segments
 

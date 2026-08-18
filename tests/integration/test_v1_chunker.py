@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from amsc.chunker import V1Chunker
 from amsc.config import V1Config
@@ -80,6 +81,30 @@ def test_end_to_end_provenance_and_configured_cap(tmp_path) -> None:
     ]
     assert rows[0]["token_counter_id"] == "test:whitespace@1"
     assert rows[0]["unit_ids"] == ["h-1", "p-1"]
+
+
+def test_v1_persisted_jsonl_is_byte_for_byte_golden(tmp_path) -> None:
+    units = load_jsonl_units("tests/fixtures/sample.units.jsonl")
+    embedder = StaticBoundaryEmbedder(
+        {
+            units[1].text: [1.0, 0.0],
+            units[3].text: [0.0, 1.0],
+        }
+    )
+    result = V1Chunker(
+        config=small_config(),
+        token_counter=WordTokenCounter(),
+        boundary_embedder=embedder,
+    ).chunk(units)
+    write_chunking_result(result, tmp_path)
+
+    golden = "tests/fixtures/v1-golden"
+    assert (tmp_path / "chunks.jsonl").read_bytes() == (
+        Path(golden) / "chunks.jsonl"
+    ).read_bytes()
+    assert (tmp_path / "boundaries.jsonl").read_bytes() == (
+        Path(golden) / "boundaries.jsonl"
+    ).read_bytes()
 
 
 def test_long_heading_and_content_never_exceed_configured_cap() -> None:

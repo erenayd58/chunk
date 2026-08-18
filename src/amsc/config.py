@@ -20,6 +20,13 @@ class AlgorithmConfig(StrictConfigModel):
     )
 
 
+class V2AlgorithmConfig(StrictConfigModel):
+    version: Literal["v2"] = "v2"
+    tuning_status: Literal["poc_initial_not_optimized"] = (
+        "poc_initial_not_optimized"
+    )
+
+
 class TokenCounterConfig(StrictConfigModel):
     provider: Literal["tiktoken"] = "tiktoken"
     encoding: str = "cl100k_base"
@@ -44,6 +51,25 @@ class BoundaryEmbeddingConfig(StrictConfigModel):
 
 class SemanticConfig(StrictConfigModel):
     fixed_threshold: float = Field(default=0.20, ge=0.0, le=1.0)
+
+
+class AdaptiveSemanticConfig(StrictConfigModel):
+    strategy: Literal["hierarchical_adaptive"] = "hierarchical_adaptive"
+    mad_lambda: float = Field(default=1.5, ge=0.0)
+    quantile_floor: float = Field(default=0.75, ge=0.0, le=1.0)
+    quantile_ceiling: float = Field(default=0.90, ge=0.0, le=1.0)
+    min_section_boundaries: int = Field(default=20, ge=1)
+    min_document_boundaries: int = Field(default=8, ge=1)
+    short_document_fallback_threshold: float = Field(
+        default=0.20, ge=0.0, le=1.0
+    )
+    dispersion_epsilon: float = Field(default=1.0e-8, gt=0.0)
+
+    @model_validator(mode="after")
+    def validate_quantile_order(self) -> "AdaptiveSemanticConfig":
+        if self.quantile_floor > self.quantile_ceiling:
+            raise ValueError("quantile_floor must be <= quantile_ceiling")
+        return self
 
 
 class TokenLimitsConfig(StrictConfigModel):
@@ -98,3 +124,35 @@ class V1Config(StrictConfigModel):
         )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 
+
+class V2Config(StrictConfigModel):
+    algorithm: V2AlgorithmConfig = V2AlgorithmConfig()
+    token_counter: TokenCounterConfig = TokenCounterConfig()
+    boundary_embedding: BoundaryEmbeddingConfig = BoundaryEmbeddingConfig()
+    semantic: AdaptiveSemanticConfig = AdaptiveSemanticConfig()
+    tokens: TokenLimitsConfig = TokenLimitsConfig()
+    selection: SelectionConfig = SelectionConfig()
+
+    @classmethod
+    def from_yaml(cls, path: str | Path) -> "V2Config":
+        with Path(path).open("r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+        return cls.model_validate(data)
+
+    @property
+    def config_hash(self) -> str:
+        canonical = json.dumps(
+            self.model_dump(mode="json"), sort_keys=True, ensure_ascii=False
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+
+
+def load_config(path: str | Path) -> V1Config | V2Config:
+    with Path(path).open("r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle)
+    version = (data or {}).get("algorithm", {}).get("version")
+    if version == "v1":
+        return V1Config.model_validate(data)
+    if version == "v2":
+        return V2Config.model_validate(data)
+    raise ValueError(f"Unsupported algorithm.version: {version!r}")
