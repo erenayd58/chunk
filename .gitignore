@@ -1,0 +1,12 @@
+@"
+.cache/
+artifacts/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+kkbfaaliyetraporu2024.pdf
+"@ | Set-Content .gitignore.pytest-tmp/
+*.egg-info/
+.pytest-tmp/
