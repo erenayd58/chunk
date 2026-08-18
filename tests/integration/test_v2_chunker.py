@@ -122,6 +122,27 @@ def test_v2_jsonl_is_deterministic() -> None:
     assert first.model_dump_json() == second.model_dump_json()
 
 
+def test_v2_persisted_jsonl_is_byte_for_byte_golden(tmp_path: Path) -> None:
+    units = load_jsonl_units("tests/fixtures/sample.units.jsonl")
+    embedder = StaticBoundaryEmbedder(
+        {units[1].text: [1.0, 0.0], units[3].text: [0.0, 1.0]}
+    )
+    result = V2Chunker(
+        config=small_v2_config(),
+        token_counter=WordTokenCounter(),
+        boundary_embedder=embedder,
+    ).chunk(units)
+    write_chunking_result(result, tmp_path)
+
+    golden = Path("tests/fixtures/v2-golden")
+    assert (tmp_path / "chunks.jsonl").read_bytes() == (
+        golden / "chunks.jsonl"
+    ).read_bytes()
+    assert (tmp_path / "boundaries.jsonl").read_bytes() == (
+        golden / "boundaries.jsonl"
+    ).read_bytes()
+
+
 def test_v2_preserves_configured_cl100k_hard_cap() -> None:
     units = load_jsonl_units("tests/fixtures/sample.units.jsonl")
     vectors = {units[1].text: [1.0, 0.0], units[3].text: [0.0, 1.0]}

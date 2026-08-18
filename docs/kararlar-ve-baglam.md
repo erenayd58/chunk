@@ -89,3 +89,14 @@ Aşağıdakiler tasarımın önünü kesmez, fakat gerçek entegrasyondan önce 
 - `threshold_scope_kind=section|parent_section|document`, scope kullanım oranlarının boundary JSONL üzerinden raporlanabilmesi için korunur.
 - Selector skoru değiştirilmemiştir. Farklı local threshold'lardaki candidate'ların raw semantic shift ile kıyaslanması bilinen V2 limitation'ıdır; percentile/threshold-relative kalite sonraki sürüme bırakılmıştır.
 - `2↔2`/`3↔3`, heading boost, protected boundary, cohesion-aware merge ve retrieval evaluator V2 kapsamında değildir.
+
+## V3 uygulama kararları
+
+- V2 davranışı `v2-adaptive-threshold` olarak dondurulmuştur; V3'ün tek algoritmik farkı semantic shift hesabının `1↔1`, `2↔2`, `3↔3` multi-scale weighted mean olmasıdır.
+- Scale-k yalnızca boundary'nin iki tarafında da aynı semantic run içinde tam k content unit varsa hesaplanır. Kısaltılmış/asimetrik window kullanılmaz.
+- Window pooling, heading'siz exact semantic text'in configured PoC `TokenCounter` sayımından `sqrt(token_count)` ağırlığı üretir. Unit ve pooled window vektörleri L2-normalize edilir.
+- `0.35/0.26/0.39` scale ağırlıkları optimize edilmiş değerler değildir. Yalnızca available scale'ler üzerinde toplamları bir olacak şekilde yeniden normalize edilir.
+- `shift_1/2/3`, `available_scales`, `scale_count` ve effective ağırlıklar boundary provenance'ında saklanır. Top-level cosine `1↔1`, top-level shift birleşik değerdir.
+- Hierarchical adaptive estimator, selector, token policy, heading exclusion, E5/cache ve adaptive tail resolver V2 ile aynıdır.
+- Farklı available-scale bileşimlerinden üretilen shift'lerin aynı adaptive threshold dağılımında değerlendirilmesi bilinen V3 limitation'ıdır. Ayrı threshold veya ek normalizasyon uygulanmaz.
+- Heading boost, structural relaxation, protected boundary, percentile selector, cohesion-aware merge ve retrieval evaluator V3 kapsamında değildir.

@@ -27,6 +27,13 @@ class V2AlgorithmConfig(StrictConfigModel):
     )
 
 
+class V3AlgorithmConfig(StrictConfigModel):
+    version: Literal["v3"] = "v3"
+    tuning_status: Literal["poc_initial_not_optimized"] = (
+        "poc_initial_not_optimized"
+    )
+
+
 class TokenCounterConfig(StrictConfigModel):
     provider: Literal["tiktoken"] = "tiktoken"
     encoding: str = "cl100k_base"
@@ -70,6 +77,23 @@ class AdaptiveSemanticConfig(StrictConfigModel):
         if self.quantile_floor > self.quantile_ceiling:
             raise ValueError("quantile_floor must be <= quantile_ceiling")
         return self
+
+
+class MultiScaleConfig(StrictConfigModel):
+    shift_1_weight: float = Field(gt=0.0)
+    shift_2_weight: float = Field(gt=0.0)
+    shift_3_weight: float = Field(gt=0.0)
+    unit_weighting: Literal["configured_token_counter_sqrt"]
+    window_pooling: Literal["weighted_mean_l2_normalized"]
+    edge_policy: Literal["full_symmetric_available_scales"]
+
+    @property
+    def shift_weights(self) -> dict[int, float]:
+        return {
+            1: self.shift_1_weight,
+            2: self.shift_2_weight,
+            3: self.shift_3_weight,
+        }
 
 
 class TokenLimitsConfig(StrictConfigModel):
@@ -147,7 +171,30 @@ class V2Config(StrictConfigModel):
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 
 
-def load_config(path: str | Path) -> V1Config | V2Config:
+class V3Config(StrictConfigModel):
+    algorithm: V3AlgorithmConfig = V3AlgorithmConfig()
+    token_counter: TokenCounterConfig = TokenCounterConfig()
+    boundary_embedding: BoundaryEmbeddingConfig = BoundaryEmbeddingConfig()
+    semantic: AdaptiveSemanticConfig = AdaptiveSemanticConfig()
+    multi_scale: MultiScaleConfig
+    tokens: TokenLimitsConfig = TokenLimitsConfig()
+    selection: SelectionConfig = SelectionConfig()
+
+    @classmethod
+    def from_yaml(cls, path: str | Path) -> "V3Config":
+        with Path(path).open("r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+        return cls.model_validate(data)
+
+    @property
+    def config_hash(self) -> str:
+        canonical = json.dumps(
+            self.model_dump(mode="json"), sort_keys=True, ensure_ascii=False
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+
+
+def load_config(path: str | Path) -> V1Config | V2Config | V3Config:
     with Path(path).open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle)
     version = (data or {}).get("algorithm", {}).get("version")
@@ -155,4 +202,6 @@ def load_config(path: str | Path) -> V1Config | V2Config:
         return V1Config.model_validate(data)
     if version == "v2":
         return V2Config.model_validate(data)
+    if version == "v3":
+        return V3Config.model_validate(data)
     raise ValueError(f"Unsupported algorithm.version: {version!r}")

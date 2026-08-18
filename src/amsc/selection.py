@@ -224,6 +224,7 @@ class IntervalBoundarySelector:
             semantic_shift=evidence.semantic_shift,
             fixed_threshold=evidence.fixed_threshold,
             adaptive_threshold=evidence.adaptive_threshold,
+            multi_scale=evidence.multi_scale,
             semantic_candidate=(
                 evidence.semantic_candidate
                 if evidence.adaptive_threshold is not None

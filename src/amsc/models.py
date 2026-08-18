@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+import math
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -147,6 +148,61 @@ class AdaptiveThresholdProvenance(BaseModel):
     degenerate: bool
 
 
+class MultiScaleSemanticProvenance(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    shift_1: float = Field(ge=0.0, le=1.0)
+    shift_2: float | None = Field(default=None, ge=0.0, le=1.0)
+    shift_3: float | None = Field(default=None, ge=0.0, le=1.0)
+    available_scales: list[Literal[1, 2, 3]]
+    scale_count: int = Field(ge=1, le=3)
+    effective_weight_1: float = Field(gt=0.0, le=1.0)
+    effective_weight_2: float | None = Field(default=None, gt=0.0, le=1.0)
+    effective_weight_3: float | None = Field(default=None, gt=0.0, le=1.0)
+    unit_weighting: Literal["configured_token_counter_sqrt"]
+    window_pooling: Literal["weighted_mean_l2_normalized"]
+    token_counter_id: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_scale_alignment(self) -> "MultiScaleSemanticProvenance":
+        if self.available_scales != sorted(set(self.available_scales)):
+            raise ValueError("available_scales must be unique and sorted")
+        if not self.available_scales or self.available_scales[0] != 1:
+            raise ValueError("scale 1 must be available for every boundary")
+        if self.available_scales != list(
+            range(1, self.available_scales[-1] + 1)
+        ):
+            raise ValueError("available_scales must be a contiguous prefix from 1")
+        if self.scale_count != len(self.available_scales):
+            raise ValueError("scale_count must equal len(available_scales)")
+
+        shifts = {1: self.shift_1, 2: self.shift_2, 3: self.shift_3}
+        weights = {
+            1: self.effective_weight_1,
+            2: self.effective_weight_2,
+            3: self.effective_weight_3,
+        }
+        for scale in (1, 2, 3):
+            expected = scale in self.available_scales
+            if (shifts[scale] is not None) != expected:
+                raise ValueError(
+                    f"shift_{scale} availability must match available_scales"
+                )
+            if (weights[scale] is not None) != expected:
+                raise ValueError(
+                    f"effective_weight_{scale} availability must match "
+                    "available_scales"
+                )
+        if not math.isclose(
+            sum(weight for weight in weights.values() if weight is not None),
+            1.0,
+            rel_tol=1.0e-9,
+            abs_tol=1.0e-9,
+        ):
+            raise ValueError("effective scale weights must sum to 1.0")
+        return self
+
+
 class BoundaryEvidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -157,6 +213,7 @@ class BoundaryEvidence(BaseModel):
     semantic_shift: float
     fixed_threshold: float | None = None
     adaptive_threshold: AdaptiveThresholdProvenance | None = None
+    multi_scale: MultiScaleSemanticProvenance | None = None
     semantic_candidate: bool
     candidate_chunk_tokens: int | None = None
     target_distance: float | None = None
@@ -175,6 +232,7 @@ class ChunkBoundary(BaseModel):
     semantic_shift: float | None = None
     fixed_threshold: float | None = None
     adaptive_threshold: AdaptiveThresholdProvenance | None = None
+    multi_scale: MultiScaleSemanticProvenance | None = None
     semantic_candidate: bool | None = None
     selection_score: float | None = None
 

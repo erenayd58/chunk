@@ -3,9 +3,13 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 
-from .config import V1Config, V2Config
+from .config import V1Config, V2Config, V3Config
 from .embeddings import SemanticBoundaryEmbedder
-from .features import AdjacentSemanticFeatureExtractor
+from .features import (
+    AdjacentSemanticFeatureExtractor,
+    MultiScaleSemanticFeatureExtractor,
+    SemanticFeatureExtractor,
+)
 from .models import (
     BoundaryEvidence,
     Chunk,
@@ -51,20 +55,21 @@ class _BaseChunker:
     def __init__(
         self,
         *,
-        config: V1Config | V2Config,
+        config: V1Config | V2Config | V3Config,
         token_counter: TokenCounter,
         boundary_embedder: SemanticBoundaryEmbedder,
+        feature_extractor: SemanticFeatureExtractor,
         threshold_estimator: SemanticThresholdEstimator,
         selector: IntervalBoundarySelector,
     ) -> None:
         self.config = config
         self.token_counter = token_counter
         self.boundary_embedder = boundary_embedder
+        self.feature_extractor = feature_extractor
         self.threshold_estimator = threshold_estimator
         self.selector = selector
         self.budgeter = selector.budgeter
         self.unit_builder = HeadingAttachmentBuilder(self.budgeter)
-        self.feature_extractor = AdjacentSemanticFeatureExtractor()
 
     def chunk(self, raw_units: Sequence[RawDocumentUnit]) -> ChunkingResult:
         if not raw_units:
@@ -322,13 +327,11 @@ class V1Chunker(_BaseChunker):
             config=config,
             token_counter=token_counter,
             boundary_embedder=boundary_embedder,
+            feature_extractor=AdjacentSemanticFeatureExtractor(
+                config.semantic.fixed_threshold
+            ),
             threshold_estimator=estimator,
             selector=selector,
-        )
-        # Preserve the V1 feature-extractor facade while orchestration uses
-        # compute_raw + FixedThresholdEstimator internally.
-        self.feature_extractor = AdjacentSemanticFeatureExtractor(
-            config.semantic.fixed_threshold
         )
 
 
@@ -360,6 +363,43 @@ class V2Chunker(_BaseChunker):
             config=config,
             token_counter=token_counter,
             boundary_embedder=boundary_embedder,
+            feature_extractor=AdjacentSemanticFeatureExtractor(),
+            threshold_estimator=estimator,
+            selector=selector,
+        )
+
+
+class V3Chunker(_BaseChunker):
+    algorithm_version = "amsc-v3"
+
+    def __init__(
+        self,
+        *,
+        config: V3Config,
+        token_counter: TokenCounter,
+        boundary_embedder: SemanticBoundaryEmbedder,
+    ) -> None:
+        budgeter = RenderedTokenBudgeter(
+            token_counter=token_counter,
+            hard_max_tokens=config.tokens.hard_max_tokens,
+        )
+        estimator = HierarchicalAdaptiveThresholdEstimator(config.semantic)
+        selector = IntervalBoundarySelector(
+            budgeter=budgeter,
+            token_limits=config.tokens,
+            semantic=None,
+            selection=config.selection,
+            semantic_boundary_reason=estimator.semantic_boundary_reason,
+            tail_resolver=V2TailResolver(budgeter, config.tokens),
+            removed_tail_selected_reason="removed_by_v3_tail_coalescing",
+        )
+        super().__init__(
+            config=config,
+            token_counter=token_counter,
+            boundary_embedder=boundary_embedder,
+            feature_extractor=MultiScaleSemanticFeatureExtractor(
+                config.multi_scale, token_counter
+            ),
             threshold_estimator=estimator,
             selector=selector,
         )

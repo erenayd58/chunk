@@ -1,20 +1,20 @@
-# V1/V2 Implementasyon Mimarisi
+# V1/V2/V3 Implementasyon Mimarisi
 
 ## Modüller
 
 ```text
 src/amsc/
   models.py        canonical ve çıktı modelleri
-  config.py        strict ve sürüme özel V1/V2 YAML config
+  config.py        strict ve sürüme özel V1/V2/V3 YAML config
   io.py            JSONL validation ve çıktı writer
   units.py         heading attachment ve rendered token budgeting
   tokenization.py  TokenCounter protokolü ve tiktoken adapter'ı
   embeddings.py    boundary/retrieval protokolleri, E5 input ve pooling
   cache.py         disk embedding cache
-  features.py      raw 1↔1 cosine semantic shift
+  features.py      raw 1↔1 ve multi-scale semantic shift
   thresholds.py    fixed ve hierarchical adaptive estimator'lar
   selection.py     ortak interval selector, V1/V2 tail resolver'ları
-  chunker.py       ortak orchestration ile V1/V2 facade'ları
+  chunker.py       ortak orchestration ile V1/V2/V3 facade'ları
   cli.py           validate/chunk komutları
 ```
 
@@ -26,8 +26,8 @@ canonical JSONL
   → heading attachment
   → rendered-token hard split planning
   → cache-aware semantic boundary embedding
-  → raw adjacent cosine semantic shift
-  → V1 fixed veya V2 hierarchical adaptive candidate set
+  → V1/V2 adjacent veya V3 multi-scale semantic shift
+  → V1 fixed veya V2/V3 hierarchical adaptive candidate set
   → interval semantic+size scoring
   → non-semantic short-tail cleanup
   → exact configured-counter invariant
@@ -37,7 +37,7 @@ canonical JSONL
 ## Extension point'ler
 
 - `SemanticThresholdEstimator` protokolü V1 `FixedThresholdEstimator` ile V2 `HierarchicalAdaptiveThresholdEstimator` implementasyonlarını selector'dan ayırır.
-- V3, feature extractor'ı multi-scale implementasyonla değiştirebilir; selector `BoundaryEvidence` tüketmeye devam eder.
+- `SemanticFeatureExtractor` protokolü adjacent V1/V2 ve multi-scale V3 feature hesaplarını ortak orchestration'dan ayırır.
 - V4, selector öncesinde bounded structural assistance ve sonrasında protected resolver ekleyebilir.
 - Retrieval evaluator yalnızca `RetrievalEmbedder` kullanır; boundary embedder ve cache namespace'inden bağımsızdır.
 - Production tokenizer öğrenildiğinde `TokenCounter` adapter'ı değiştirilir; chunker orchestration değişmez.
@@ -61,7 +61,7 @@ Kapsam:
 - exact configured-counter hard cap,
 - uçtan uca chunk ve provenance JSONL.
 
-V1 fixture çıktıları `chunks.jsonl` ve `boundaries.jsonl` için byte-level golden testle korunur. V2 testleri ayrıca median/MAD, sabit `Q75-Q25` IQR, bağımsız quantile clamp, positive-tail, uniform-document degeneracy, short-document fixed fallback, section→parent→document scope çözümü, descendant sample seti, scope-kind provenance, adaptive tail koruması ve V2 CLI routing'i kapsar.
+V1 ve V2 fixture çıktıları `chunks.jsonl` ve `boundaries.jsonl` için byte-level golden testle korunur. V2 testleri median/MAD, sabit `Q75-Q25` IQR, bağımsız quantile clamp, positive-tail, uniform-document degeneracy, short-document fixed fallback, section→parent→document scope çözümü, descendant sample seti, scope-kind provenance, adaptive tail koruması ve CLI routing'i kapsar. V3 testleri multi-scale cosine, token-sqrt pooling, L2 normalization, edge weight renormalization, `available_scales`/`scale_count`, outlier suppression, gerçek topic transition, semantic-run isolation, hard cap ve determinism'i doğrular.
 
 ## V2 threshold akışı
 
@@ -74,6 +74,18 @@ V1 fixture çıktıları `chunks.jsonl` ve `boundaries.jsonl` için byte-level g
 7. Ortak interval selector candidate'ları V1 ile aynı raw semantic shift + target-distance skoru üzerinden seçer.
 
 `threshold_scope_kind` boundary JSONL'de bulunduğu için section/parent/document kullanım oranları ek bir runtime metriği eklenmeden hesaplanabilir. Farklı local threshold'lardaki candidate'ların raw shift ile kıyaslanması V2 limitation'ıdır; threshold-relative veya percentile kalite sonraki sürüme bırakılmıştır.
+
+## V3 feature akışı
+
+1. Semantic run içindeki content-unit embedding'leri V2 ile aynı cache/E5 akışından alınır.
+2. Full-symmetric `1↔1`, `2↔2`, `3↔3` pencereleri belirlenir; run sınırı aşılmaz.
+3. Unit embedding'leri configured-counter token sayısının kareköküyle ağırlıklandırılır ve pooled window L2-normalize edilir.
+4. Her available scale için shift hesaplanır.
+5. `0.35/0.26/0.39` başlangıç ağırlıkları available scale'ler üzerinde yeniden normalize edilerek birleşik semantic shift üretilir.
+6. `available_scales`, `scale_count`, scale shift'leri ve effective ağırlıklar provenance'a yazılır.
+7. Değişmeyen V2 threshold estimator birleşik shift dağılımını kullanır.
+
+Farklı available-scale bileşimlerinin aynı threshold dağılımında değerlendirilmesi V3 limitation'ıdır; ayrı threshold veya composition normalization uygulanmaz.
 
 ## 2024 faaliyet raporu
 
@@ -91,14 +103,19 @@ py -3.11 -m amsc.cli chunk `
   --input data/kkb-2024.units.jsonl `
   --config configs/v2.yaml `
   --output artifacts/kkb-2024-v2
+
+py -3.11 -m amsc.cli chunk `
+  --input data/kkb-2024.units.jsonl `
+  --config configs/v3.yaml `
+  --output artifacts/kkb-2024-v3
 ```
 
-V1/V2 çıktıları daha sonra seçilmiş 5–10 kritik section'da boundary annotation ile karşılaştırılır. 30–50 gold question/evidence retrieval seti V2–V4 ablation ve ilerideki yerel evaluator için hazırlanır.
+V1/V2/V3 çıktıları daha sonra seçilmiş 5–10 kritik section'da boundary annotation ile karşılaştırılır. 30–50 gold question/evidence retrieval seti V2–V4 ablation ve ilerideki yerel evaluator için hazırlanır.
 
 ## Bilinçli kapsam dışı
 
-- `2↔2`/`3↔3`,
 - heading boost/threshold relaxation,
+- scale-composition normalization veya ayrı adaptive threshold,
 - percentile veya threshold-relative selector scoring,
 - heading boost/protected boundary,
 - genel cohesion-aware merge,

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from .cache import FileEmbeddingCache
-from .chunker import V1Chunker, V2Chunker
+from .chunker import V1Chunker, V2Chunker, V3Chunker
 from .config import V1Config, V2Config, load_config
 from .embeddings import (
     CachedSemanticBoundaryEmbedder,
@@ -26,7 +26,9 @@ def _parser() -> argparse.ArgumentParser:
     validate = subcommands.add_parser("validate", help="Validate canonical JSONL")
     validate.add_argument("--input", required=True, type=Path)
 
-    chunk = subcommands.add_parser("chunk", help="Run the configured V1/V2 chunker")
+    chunk = subcommands.add_parser(
+        "chunk", help="Run the configured V1/V2/V3 chunker"
+    )
     chunk.add_argument("--input", required=True, type=Path)
     chunk.add_argument("--config", required=True, type=Path)
     chunk.add_argument("--output", required=True, type=Path)
@@ -66,7 +68,12 @@ def main(argv: list[str] | None = None) -> int:
         embedder,
         FileEmbeddingCache(config.boundary_embedding.cache_dir),
     )
-    chunker_type = V1Chunker if isinstance(config, V1Config) else V2Chunker
+    if isinstance(config, V1Config):
+        chunker_type = V1Chunker
+    elif isinstance(config, V2Config):
+        chunker_type = V2Chunker
+    else:
+        chunker_type = V3Chunker
     result = chunker_type(
         config=config,
         token_counter=token_counter,
