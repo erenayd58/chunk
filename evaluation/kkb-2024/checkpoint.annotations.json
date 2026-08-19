@@ -1,0 +1,329 @@
+{
+  "annotation_status": "in_review",
+  "document_id": "kkb-2024",
+  "regions": [
+    {
+      "coverage_tags": ["narrative", "long-section"],
+      "end_unit_id": "p-00905",
+      "gold_boundaries": [
+        {
+          "annotation_id": "risk-narrative-gap-005",
+          "confidence": "high",
+          "intervening_heading_unit_ids": [],
+          "left_unit_id": "p-00902",
+          "pages": [40],
+          "rationale": "Veri raporlama ve karar desteği anlatısından analitik skor ürünü geliştirmeye belirgin konu geçişi vardır.",
+          "right_unit_id": "p-00903",
+          "topic_after": "Analitik model ve skor ürünü geliştirme",
+          "topic_before": "Veri işleme, raporlama ve karar desteği"
+        },
+        {
+          "annotation_id": "risk-narrative-gap-007",
+          "confidence": "high",
+          "intervening_heading_unit_ids": [],
+          "left_unit_id": "p-00904",
+          "pages": [40],
+          "rationale": "Yapay zeka stratejisi ve iş birliklerinden uluslararası kredi bürosu üyeliklerine geçilmektedir.",
+          "right_unit_id": "p-00905",
+          "topic_after": "ACCIS ve ACIPE üyelikleri ile uluslararası ilişkiler",
+          "topic_before": "Yapay zeka stratejisi ve teknoloji iş birlikleri"
+        }
+      ],
+      "pages": [40],
+      "region_id": "risk-narrative",
+      "section_path_hint": ["Risk Merkezi Hizmetleri ve Veri Yönetimi"],
+      "selection_rationale": "Uzun ve düzenli narrative akışta gereksiz semantic split davranışını incelemek için seçildi.",
+      "start_unit_id": "p-00898"
+    },
+    {
+      "coverage_tags": ["true-heading-transitions", "parser-heading"],
+      "end_unit_id": "p-00919",
+      "gold_boundaries": [
+        {
+          "annotation_id": "risk-true-heading-transitions-gap-004",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-00911"],
+          "left_unit_id": "p-00910",
+          "pages": [40],
+          "rationale": "Risk Merkezi ürün öncelikleri, açık Analitik Model Geliştirme Birimi başlığıyla yeni bir bölüme geçmektedir.",
+          "right_unit_id": "p-00912",
+          "topic_after": "Analitik Model Geliştirme Birimi",
+          "topic_before": "Risk Merkezi ürün ve proje öncelikleri"
+        },
+        {
+          "annotation_id": "risk-true-heading-transitions-gap-006",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-00914"],
+          "left_unit_id": "p-00913",
+          "pages": [40],
+          "rationale": "Analitik model çalışmalarından açık Yapay Zeka Birimi başlığı altında yeni konuya geçilmektedir.",
+          "right_unit_id": "p-00915",
+          "topic_after": "Yapay Zeka Birimi faaliyetleri",
+          "topic_before": "Analitik model geliştirme ilkeleri ve hedefleri"
+        },
+        {
+          "annotation_id": "risk-true-heading-transitions-gap-008",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-00917"],
+          "left_unit_id": "p-00916",
+          "pages": [40],
+          "rationale": "Yapay zeka ve LLM projelerinden açık İş Zekası, Raporlama ve Veri Kalitesi başlığına geçilmektedir.",
+          "right_unit_id": "p-00918",
+          "topic_after": "İş zekası, raporlama ve veri kalitesi",
+          "topic_before": "Yapay zeka ve büyük dil modeli projeleri"
+        }
+      ],
+      "pages": [40],
+      "region_id": "risk-true-heading-transitions",
+      "section_path_hint": ["Risk Merkezi Hizmetleri ve Veri Yönetimi"],
+      "selection_rationale": "Analitik Model, Yapay Zeka ve İş Zekası başlıkları arasındaki gerçek yapısal geçişleri içerir.",
+      "start_unit_id": "p-00907"
+    },
+    {
+      "coverage_tags": ["missed-heading", "cross-logical-page", "reading-order"],
+      "end_unit_id": "p-00932",
+      "gold_boundaries": [
+        {
+          "annotation_id": "project-missed-heading-gap-001",
+          "confidence": "review",
+          "intervening_heading_unit_ids": [],
+          "left_unit_id": "p-00927",
+          "pages": [41],
+          "rationale": "Proje Değer Haritası ile Proje Teklif Belgesi ayrı alt konular olabilir; aynı proje yönetişimi anlatısının devamı olma ihtimali nedeniyle inceleme gerektirir.",
+          "right_unit_id": "p-00928",
+          "topic_after": "Proje Teklif Belgesi ve puanlama sistemi",
+          "topic_before": "Proje Değer Haritası"
+        },
+        {
+          "annotation_id": "project-missed-heading-gap-004",
+          "confidence": "high",
+          "intervening_heading_unit_ids": [],
+          "left_unit_id": "p-00930",
+          "pages": [41],
+          "rationale": "Proje teklif ve kaynak planlama anlatısı tamamlanıp çevik dönüşüm yolculuğuna geçilmektedir.",
+          "right_unit_id": "p-00931",
+          "topic_after": "Çevik Dönüşüm yolculuğu",
+          "topic_before": "Proje teklif, maliyet ve kaynak planlama sistemi"
+        },
+        {
+          "annotation_id": "project-missed-heading-gap-005",
+          "confidence": "high",
+          "intervening_heading_unit_ids": [],
+          "left_unit_id": "p-00931",
+          "pages": [41],
+          "rationale": "Genel çevik dönüşüm çalışmasından Çeyrek Bazlı Master Plan dönüşümüne geçilmektedir.",
+          "right_unit_id": "p-00932",
+          "topic_after": "Çeyrek Bazlı Master Plan dönüşümü",
+          "topic_before": "Çevik Dönüşüm yolculuğu"
+        }
+      ],
+      "pages": [41],
+      "region_id": "project-missed-heading",
+      "section_path_hint": ["Proje Yönetimi Birimi"],
+      "selection_rationale": "'Proje yönetiminde şeffaflık' display text'i paragraph kalmış ve cümle devamı sonraki logical page'dedir.",
+      "start_unit_id": "p-00927"
+    },
+    {
+      "coverage_tags": ["visual", "numeric-evidence", "heading-transition"],
+      "end_unit_id": "v-00958",
+      "gold_boundaries": [
+        {
+          "annotation_id": "strategy-visual-fte-gap-001",
+          "confidence": "high",
+          "intervening_heading_unit_ids": [],
+          "left_unit_id": "p-00952",
+          "pages": [42],
+          "rationale": "Genel fayda, maliyet ve kârlılık analizlerinden 2024 sadeleşme programına geçilmektedir.",
+          "right_unit_id": "p-00953",
+          "topic_after": "Kurumsal sadeleşme ve optimizasyon programı",
+          "topic_before": "Ürün ve hizmetlerin fayda, maliyet ve kârlılık analizi"
+        },
+        {
+          "annotation_id": "strategy-visual-fte-gap-004",
+          "confidence": "review",
+          "intervening_heading_unit_ids": [],
+          "left_unit_id": "p-00956",
+          "pages": [43],
+          "rationale": "Sadeleşme programından yönetici görüşmeleri ve gelecek proje önerilerine geçiş olasıdır; aynı strateji çalışmasının devamı da olabilir.",
+          "right_unit_id": "p-00957",
+          "topic_after": "Yönetici görüşmeleri ve gelecek proje önerileri",
+          "topic_before": "2024 sadeleşme programı"
+        }
+      ],
+      "pages": [42, 43],
+      "region_id": "strategy-visual-fte",
+      "section_path_hint": ["Kurumsal Strateji"],
+      "selection_rationale": "Sadeleşme oranı ile planlanan/gerçekleşen FTE ve TL kazanımlarını taşıyan visual unit'leri kapsar.",
+      "start_unit_id": "p-00952"
+    },
+    {
+      "coverage_tags": ["false-heading", "list", "mixed-content"],
+      "end_unit_id": "p-01050",
+      "gold_boundaries": [
+        {
+          "annotation_id": "hr-false-heading-gap-006",
+          "confidence": "high",
+          "intervening_heading_unit_ids": [],
+          "left_unit_id": "l-01044",
+          "pages": [48],
+          "rationale": "Çevik dönüşüm eğitimleri listesinden Kurumsal İletişim ekibinin faaliyetlerine geçilmektedir.",
+          "right_unit_id": "p-01045",
+          "topic_after": "Kurumsal İletişim faaliyetleri",
+          "topic_before": "Çevik dönüşüm eğitimleri"
+        },
+        {
+          "annotation_id": "hr-false-heading-gap-008",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-01047"],
+          "left_unit_id": "p-01046",
+          "pages": [48],
+          "rationale": "Sinerji çalışan etkinliğinden açık TÜBİTAK iş birliği başlığıyla teknoloji çözümlerine geçilmektedir.",
+          "right_unit_id": "p-01048",
+          "topic_after": "TÜBİTAK iş birliği ve teknoloji çözümleri",
+          "topic_before": "Sinerji 2024 çalışan etkinliği"
+        },
+        {
+          "annotation_id": "hr-false-heading-gap-009",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-01049"],
+          "left_unit_id": "p-01048",
+          "pages": [48],
+          "rationale": "TÜBİTAK teknoloji iş birliğinden açık sürdürülebilirlik desteği başlığıyla yeni protokol konusuna geçilmektedir.",
+          "right_unit_id": "p-01050",
+          "topic_after": "Sanayide Yeşil Dönüşüm Protokolü",
+          "topic_before": "TÜBİTAK BİLGEM teknoloji iş birliği"
+        }
+      ],
+      "pages": [47, 48],
+      "region_id": "hr-false-heading",
+      "section_path_hint": ["İnsan Kaynakları"],
+      "selection_rationale": "Normal cümle biçimindeki h-01039 parser tarafından H2 üretilmiş; çevresinde list ve narrative içerik vardır.",
+      "start_unit_id": "p-01037"
+    },
+    {
+      "coverage_tags": ["list", "cross-column", "heading-transition"],
+      "end_unit_id": "p-01148",
+      "gold_boundaries": [
+        {
+          "annotation_id": "legal-list-to-operations-gap-001",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-01130", "h-01131"],
+          "left_unit_id": "p-01129",
+          "pages": [52],
+          "rationale": "Sürdürülebilirlik mevzuatı çalışmasından devam eden davalar başlığı altında hukuki dosya listesine geçilmektedir.",
+          "right_unit_id": "p-01132",
+          "topic_after": "Kurum aleyhine devam eden davalar",
+          "topic_before": "Sürdürülebilirlik mevzuat bilgi bankası"
+        },
+        {
+          "annotation_id": "legal-list-to-operations-gap-012",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-01143"],
+          "left_unit_id": "l-01142",
+          "pages": [52],
+          "rationale": "Dava listesi tamamlanıp açık Operasyon Birimi başlığıyla operasyonel hizmetler bölümüne geçilmektedir.",
+          "right_unit_id": "p-01144",
+          "topic_after": "Operasyon Birimi görev ve hizmetleri",
+          "topic_before": "Devam eden dava türleri"
+        },
+        {
+          "annotation_id": "legal-list-to-operations-gap-013",
+          "confidence": "review",
+          "intervening_heading_unit_ids": ["h-01145"],
+          "left_unit_id": "p-01144",
+          "pages": [52],
+          "rationale": "Operasyon Birimi genel tanıtımından Yetkilendirme Ekibi alt başlığına geçilmektedir; bölüm içi alt sınır olduğu için inceleme setindedir.",
+          "right_unit_id": "p-01146",
+          "topic_after": "Yetkilendirme Ekibi faaliyetleri",
+          "topic_before": "Operasyon Birimi genel tanıtımı"
+        }
+      ],
+      "pages": [52],
+      "region_id": "legal-list-to-operations",
+      "section_path_hint": ["Yasal Uyum, Hukuk ve Operasyon"],
+      "selection_rationale": "Uzun dava listesi ile Operasyon/Yetkilendirme narrative geçişini kapsar.",
+      "start_unit_id": "p-01129"
+    },
+    {
+      "coverage_tags": ["visual", "numeric-evidence", "narrative"],
+      "end_unit_id": "p-01206",
+      "gold_boundaries": [
+        {
+          "annotation_id": "csr-visual-and-text-gap-001",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-01195"],
+          "left_unit_id": "p-01194",
+          "pages": [53, 54],
+          "rationale": "Hizmet Yönetim Komitesi sorumluluklarından açık Kurumsal Sosyal Sorumluluk başlığıyla yeni bölüme geçilmektedir.",
+          "right_unit_id": "p-01196",
+          "topic_after": "Kurumsal sosyal sorumluluk ve gönüllülük",
+          "topic_before": "Hizmet Yönetim Komitesi"
+        },
+        {
+          "annotation_id": "csr-visual-and-text-gap-008",
+          "confidence": "review",
+          "intervening_heading_unit_ids": ["h-01203"],
+          "left_unit_id": "p-01202",
+          "pages": [54],
+          "rationale": "Genel gönüllülük projelerinden Let's Do It Türkiye iş birliği alt başlığına geçilmektedir; bölüm içi örnek olduğu için inceleme setindedir.",
+          "right_unit_id": "p-01204",
+          "topic_after": "Let's Do It Türkiye çevre temizliği etkinliği",
+          "topic_before": "KKB gönüllülük projeleri"
+        }
+      ],
+      "pages": [53, 54],
+      "region_id": "csr-visual-and-text",
+      "section_path_hint": ["Kurumsal Sosyal Sorumluluk"],
+      "selection_rationale": "Gönüllü/proje/TL sayıları içeren visual unit ile devamındaki sosyal sorumluluk narrative metnini içerir.",
+      "start_unit_id": "p-01194"
+    },
+    {
+      "coverage_tags": ["table", "token-pressure", "financial"],
+      "end_unit_id": "t-01242",
+      "gold_boundaries": [
+        {
+          "annotation_id": "financial-table-pressure-gap-001",
+          "confidence": "high",
+          "intervening_heading_unit_ids": ["h-01235", "h-01236"],
+          "left_unit_id": "t-01234",
+          "pages": [61, 62],
+          "rationale": "Finansal rapor içindekiler tablosundan açık 31 Aralık 2024 Finansal Durum Tablosu başlığına geçilmektedir.",
+          "right_unit_id": "p-01237",
+          "topic_after": "31 Aralık 2024 finansal durum tablosu",
+          "topic_before": "Finansal rapor içindekiler tablosu"
+        }
+      ],
+      "pages": [61, 62],
+      "region_id": "financial-table-pressure",
+      "section_path_hint": ["Finansal Bilgiler"],
+      "selection_rationale": "Hard cap'i aşabilecek büyük finansal tablolar ve tekrarlanan tablo başlıklarını kapsar.",
+      "start_unit_id": "t-01234"
+    },
+    {
+      "coverage_tags": ["long-paragraph", "table", "list", "token-pressure"],
+      "end_unit_id": "p-01778",
+      "gold_boundaries": [
+        {
+          "annotation_id": "tax-long-content-pressure-gap-007",
+          "confidence": "review",
+          "intervening_heading_unit_ids": ["h-01775"],
+          "left_unit_id": "p-01774",
+          "pages": [79],
+          "rationale": "Sunum para birimi notundan vergi mutabakatı anlatısına devam başlığıyla geçilmektedir; finansal tablo akışının tekrarlanan başlığı olduğu için inceleme setindedir.",
+          "right_unit_id": "p-01776",
+          "topic_after": "Vergi mutabakatı",
+          "topic_before": "Finansal tablo sunum para birimi notu"
+        }
+      ],
+      "pages": [78, 79],
+      "region_id": "tax-long-content-pressure",
+      "section_path_hint": ["Finansal Tablolara İlişkin Açıklayıcı Dipnotlar"],
+      "selection_rationale": "Raporun en uzun paragraph unit'lerinden birini, listeleri ve finansal tabloları birlikte içerir.",
+      "start_unit_id": "p-01763"
+    }
+  ],
+  "schema_version": "1.0",
+  "source_units_file": "data/kkb-2024.units.jsonl",
+  "source_units_sha256": "2776742d5bddad7dcf2a03320dca36e6b384e2ba042ab99ccdecce61612720d5",
+  "tolerance_content_units": 1
+}

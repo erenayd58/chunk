@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .cache import FileEmbeddingCache
 from .chunker import V1Chunker, V2Chunker, V3Chunker
-from .config import V1Config, V2Config, load_config
+from .config import V1Config, V2Config, V3Config, V4Config, load_config
 from .embeddings import (
     CachedSemanticBoundaryEmbedder,
     SentenceTransformerBoundaryEmbedder,
@@ -17,6 +17,7 @@ from .io import (
     write_resolved_config,
 )
 from .tokenization import TiktokenTokenCounter
+from .v4_chunker import V4Chunker
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -27,11 +28,12 @@ def _parser() -> argparse.ArgumentParser:
     validate.add_argument("--input", required=True, type=Path)
 
     chunk = subcommands.add_parser(
-        "chunk", help="Run the configured V1/V2/V3 chunker"
+        "chunk", help="Run the configured V1/V2/V3/V4 chunker"
     )
     chunk.add_argument("--input", required=True, type=Path)
     chunk.add_argument("--config", required=True, type=Path)
     chunk.add_argument("--output", required=True, type=Path)
+    chunk.add_argument("--ablation", choices=["a1", "a2", "a3", "a4"])
     return parser
 
 
@@ -52,6 +54,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     config = load_config(args.config)
+    if args.ablation is not None:
+        if not isinstance(config, V4Config):
+            raise ValueError("--ablation is only valid with algorithm.version=v4")
+        config = config.model_copy(
+            update={
+                "ablation": config.ablation.model_copy(
+                    update={"composition": args.ablation}
+                )
+            }
+        )
     token_counter = TiktokenTokenCounter(config.token_counter.encoding)
     embedder = SentenceTransformerBoundaryEmbedder.from_pretrained(
         config.boundary_embedding.model,
@@ -72,8 +84,10 @@ def main(argv: list[str] | None = None) -> int:
         chunker_type = V1Chunker
     elif isinstance(config, V2Config):
         chunker_type = V2Chunker
-    else:
+    elif isinstance(config, V3Config):
         chunker_type = V3Chunker
+    else:
+        chunker_type = V4Chunker
     result = chunker_type(
         config=config,
         token_counter=token_counter,

@@ -1,0 +1,75 @@
+{
+  "ablation": {
+    "composition": "a4"
+  },
+  "algorithm": {
+    "tuning_status": "poc_initial_not_optimized",
+    "version": "v4"
+  },
+  "boundary_embedding": {
+    "cache_dir": ".cache\\boundary-embeddings",
+    "device": "auto",
+    "max_input_tokens_override": null,
+    "model": "intfloat/multilingual-e5-base",
+    "normalize_embeddings": true,
+    "overlength_strategy": "sentence_fragment_token_weighted_pooling",
+    "prefix": "query: ",
+    "prefix_policy": "symmetric_query",
+    "revision": null
+  },
+  "contextualization": {
+    "enabled": false,
+    "role": "optional_ablation_not_implemented"
+  },
+  "merge": {
+    "enabled": true,
+    "high_confidence_strength_threshold": 0.5,
+    "pass_policy": "single_non_overlapping",
+    "semantic_cohesion_required": true,
+    "small_chunk_threshold": null
+  },
+  "multi_scale": {
+    "edge_policy": "full_symmetric_available_scales",
+    "shift_1_weight": 0.35,
+    "shift_2_weight": 0.26,
+    "shift_3_weight": 0.39,
+    "unit_weighting": "configured_token_counter_sqrt",
+    "window_pooling": "weighted_mean_l2_normalized"
+  },
+  "selection": {
+    "semantic_weight": 0.8,
+    "size_weight": 0.2,
+    "strategy": "threshold_relative",
+    "strength_epsilon": 1e-08
+  },
+  "semantic": {
+    "dispersion_epsilon": 1e-08,
+    "mad_lambda": 1.5,
+    "min_document_boundaries": 8,
+    "min_section_boundaries": 20,
+    "quantile_ceiling": 0.9,
+    "quantile_floor": 0.75,
+    "short_document_fallback_threshold": 0.2,
+    "strategy": "hierarchical_adaptive"
+  },
+  "structure": {
+    "atomic_type_support": true,
+    "enabled": true,
+    "heading_support": true,
+    "max_threshold_relaxation": 0.04,
+    "mode": "soft",
+    "section_transition_support": true,
+    "semantic_floor": 0.12
+  },
+  "token_counter": {
+    "cap_semantics": "configured_poc_counter_only",
+    "encoding": "cl100k_base",
+    "provider": "tiktoken"
+  },
+  "tokens": {
+    "hard_max_tokens": 1126,
+    "min_tokens": 160,
+    "soft_max_tokens": 900,
+    "target_tokens": 700
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "ablation_id": "a1",
+  "algorithm_version": "amsc-v4",
+  "annotation_status": "in_review",
+  "boundary_metrics": {
+    "primary_plus_minus_one": {
+      "f1": 0.5714285714285715,
+      "false_negative": 7,
+      "false_positive": 5,
+      "precision": 0.6153846153846154,
+      "recall": 0.5333333333333333,
+      "regions": [
+        {
+          "false_negative": 1,
+          "false_positive": 0,
+          "ignored_review_predictions": 0,
+          "region_id": "risk-narrative",
+          "total_match_distance": 1,
+          "true_positive": 1
+        },
+        {
+          "false_negative": 1,
+          "false_positive": 0,
+          "ignored_review_predictions": 0,
+          "region_id": "risk-true-heading-transitions",
+          "total_match_distance": 0,
+          "true_positive": 2
+        },
+        {
+          "false_negative": 2,
+          "false_positive": 0,
+          "ignored_review_predictions": 1,
+          "region_id": "project-missed-heading",
+          "total_match_distance": 0,
+          "true_positive": 0
+        },
+        {
+          "false_negative": 0,
+          "false_positive": 0,
+          "ignored_review_predictions": 0,
+          "region_id": "strategy-visual-fte",
+          "total_match_distance": 1,
+          "true_positive": 1
+        },
+        {
+          "false_negative": 2,
+          "false_positive": 0,
+          "ignored_review_predictions": 0,
+          "region_id": "hr-false-heading",
+          "total_match_distance": 0,
+          "true_positive": 1
+        },
+        {
+          "false_negative": 0,
+          "false_positive": 0,
+          "ignored_review_predictions": 0,
+          "region_id": "legal-list-to-operations",
+          "total_match_distance": 0,
+          "true_positive": 2
+        },
+        {
+          "false_negative": 0,
+          "false_positive": 0,
+          "ignored_review_predictions": 1,
+          "region_id": "csr-visual-and-text",
+          "total_match_distance": 0,
+          "true_positive": 1
+        },
+        {
+          "false_negative": 1,
+          "false_positive": 2,
+          "ignored_review_predictions": 0,
+          "region_id": "financial-table-pressure",
+          "total_match_distance": 0,
+          "true_positive": 0
+        },
+        {
+          "false_negative": 0,
+          "false_positive": 3,
+          "ignored_review_predictions": 0,
+          "region_id": "tax-long-content-pressure",
+          "total_match_distance": 0,
+          "true_positive": 0
+        }
+      ],
+      "status": "ok",
+      "tolerance_content_units": 1,
+      "true_positive": 8
+    },
+    "secondary_exact": {
+      "f1": 0.42857142857142855,
+      "false_negative": 9,
+      "false_positive": 7,
+      "precision": 0.46153846153846156,
+      "recall": 0.4,
+      "regions": [
+        {
+          "false_negative": 2,
+          "false_positive": 1,
+          "ignored_review_predictions": 0,
+          "region_id": "risk-narrative",
+          "total_match_distance": 0,
+          "true_positive": 0
+        },
+        {
+          "false_negative": 1,
+          "false_positive": 0,
+          "ignored_review_predictions": 0,
+          "region_id": "risk-true-heading-transitions",
+          "total_match_distance": 0,
+          "true_positive": 2
+        },
+        {
+          "false_negative": 2,
+          "false_positive": 0,
+          "ignored_review_predictions": 1,
+          "region_id": "project-missed-heading",
+          "total_match_distance": 0,
+          "true_positive": 0
+        },
+        {
+          "false_negative": 1,
+          "false_positive": 1,
+          "ignored_review_predictions": 0,
+          "region_id": "strategy-visual-fte",
+          "total_match_distance": 0,
+          "true_positive": 0
+        },
+        {
+          "false_negative": 2,
+          "false_positive": 0,
+          "ignored_review_predictions": 0,
+          "region_id": "hr-false-heading",
+          "total_match_distance": 0,
+          "true_positive": 1
+        },
+        {
+          "false_negative": 0,
+          "false_positive": 0,
+          "ignored_review_predictions": 0,
+          "region_id": "legal-list-to-operations",
+          "total_match_distance": 0,
+          "true_positive": 2
+        },
+        {
+          "false_negative": 0,
+          "false_positive": 0,
+          "ignored_review_predictions": 1,
+          "region_id": "csr-visual-and-text",
+          "total_match_distance": 0,
+          "true_positive": 1
+        },
+        {
+          "false_negative": 1,
+          "false_positive": 2,
+          "ignored_review_predictions": 0,
+          "region_id": "financial-table-pressure",
+          "total_match_distance": 0,
+          "true_positive": 0
+        },
+        {
+          "false_negative": 0,
+          "false_positive": 3,
+          "ignored_review_predictions": 0,
+          "region_id": "tax-long-content-pressure",
+          "total_match_distance": 0,
+          "true_positive": 0
+        }
+      ],
+      "status": "ok",
+      "tolerance_content_units": 0,
+      "true_positive": 6
+    }
+  },
+  "chunk_metrics": {
+    "accepted_merge_count": 0,
+    "available_scale_composition": {
+      "1": 2,
+      "1,2": 2,
+      "1,2,3": 1324
+    },
+    "below_min_token_chunk_count": 8,
+    "below_min_token_chunk_ratio": 0.032520325203252036,
+    "chunk_count": 246,
+    "fallback_count": 175,
+    "fallback_ratio": 0.7142857142857143,
+    "forced_same_source_chunk_boundary_count": 8,
+    "forced_split_fragment_count": 16,
+    "hard_fallback_count": 21,
+    "hard_fallback_ratio": 0.08571428571428572,
+    "merge_proposal_count": 0,
+    "rejected_merge_count": 0,
+    "rejected_merges_by_reason": {},
+    "removed_boundary_count": 0,
+    "selected_inter_chunk_boundary_count": 245,
+    "semantic_boundary_count": 70,
+    "size_fallback_count": 154,
+    "size_fallback_ratio": 0.6285714285714286,
+    "structural_assisted_boundary_count": 0,
+    "threshold_scope_distribution": {
+      "document": 1237,
+      "section": 91
+    },
+    "token_count": {
+      "max": 1126,
+      "median": 660.5,
+      "min": 6,
+      "p90_nearest_rank": 802
+    }
+  },
+  "document_id": "kkb-2024",
+  "schema_version": "1.0",
+  "source_units_sha256": "2776742d5bddad7dcf2a03320dca36e6b384e2ba042ab99ccdecce61612720d5"
+}

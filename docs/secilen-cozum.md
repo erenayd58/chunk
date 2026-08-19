@@ -9,9 +9,9 @@ Seçilen nihai yaklaşım Adaptive Multi-Signal Semantic Chunking olarak korunma
 | V1 | `1↔1` cosine, fixed threshold, interval selector, token kısıtları | Uygulandı |
 | V2 | Hierarchical section/parent/document adaptive semantic threshold | Uygulandı |
 | V3 | `1↔1`, `2↔2`, `3↔3` multi-scale semantic shift | Uygulandı |
-| V4 | Bounded heading assistance, protected boundary ve güvenli tail/merge | Uygulanmadı |
+| V4 | Parser-agnostic bounded structural support, threshold-relative selector ve semantic-safe merge | Uygulandı (A0–A4) |
 
-V1, V2 ve V3 üretim çözümü değildir; final algoritmanın veri sözleşmesi, embedding, seçim ve provenance temellerini doğrulayan PoC basamaklarıdır.
+V1–V4 üretim çözümü değildir; final algoritmanın veri sözleşmesi, embedding, seçim ve provenance temellerini doğrulayan PoC basamaklarıdır.
 
 ## Girdi ve semantic unit
 
@@ -226,13 +226,60 @@ Her chunk şunları taşır:
 - token counter kimliği ve hard-cap semantics,
 - algoritma sürümü ve config hash.
 
-## V4 tasarım yönü
+## V4 core algoritması
 
-V4, heading-assisted sınırları, yüksek güvenli protected boundary'leri, intra-paragraph penalty'yi ve protected/section boundary'leri bozmayan küçük-parça çözümünü ekleyecektir.
+V4, frozen V3 semantic shift ve hierarchical adaptive threshold davranışını korur.
+Parser çıktısındaki heading, `section_path` değişimi ve atomic content türü geçişleri
+yalnızca bounded support üretir; generic heading'ler protected veya mandatory cut
+değildir. Structural support için:
+
+```text
+applicable_floor = min(original_adaptive_threshold, semantic_floor)
+effective_threshold = max(
+    applicable_floor,
+    original_adaptive_threshold - max_threshold_relaxation
+)
+```
+
+Selector semantic kaliteyi `effective_threshold` üzerinden hesaplanan
+`effective_boundary_strength` ile target-distance skoruna birleştirir. Buna karşılık
+merge güvenliği structure'dan bağımsızdır: pair cohesion
+`original_adaptive_threshold` ile, high-confidence guard ise
+`original_boundary_strength` ile değerlendirilir. Structure merge uygunluğunu veto
+edemez; yalnız provenance ve deterministic tie-break desteği sağlar.
+
+Semantic-safe merge yalnız adjacent ve en az bir tarafı küçük chunk olan çiftleri
+değerlendirir. Unit embedding'leri yeniden hesaplanmaz; V3 feature aşamasından retained
+map olarak taşınır ve token-sqrt pooled embedding oluşturulur. Tek, non-overlapping
+pass uygulanır ve configured-counter hard cap her durumda korunur. Original boundary
+reason `hard_limit_fallback` ise proposal semantic cohesion ve combined hard-cap
+hesabından önce `original_boundary_hard_limit_fallback` nedeniyle reddedilir.
+
+Bir küçük chunk iki komşusuyla da merge edilebiliyorsa frozen deterministic sıra:
+higher absolute cohesion margin (`original_threshold - pair_shift`), lower original
+boundary strength, lower target distance, lower original focus index, left direction ve
+yalnız tam eşitlikte lower structural mismatch'tir.
+
+Table, list ve visual content unit'leri normal durumda atomic kalır. Bu unit'lerden
+herhangi biri tek başına hard cap'i aşarsa canonical source metni değiştirilmeden
+configured `TokenCounter` ile deterministic forced fragment'lara ayrılır. Fragment
+provenance'ı atomic türünü, source unit kimliğini, fragment sırasını ve split nedenini
+taşır.
+
+V4 ablation bileşimleri:
+
+- A0: frozen V3 baseline.
+- A1: threshold-relative selector.
+- A2: soft structural support; selector V3 raw-shift davranışında.
+- A3: semantic-safe merge; selector V3 raw-shift davranışında.
+- A4: soft structure + threshold-relative selector + semantic-safe merge.
+
+A5 contextualization bu fazda uygulanmamıştır; retrieval-side ayrı deney olarak
+korunur. Frozen parametreler benchmark sonucuna göre tune edilmemiştir.
 
 ## Değerlendirme
 
 - Gold boundary annotation tüm faaliyet raporu için zorunlu değildir; 5–10 kritik bölüm yeterlidir.
 - Retrieval değerlendirmesi için 30–50 gold question/evidence hedeflenir.
-- V1/V2/V3'te retrieval evaluator, BM25/RRF, rerank ve Langfuse entegrasyonu yoktur.
+- V1–V4'te retrieval evaluator, BM25/RRF, rerank ve Langfuse entegrasyonu yoktur.
 - PDF/IDP parsing ve chunk sınırı için LLM/API çağrısı kapsam dışıdır.

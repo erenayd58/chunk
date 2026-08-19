@@ -34,6 +34,13 @@ class V3AlgorithmConfig(StrictConfigModel):
     )
 
 
+class V4AlgorithmConfig(StrictConfigModel):
+    version: Literal["v4"] = "v4"
+    tuning_status: Literal["poc_initial_not_optimized"] = (
+        "poc_initial_not_optimized"
+    )
+
+
 class TokenCounterConfig(StrictConfigModel):
     provider: Literal["tiktoken"] = "tiktoken"
     encoding: str = "cl100k_base"
@@ -127,6 +134,50 @@ class SelectionConfig(StrictConfigModel):
         return self
 
 
+class SoftStructureConfig(StrictConfigModel):
+    enabled: bool = True
+    mode: Literal["soft"] = "soft"
+    heading_support: bool = True
+    section_transition_support: bool = True
+    atomic_type_support: bool = True
+    max_threshold_relaxation: float = Field(default=0.04, ge=0.0, le=1.0)
+    semantic_floor: float = Field(default=0.12, ge=0.0, le=1.0)
+
+
+class V4SelectionConfig(StrictConfigModel):
+    strategy: Literal["threshold_relative"] = "threshold_relative"
+    semantic_weight: float = Field(default=0.80, gt=0.0)
+    size_weight: float = Field(default=0.20, gt=0.0)
+    strength_epsilon: float = Field(default=1.0e-8, gt=0.0)
+
+    @model_validator(mode="after")
+    def validate_weights(self) -> "V4SelectionConfig":
+        if abs(self.semantic_weight + self.size_weight - 1.0) > 1.0e-12:
+            raise ValueError("V4 selection weights must sum to 1.0")
+        return self
+
+
+class SemanticSafeMergeConfig(StrictConfigModel):
+    enabled: bool = True
+    small_chunk_threshold: int | None = Field(default=None, ge=1)
+    high_confidence_strength_threshold: float = Field(
+        default=0.50, ge=0.0, le=1.0
+    )
+    semantic_cohesion_required: Literal[True] = True
+    pass_policy: Literal["single_non_overlapping"] = "single_non_overlapping"
+
+
+class V4ContextualizationConfig(StrictConfigModel):
+    enabled: Literal[False] = False
+    role: Literal["optional_ablation_not_implemented"] = (
+        "optional_ablation_not_implemented"
+    )
+
+
+class V4AblationConfig(StrictConfigModel):
+    composition: Literal["a1", "a2", "a3", "a4"] = "a4"
+
+
 class V1Config(StrictConfigModel):
     algorithm: AlgorithmConfig = AlgorithmConfig()
     token_counter: TokenCounterConfig = TokenCounterConfig()
@@ -194,7 +245,34 @@ class V3Config(StrictConfigModel):
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 
 
-def load_config(path: str | Path) -> V1Config | V2Config | V3Config:
+class V4Config(StrictConfigModel):
+    algorithm: V4AlgorithmConfig = V4AlgorithmConfig()
+    token_counter: TokenCounterConfig = TokenCounterConfig()
+    boundary_embedding: BoundaryEmbeddingConfig = BoundaryEmbeddingConfig()
+    semantic: AdaptiveSemanticConfig = AdaptiveSemanticConfig()
+    multi_scale: MultiScaleConfig
+    tokens: TokenLimitsConfig = TokenLimitsConfig()
+    structure: SoftStructureConfig = SoftStructureConfig()
+    selection: V4SelectionConfig = V4SelectionConfig()
+    merge: SemanticSafeMergeConfig = SemanticSafeMergeConfig()
+    contextualization: V4ContextualizationConfig = V4ContextualizationConfig()
+    ablation: V4AblationConfig = V4AblationConfig()
+
+    @classmethod
+    def from_yaml(cls, path: str | Path) -> "V4Config":
+        with Path(path).open("r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+        return cls.model_validate(data)
+
+    @property
+    def config_hash(self) -> str:
+        canonical = json.dumps(
+            self.model_dump(mode="json"), sort_keys=True, ensure_ascii=False
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+
+
+def load_config(path: str | Path) -> V1Config | V2Config | V3Config | V4Config:
     with Path(path).open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle)
     version = (data or {}).get("algorithm", {}).get("version")
@@ -204,4 +282,6 @@ def load_config(path: str | Path) -> V1Config | V2Config | V3Config:
         return V2Config.model_validate(data)
     if version == "v3":
         return V3Config.model_validate(data)
+    if version == "v4":
+        return V4Config.model_validate(data)
     raise ValueError(f"Unsupported algorithm.version: {version!r}")

@@ -1,0 +1,16 @@
+{
+  "canonical_sha256": "2776742d5bddad7dcf2a03320dca36e6b384e2ba042ab99ccdecce61612720d5",
+  "canonical_unit_count": 1829,
+  "forced_atomic_split_count": 0,
+  "heading_count": 508,
+  "landscape_spread_physical_page_count": 82,
+  "list_count": 388,
+  "paragraph_count": 874,
+  "physical_page_count": 85,
+  "portrait_single_physical_pages": [1, 84, 85],
+  "sidecar_only_visual_count": 53,
+  "source_pdf_sha256": "0058e0af74609e66cbf628adb7b14c6d4f42b286ae24a0b5bdbe7713b6b629c1",
+  "table_count": 59,
+  "visual_unit_count": 21,
+  "visual_unit_count_semantics": "Text-bearing visual units are included in paragraph_count and remain one atomic canonical content unit."
+}

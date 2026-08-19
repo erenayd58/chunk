@@ -1,0 +1,4 @@
+profile_id: kkb-2024
+spread_mode: left-right
+logical_columns: 2
+reading_order: column-major-left-to-right

@@ -203,6 +203,131 @@ class MultiScaleSemanticProvenance(BaseModel):
         return self
 
 
+class StructuralBoundaryProvenance(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider_id: str = Field(min_length=1)
+    mode: Literal["soft"] = "soft"
+    evidence_types: list[
+        Literal[
+            "heading_presence",
+            "section_path_transition",
+            "table_transition",
+            "list_transition",
+            "visual_transition",
+        ]
+    ]
+    heading_unit_ids: list[str] = Field(default_factory=list)
+    heading_levels: list[int] = Field(default_factory=list)
+    left_section_path: list[str] = Field(default_factory=list)
+    right_section_path: list[str] = Field(default_factory=list)
+    common_section_prefix: list[str] = Field(default_factory=list)
+    original_adaptive_threshold: float = Field(ge=0.0, le=1.0)
+    effective_threshold: float = Field(ge=0.0, le=1.0)
+    configured_max_relaxation: float = Field(ge=0.0, le=1.0)
+    applied_relaxation: float = Field(ge=0.0, le=1.0)
+    semantic_floor: float = Field(ge=0.0, le=1.0)
+    original_semantic_candidate: bool
+    effective_semantic_candidate: bool
+    structural_assisted_candidate: bool
+    boundary_candidate: bool
+    adaptive_degenerate: bool
+
+    @model_validator(mode="after")
+    def validate_soft_support(self) -> "StructuralBoundaryProvenance":
+        if self.effective_threshold > self.original_adaptive_threshold + 1.0e-12:
+            raise ValueError("soft structure cannot raise the adaptive threshold")
+        expected_relaxation = (
+            self.original_adaptive_threshold - self.effective_threshold
+        )
+        if not math.isclose(
+            self.applied_relaxation,
+            expected_relaxation,
+            rel_tol=1.0e-9,
+            abs_tol=1.0e-9,
+        ):
+            raise ValueError("applied_relaxation must match threshold difference")
+        expected_assisted = (
+            not self.original_semantic_candidate
+            and self.effective_semantic_candidate
+            and self.applied_relaxation > 0.0
+        )
+        if self.structural_assisted_candidate is not expected_assisted:
+            raise ValueError("structural_assisted_candidate is inconsistent")
+        if self.boundary_candidate is not self.effective_semantic_candidate:
+            raise ValueError("soft structure cannot create a non-semantic candidate")
+        if self.adaptive_degenerate and self.boundary_candidate:
+            raise ValueError("degenerate adaptive evidence cannot create a candidate")
+        return self
+
+
+class MergeDecisionProvenance(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    proposal_id: str = Field(min_length=1)
+    focus_chunk_index: int = Field(ge=0)
+    left_chunk_index: int = Field(ge=0)
+    right_chunk_index: int = Field(ge=0)
+    direction: Literal["left", "right"]
+    boundary_index: int | None = Field(default=None, ge=0)
+    boundary_original_reason: str = Field(min_length=1)
+    original_boundary_strength: float | None = Field(
+        default=None, ge=0.0, le=1.0
+    )
+    pair_shift: float | None = Field(default=None, ge=0.0, le=1.0)
+    original_adaptive_threshold: float | None = Field(
+        default=None, ge=0.0, le=1.0
+    )
+    semantic_cohesion_passed: bool | None = None
+    combined_token_count: int | None = Field(default=None, ge=0)
+    hard_cap_passed: bool | None = None
+    structural_compatibility: bool | None = None
+    accepted: bool
+    rejection_reason: str | None = None
+    removed_boundary: bool = False
+
+    @model_validator(mode="after")
+    def validate_decision(self) -> "MergeDecisionProvenance":
+        if self.accepted and self.rejection_reason is not None:
+            raise ValueError("accepted merge cannot have a rejection reason")
+        if not self.accepted and not self.rejection_reason:
+            raise ValueError("rejected merge must have a rejection reason")
+        if self.removed_boundary is not self.accepted:
+            raise ValueError("removed_boundary must match accepted")
+        return self
+
+
+class AcceptedMergeProvenance(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    proposal_id: str = Field(min_length=1)
+    source_chunk_indices: list[int] = Field(min_length=2, max_length=2)
+    removed_boundary_index: int = Field(ge=0)
+    direction: Literal["left", "right"]
+    pre_merge_token_counts: list[int] = Field(min_length=2, max_length=2)
+    post_merge_token_count: int = Field(ge=0)
+    pair_shift: float = Field(ge=0.0, le=1.0)
+    original_adaptive_threshold: float = Field(ge=0.0, le=1.0)
+    original_boundary_strength: float = Field(ge=0.0, le=1.0)
+    removed_by_v4_semantic_safe_merge: Literal[True] = True
+
+
+class AtomicSplitProvenance(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_unit_id: str = Field(min_length=1)
+    atomic_kind: Literal["table", "list", "visual"]
+    fragment_unit_id: str = Field(min_length=1)
+    fragment_index: int = Field(ge=1)
+    fragment_count: int = Field(ge=2)
+    reason: Literal["configured_token_counter_hard_split"]
+    policy: Literal[
+        "preserve_atomic_unless_configured_hard_cap_forces_split"
+    ] = "preserve_atomic_unless_configured_hard_cap_forces_split"
+    token_counter_id: str = Field(min_length=1)
+    configured_hard_max_tokens: int = Field(ge=1)
+
+
 class BoundaryEvidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -219,6 +344,18 @@ class BoundaryEvidence(BaseModel):
     target_distance: float | None = None
     selection_score: float | None = None
     selected_reason: str | None = None
+    structural: StructuralBoundaryProvenance | None = None
+    original_boundary_strength: float | None = Field(
+        default=None, ge=0.0, le=1.0
+    )
+    effective_boundary_strength: float | None = Field(
+        default=None, ge=0.0, le=1.0
+    )
+    selection_signal: float | None = Field(default=None, ge=0.0, le=1.0)
+    selection_strategy: Literal["raw_semantic_shift", "threshold_relative"] | None = (
+        None
+    )
+    merge_decisions: list[MergeDecisionProvenance] | None = None
 
 
 class ChunkBoundary(BaseModel):
@@ -235,6 +372,17 @@ class ChunkBoundary(BaseModel):
     multi_scale: MultiScaleSemanticProvenance | None = None
     semantic_candidate: bool | None = None
     selection_score: float | None = None
+    structural: StructuralBoundaryProvenance | None = None
+    original_boundary_strength: float | None = Field(
+        default=None, ge=0.0, le=1.0
+    )
+    effective_boundary_strength: float | None = Field(
+        default=None, ge=0.0, le=1.0
+    )
+    selection_signal: float | None = Field(default=None, ge=0.0, le=1.0)
+    selection_strategy: Literal["raw_semantic_shift", "threshold_relative"] | None = (
+        None
+    )
 
 
 class Chunk(BaseModel):
@@ -261,6 +409,10 @@ class Chunk(BaseModel):
     token_counter_id: str
     hard_cap_semantics: str
     config_hash: str
+    ablation_id: Literal["a1", "a2", "a3", "a4"] | None = None
+    merge_decisions: list[MergeDecisionProvenance] | None = None
+    accepted_merge: AcceptedMergeProvenance | None = None
+    atomic_splits: list[AtomicSplitProvenance] | None = None
 
 
 class ChunkingResult(BaseModel):
@@ -271,6 +423,7 @@ class ChunkingResult(BaseModel):
     boundaries: list[BoundaryEvidence]
     algorithm_version: str = "amsc-v1"
     parameter_status: str = "poc_initial_not_optimized"
+    ablation_id: Literal["a1", "a2", "a3", "a4"] | None = None
 
 
 @dataclass

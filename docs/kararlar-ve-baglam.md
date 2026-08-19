@@ -100,3 +100,15 @@ Aşağıdakiler tasarımın önünü kesmez, fakat gerçek entegrasyondan önce 
 - Hierarchical adaptive estimator, selector, token policy, heading exclusion, E5/cache ve adaptive tail resolver V2 ile aynıdır.
 - Farklı available-scale bileşimlerinden üretilen shift'lerin aynı adaptive threshold dağılımında değerlendirilmesi bilinen V3 limitation'ıdır. Ayrı threshold veya ek normalizasyon uygulanmaz.
 - Heading boost, structural relaxation, protected boundary, percentile selector, cohesion-aware merge ve retrieval evaluator V3 kapsamında değildir.
+
+## V4 uygulama kararları
+
+- Canonical KKB input, gold annotations ve V3 golden çıktıları V4 öncesinde freeze edilmiştir. V4 parser/checkpoint adapter davranışını veya V1/V2/V3 orchestration'ını değiştirmez.
+- Structural evidence parser-agnostic ve soft'tur. Heading attachment identity, `section_path` geçişi ve table/list/visual atomic türü kanıt sağlar; generic heading hiçbir zaman protected veya mandatory boundary olmaz.
+- Bounded relaxation `max_threshold_relaxation=0.04` ve `semantic_floor=0.12` PoC başlangıç değerleriyle uygulanır. Original threshold semantic floor'un altındaysa threshold daha da düşürülmez.
+- Selector `effective_boundary_strength` kullanır. Merge cohesion ve high-confidence guard ise structure'dan bağımsız `original_adaptive_threshold` ve `original_boundary_strength` kullanır.
+- Merge yalnız adjacent ve small-chunk-focused adaylarda, retained unit embedding'lerinden token-sqrt pooled cosine ile tek non-overlapping pass olarak çalışır. Original `hard_limit_fallback` boundary merge eligible değildir. Proposal sırası absolute cohesion margin → original strength → target distance → focus index → left direction → final structural tie-break'tir. Structure eligibility veto değildir.
+- Atomic table/list/visual unit tek başına configured hard cap'i aşarsa atomiclik hard-cap lehine deterministic forced split ile bozulur. Provenance source unit ve fragment sırasını korur.
+- A0 frozen V3'tür. A1 relative selector, A2 soft structure, A3 semantic-safe merge ve A4 full core V4 bileşimidir. Config hash ablation bileşimini içerir.
+- A5 contextualization uygulanmamıştır; boundary değerlendirmesinden ayrı retrieval-side ablation olarak bırakılmıştır.
+- Checkpoint primary metriği 15 HIGH gold boundary üzerinde ±1 one-to-one F1'dir. Exact F1 secondary diagnostic metriktir; `review` kayıtları primary metriğe katılmaz.

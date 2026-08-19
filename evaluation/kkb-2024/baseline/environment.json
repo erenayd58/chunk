@@ -1,0 +1,10 @@
+{
+  "embedding_model": "intfloat/multilingual-e5-base",
+  "embedding_model_cached_snapshot": "d128750597153bb5987e10b1c3493a34e5a4502a",
+  "numpy": "2.4.6",
+  "python": "3.11.9",
+  "sentence_transformers": "5.7.0",
+  "tiktoken": "0.14.0",
+  "torch": "2.13.0+cpu",
+  "transformers": "5.15.0"
+}
