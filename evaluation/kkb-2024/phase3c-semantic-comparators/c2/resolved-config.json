@@ -1,0 +1,57 @@
+{
+  "algorithm": {
+    "tuning_status": "no_gold_parameter_tuning",
+    "version": "phase3c-research"
+  },
+  "boundary_embedding": {
+    "cache_dir": ".cache\\boundary-embeddings",
+    "device": "auto",
+    "max_input_tokens_override": null,
+    "model": "intfloat/multilingual-e5-base",
+    "normalize_embeddings": true,
+    "overlength_strategy": "sentence_fragment_token_weighted_pooling",
+    "prefix": "query: ",
+    "prefix_policy": "symmetric_query",
+    "revision": null
+  },
+  "multi_scale": {
+    "edge_policy": "full_symmetric_available_scales",
+    "shift_1_weight": 0.35,
+    "shift_2_weight": 0.26,
+    "shift_3_weight": 0.39,
+    "unit_weighting": "configured_token_counter_sqrt",
+    "window_pooling": "weighted_mean_l2_normalized"
+  },
+  "research": {
+    "ablation": "c2",
+    "comparator_method": "cosine_kernel_change_point",
+    "development_checkpoint": true,
+    "gold_parameter_tuning": false,
+    "validated": false
+  },
+  "selection": {
+    "semantic_weight": 0.8,
+    "size_weight": 0.2
+  },
+  "semantic": {
+    "dispersion_epsilon": 1e-08,
+    "mad_lambda": 1.5,
+    "min_document_boundaries": 8,
+    "min_section_boundaries": 20,
+    "quantile_ceiling": 0.9,
+    "quantile_floor": 0.75,
+    "short_document_fallback_threshold": 0.2,
+    "strategy": "hierarchical_adaptive"
+  },
+  "token_counter": {
+    "cap_semantics": "configured_poc_counter_only",
+    "encoding": "cl100k_base",
+    "provider": "tiktoken"
+  },
+  "tokens": {
+    "hard_max_tokens": 1126,
+    "min_tokens": 160,
+    "soft_max_tokens": 900,
+    "target_tokens": 700
+  }
+}
