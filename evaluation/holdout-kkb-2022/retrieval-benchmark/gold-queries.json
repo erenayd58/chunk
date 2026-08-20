@@ -1,0 +1,280 @@
+{
+  "schema_version": "1.0",
+  "document_id": "kkb-2022",
+  "source_units_file": "data/kkb-2022.units.jsonl",
+  "source_units_sha256": "230ba9c9cdd0f8a8e3cefc191c0fd547a40e4bd195176cfd6c08ef8bf3511f03",
+  "annotation_status": "manual_holdout_checkpoint",
+  "authoring_method": "Questions and evidence links were written manually from the frozen canonical units of the KKB 2022 holdout report BEFORE any retrieval outputs were generated.",
+  "queries": [
+    {
+      "query_id": "q001",
+      "question": "KKB 2022 Faaliyet Raporu hangi hesap dönemini kapsamaktadır?",
+      "evidence_unit_ids": ["p-00001"],
+      "evidence_pages": [2],
+      "expected_answer": "01.01.2022-31.12.2022",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q002",
+      "question": "Anadolu Veri Merkezi'nin karbon salımını azaltma hedefi yüzde kaçtır?",
+      "evidence_unit_ids": ["p-00307"],
+      "evidence_pages": [20],
+      "expected_answer": "%5",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q003",
+      "question": "KKB'nin toplam çalışan sayısı kaçtır?",
+      "evidence_unit_ids": ["v-00028"],
+      "evidence_pages": [7],
+      "expected_answer": "550",
+      "evidence_type": "visual",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q004",
+      "question": "Bireysel Büro Sorgulama Sayısı 2022 yılında kaç milyona ulaşmıştır?",
+      "evidence_unit_ids": ["t-00180"],
+      "evidence_pages": [15],
+      "expected_answer": "1.030",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q005",
+      "question": "KKB'nin hissedarları olan 9 bankanın isimleri ve pay oranları nelerdir?",
+      "evidence_unit_ids": ["v-00055"],
+      "evidence_pages": [10],
+      "expected_answer": "Şekerbank T.A.Ş., Deniz Bank A.Ş., T. Vakıflar Bankası T.A.O., T.C. Ziraat Bankası A.Ş., Türkiye İş Bankası A.Ş., Türkiye Garanti Bankası A.Ş., Akbank T.A.Ş. (%9,09); Türkiye Halk Bankası A.Ş., Yapı ve Kredi Bankası A.Ş. (%18,18)",
+      "evidence_type": "visual",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "q006",
+      "question": "KKB 2022 yılında toplam kaç ürün ve hizmet sunmaktadır?",
+      "evidence_unit_ids": ["v-00022", "p-00179"],
+      "evidence_pages": [5, 15],
+      "expected_answer": "89",
+      "evidence_type": "visual",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q007",
+      "question": "Bildirimde bulunan finansal kuruluş sayısı hangi raporların içinde yer almaktadır?",
+      "evidence_unit_ids": ["l-00458"],
+      "evidence_pages": [30],
+      "expected_answer": "Hizmet Adı tablosu listeleri/Müşteri verileri",
+      "evidence_type": "list",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q008",
+      "question": "2022 yılı satış gelirleri ne kadardır?",
+      "evidence_unit_ids": ["t-02198"],
+      "evidence_pages": [90],
+      "expected_answer": "884.067.136 TL",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q009",
+      "question": "Vadeli mevduat faiz gelirleri 2022'de ne kadar olarak gerçekleşmiştir?",
+      "evidence_unit_ids": ["t-02229", "t-02296"],
+      "evidence_pages": [91, 96],
+      "expected_answer": "42.414.561 TL / 210.038.808 TL pozisyon",
+      "evidence_type": "table",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "q010",
+      "question": "Müşteri İtirazları Değerlendirme Sistemi (MİDES) ne zaman veya hangi kilometre taşında devreye alındı?",
+      "evidence_unit_ids": ["l-00191"],
+      "evidence_pages": [16],
+      "expected_answer": "Geçmiş kilometre taşlarında (önceki yıllar)",
+      "evidence_type": "list",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q011",
+      "question": "Robotik Süreç Otomasyonu (RPA) muhasebe süreçlerine hangi yıl dâhil edilmiştir?",
+      "evidence_unit_ids": ["p-01228"],
+      "evidence_pages": [50],
+      "expected_answer": "2022",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q012",
+      "question": "Findeks Mobil Projesi hangi ödülü kazanmıştır?",
+      "evidence_unit_ids": ["l-00262"],
+      "evidence_pages": [17],
+      "expected_answer": "Gümüş Sardis Ödülü",
+      "evidence_type": "list",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q013",
+      "question": "Findeks kredi notu değişiklikleri ve kredi başvurularını anlık ileten hizmetin adı nedir?",
+      "evidence_unit_ids": ["p-00976", "p-00979"],
+      "evidence_pages": [40],
+      "expected_answer": "Findeks Uyarı Hizmeti",
+      "evidence_type": "narrative",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q014",
+      "question": "Kredi Okuryazarlık Haftası'nın düzenlenme amacı nedir?",
+      "evidence_unit_ids": ["p-00305"],
+      "evidence_pages": [20],
+      "expected_answer": "Bireylerin ve kurumların finansal hayatlarını daha sağlıklı ve etkin yönetmelerine katkı sağlamak.",
+      "evidence_type": "narrative",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q015",
+      "question": "KKB'nin kurumsal değerleri nelerdir?",
+      "evidence_unit_ids": ["v-00082", "v-00084", "v-00086"],
+      "evidence_pages": [12],
+      "expected_answer": "İtibar, Sorumluluk, Sürekli Gelişim (grafikteki değerler)",
+      "evidence_type": "visual",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "q016",
+      "question": "Sürdürülebilirlik hedefleri kapsamında AVM'de elektrik kullanımının yüzde kaçı güneş enerjisinden sağlanacak şekilde yatırım yapıldı?",
+      "evidence_unit_ids": ["p-00308", "l-00260"],
+      "evidence_pages": [17, 20],
+      "expected_answer": "%5",
+      "evidence_type": "narrative",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q017",
+      "question": "2022'de Global Raporlama İnisiyatifi (GRI) Standartları'na uygun olarak hazırlanan Sürdürülebilirlik Raporu'nun kaçıncısı yayımlandı?",
+      "evidence_unit_ids": ["p-01469"],
+      "evidence_pages": [60],
+      "expected_answer": "İkincisi",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q018",
+      "question": "Mevcut en uzun gecikme süresi bilgisi hangi istatistiksel raporlarda sunulmaktadır?",
+      "evidence_unit_ids": ["l-00467"],
+      "evidence_pages": [30],
+      "expected_answer": "Kredili hesap bilgileri (tablo içerik detayı)",
+      "evidence_type": "list",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q019",
+      "question": "2021 ve 2022 yılları için cari dönem vergi gideri / geliri nedir?",
+      "evidence_unit_ids": ["t-02243"],
+      "evidence_pages": [92],
+      "expected_answer": "2022'de yok (-), 2021'de (19.107.827) TL gider.",
+      "evidence_type": "table",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "q020",
+      "question": "31 Aralık 2022 itibarıyla nakit değerler ve bankalar kalemi ne kadardır?",
+      "evidence_unit_ids": ["t-02307"],
+      "evidence_pages": [97],
+      "expected_answer": "230.516.958 TL (Kayıtlı), 230.697.884 TL (Gerçeğe uygun)",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q021",
+      "question": "Risk Merkezi altyapısını hayata geçirmek için hangi raporlama sistemleri kullanıma sunulmuştur?",
+      "evidence_unit_ids": ["l-00217"],
+      "evidence_pages": [16],
+      "expected_answer": "Risk ve Çek Raporu, E-Rapor Sistemi",
+      "evidence_type": "list",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q022",
+      "question": "KKB üyeleri arasında kaç tane Varlık Yönetim Şirketi bulunmaktadır?",
+      "evidence_unit_ids": ["l-00042", "v-00188"],
+      "evidence_pages": [9, 15],
+      "expected_answer": "23",
+      "evidence_type": "list",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "q023",
+      "question": "Çalışanların yaş ortalaması ve cinsiyet dağılımı (Kadın/Erkek oranı) nasıldır?",
+      "evidence_unit_ids": ["v-01360"],
+      "evidence_pages": [54],
+      "expected_answer": "Yaş Ortalaması: 34,64. Cinsiyet: %61 Erkek, %39 Kadın",
+      "evidence_type": "visual",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "q024",
+      "question": "Ertelenmiş vergi varlığı / yükümlülüğü tablosuna göre Kıdem tazminatı karşılığı 2022 yılında ne kadardır?",
+      "evidence_unit_ids": ["t-02253"],
+      "evidence_pages": [93],
+      "expected_answer": "17.548.495 TL",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q025",
+      "question": "Maddi duran varlıklardaki değer düşüklüğü her raporlama tarihinde nasıl test edilir?",
+      "evidence_unit_ids": ["p-01943"],
+      "evidence_pages": [80],
+      "expected_answer": "Defter değerinin geri kazanılabilir tutarı incelenerek.",
+      "evidence_type": "narrative",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q026",
+      "question": "Findeks Karekodlu Çek Sistemi yasal olarak hangi tarihte zorunlu hale geldi?",
+      "evidence_unit_ids": ["l-00250", "l-00265"],
+      "evidence_pages": [17],
+      "expected_answer": "Zorunlu hale gelmesi 1 Ocak 2017. Kayıt Sistemi geçerliliği 1 Ocak 2018.",
+      "evidence_type": "list",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "q027",
+      "question": "Sabit faizli finansal araçlar arasında 2022 yılında vadeli mevduatlar ne kadardır?",
+      "evidence_unit_ids": ["t-02296"],
+      "evidence_pages": [96],
+      "expected_answer": "210.038.808 TL",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "q028",
+      "question": "2022'de elde edilen satış gelirleri ile 2021 satış gelirleri karşılaştırıldığında artış veya azalış trendi nedir?",
+      "evidence_unit_ids": ["t-02198"],
+      "evidence_pages": [90],
+      "expected_answer": "2021'de 507.704.217 TL iken, 2022'de 884.067.136 TL'ye çıkarak artış göstermiştir.",
+      "evidence_type": "table",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q029",
+      "question": "KKB organizasyon şemasında hangi denetim birimleri bulunmaktadır?",
+      "evidence_unit_ids": ["v-00447"],
+      "evidence_pages": [26],
+      "expected_answer": "Denetim Komitesi, Denetim Bölümü, Finans ve Operasyon Denetimi, BT Denetim Analiz ve Koordinasyon Birimi",
+      "evidence_type": "visual",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "q030",
+      "question": "2022 yılı boyunca KKB'nin KRM (Kredi Referans Sistemi) üzerinden kaç milyon sorgu gerçekleştirilmiştir ve rekor ay hangisidir?",
+      "evidence_unit_ids": ["l-00269"],
+      "evidence_pages": [17],
+      "expected_answer": "Toplam 136 milyon sorgu. Rekor ay 14,6 milyon sorgu ile Eylül 2022.",
+      "evidence_type": "list",
+      "difficulty": "direct"
+    }
+  ]
+}

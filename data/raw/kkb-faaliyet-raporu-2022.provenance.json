@@ -1,0 +1,19 @@
+{
+  "document_id": "kkb-2022",
+  "document_title": "KKB Kredi Kayıt Bürosu A.Ş. 2022 Faaliyet Raporu",
+  "role": "holdout_validation",
+  "source_url": "https://www.kkb.com.tr/Resources/ContentFile/2425/01kkbfrat2022mtb6.pdf",
+  "source_domain": "kkb.com.tr",
+  "source_type": "official_corporate_annual_report",
+  "download_timestamp": "2026-08-20T09:20:47+03:00",
+  "file_name": "kkb-faaliyet-raporu-2022.pdf",
+  "file_size_bytes": 4369211,
+  "sha256": "14bb5cce0f5f8a4b1fb16eb3bb3fa8fe34a4e3bbfb2eb6f58eb14eebd791b357",
+  "pdf_header": "%PDF-",
+  "notes": [
+    "Downloaded from official KKB domain (kkb.com.tr).",
+    "This document is the HOLDOUT validation set for Phase 5.",
+    "The 2024 report (kkbfaaliyetraporu2024.pdf) is the DEVELOPMENT set.",
+    "No parameters, thresholds, or algorithms may be tuned on this holdout data."
+  ]
+}

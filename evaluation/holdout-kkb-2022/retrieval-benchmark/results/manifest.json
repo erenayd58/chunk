@@ -1,0 +1,14 @@
+{
+  "candidate_chunk_sha256": {
+    "c3": "26a15371911d646fcdebc5d3127a76c579e557967dc51f618d87b6fd953c737f",
+    "legacy": "dbecea56af88f8eee68e22862e0a3e1abe7d73eae132e00eff0931f39208784e",
+    "v3": "54bd78a5c2c2704406156752a943455596a01c5c8ee0859ec1828af72953d161",
+    "v4": "2d003d49302567892ba88c9fdca054afc691ff4c9eb297de52c074e926ba30a4"
+  },
+  "canonical_sha256": "230ba9c9cdd0f8a8e3cefc191c0fd547a40e4bd195176cfd6c08ef8bf3511f03",
+  "config_sha256": "2fd60ad2c51063ab7d61ce3be53a50fb9be2182bd1f3dd6aa57070558cfb1557",
+  "gold_authoring_method": "Questions and evidence links were written manually from the frozen canonical units of the KKB 2022 holdout report BEFORE any retrieval outputs were generated.",
+  "gold_queries_sha256": "a21be03cd1e7b00b1aed8ed6161dcedc7b3790432178aa43bb78d71176925f63",
+  "legacy_source_commit": "3fbe307c4d68eedcfb9cdaf14a73ca34eab14bcf",
+  "only_chunker_varies": true
+}

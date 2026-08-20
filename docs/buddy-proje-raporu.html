@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<title>Adaptive Multi-Signal Semantic Chunking — Proje Raporu</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  html { font-size: 11pt; }
+  body {
+    font-family: "Segoe UI", Calibri, "Noto Sans", Arial, sans-serif;
+    color: #1a1a1a;
+    line-height: 1.45;
+    max-width: 100%;
+  }
+  h1 {
+    font-size: 1.55rem;
+    line-height: 1.25;
+    margin: 0 0 0.8em;
+    border-bottom: 2px solid #1f4e79;
+    padding-bottom: 0.25em;
+  }
+  h2 {
+    font-size: 1.18rem;
+    color: #1f4e79;
+    margin: 1.4em 0 0.5em;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 1.02rem;
+    color: #2e5f8a;
+    margin: 1.1em 0 0.4em;
+    page-break-after: avoid;
+  }
+  p, li { orphans: 3; widows: 3; }
+  hr { border: none; border-top: 1px solid #ccc; margin: 1.2em 0; }
+  code {
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: 0.88em;
+    background: #f3f4f6;
+    padding: 0.05em 0.3em;
+    border-radius: 3px;
+  }
+  strong { font-weight: 600; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.7em 0 1em;
+    font-size: 0.86em;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #c5c9d0;
+    padding: 0.35em 0.5em;
+    vertical-align: top;
+    text-align: left;
+  }
+  th { background: #1f4e79; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f6f8fb; }
+  ul, ol { padding-left: 1.3em; }
+  li { margin: 0.2em 0; }
+  em { color: #444; }
+</style>
+</head>
+<body>
+<h1>Adaptive Multi-Signal Semantic Chunking — Proje Raporu</h1>
+<p>Bu rapor, KKB dokümanları için LLM çağırmadan konu geçişlerini bulmaya çalışan <strong>Adaptive Multi-Signal Semantic Chunking</strong> (AMSC) PoC’sinin bugünkü durumunu özetler. Amaç: ne yapıldığını, neden yapıldığını, hangi ölçümlerin alındığını ve şu an nerede durduğumuzu aynı resmi paylaşmayan bir ekip arkadaşına anlatmak.</p>
+<p>Kaynaklar: <code>README.md</code>, <code>docs/</code>, <code>configs/</code>, <code>src/amsc/</code>, <code>tests/</code>, <code>evaluation/kkb-2024/</code> altındaki authoritative raporlar ve git etiketleri. Sayılar frozen çıktılardan alınmıştır; pre-conformance (bugfix öncesi) V4 koşuları authoritative değildir.</p>
+<hr />
+<h2>1. Problem ve amaç</h2>
+<p>KKB tarafında RAG hattı, dokümanı parçalara (<strong>chunk</strong>) ayırıp bunları arama ve cevap üretiminde kullanıyor. Referans sistem bilgisine göre mevcut chunklama hibrit: anlamsal benzerlik (cosine / “semantic momentum”), başlık, paragraf, token ve recursive karakter kuralları birlikte çalışıyor. Gözlem: <strong>chunk sınırları her zaman konu sınırlarıyla örtüşmüyor</strong>. Konu ortasında kesilen veya iki konuyu birleştiren parçalar, retrieval’a yanlış veya eksik bağlam taşıyor.</p>
+<p><strong>Chunking RAG için neden önemli?</strong> Model ancak elindeki parçayı görür. Sınır kötüyse ilgili kanıt başka chunk’ta kalır, alakasız metin aynı chunk’a girer. Embedding, BM25 veya reranker bu hatayı sonradan tam düzeltemez.</p>
+<p>PoC’nin sorduğu net soru şudur: Mevcut “komşu cosine + sabit eşik” tarzı yaklaşımın kaçırdığı veya yanlış ürettiği sınırları, <strong>LLM/API olmadan</strong>, daha geniş bağlam ve doküman yapısıyla daha doğru bulabilir miyiz?</p>
+<p>İyileştirmeye çalıştığımız şey üretim parser’ı veya tüm RAG mimarisi değil; <strong>anlamsal sınır kararı</strong>. PDF/IDP parsing, her sınır için LLM, production tokenizer garantisi ve baştan sona retrieval/rerank yeniden tasarımı bilinçli olarak kapsam dışı bırakıldı. İlk gerçek doküman <strong>KKB 2024 Faaliyet Raporu</strong>.</p>
+<p>Seçilen yaklaşımın adı Adaptive Multi-Signal Semantic Chunking: eşiği dokümanın kendi dağılımından üretmek, tek paragraf çiftine bakmamak, yapıyı sert kural yerine sınırlı destek olarak kullanmak, token tavanını bozmamak.</p>
+<hr />
+<h2>2. Kurduğum çalışma / evaluation altyapısı</h2>
+<p>Algoritmayı “biraz daha iyi hissettirmek” yerine tekrar çalıştırılabilir bir checkpoint kurdum. Nedeni basit: aynı girdi ve aynı metrik olmadan V1–V4 karşılaştırması spekülasyon olur.</p>
+<table>
+<thead>
+<tr>
+<th>Parça</th>
+<th>Ne</th>
+<th>Neden</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KKB 2024 Faaliyet Raporu</td>
+<td>İlk PoC dokümanı; 85 fiziksel sayfa, canonical JSONL’de 1829 unit</td>
+<td>Gerçek, Türkçe ağırlıklı, tablo/görsel/uzun paragraf baskısı olan kurumsal rapor</td>
+</tr>
+<tr>
+<td>Canonical unit</td>
+<td>Parser çıktısı heading / paragraph / list / table (görsel metin paragraph) sırasına çevrilir</td>
+<td>Chunker parser’dan bağımsız çalışsın; layout hatası ile algoritma hatası karışmasın</td>
+</tr>
+<tr>
+<td>Token limiti</td>
+<td><code>tiktoken:cl100k_base</code>, <code>min=160</code>, <code>hedef=700</code>, <code>soft=900</code>, <code>hard=1126</code></td>
+<td>Production’daki 1126 bilgisine yaklaşmak; <strong>hangi tokenizer’ın production’da kullanıldığı bilinmiyor</strong>, bu yüzden garanti yalnız PoC sayacına aittir</td>
+</tr>
+<tr>
+<td>Embedding</td>
+<td><code>intfloat/multilingual-e5-base</code>, sınır kararı için <code>query:</code> öneki; uzun metinde sessiz kesme yok, fragment + ağırlıklı ortalama</td>
+<td>Türkçe uyumlu açık model; sınır embedding’i ile ilerideki retrieval embedding’i ayrı arayüz</td>
+</tr>
+<tr>
+<td>Manuel gold sınır seti</td>
+<td>9 temsilî bölgede 15 <code>HIGH</code> konu geçişi; 5 <code>REVIEW</code> kayıt primary metriğe girmez</td>
+<td>Tüm raporu etiketlemek gerekmez; belirsiz sınırlar skoru şişirmesin</td>
+</tr>
+<tr>
+<td>Exact ve ±1 F1</td>
+<td>Exact: birebir unit çifti. ±1: bir content-unit kaymaya izin (primary)</td>
+<td>Parser’ın kaçırdığı görsel başlık gibi 1-unit kaymalar tamamen “kaçırıldı” sayılmasın</td>
+</tr>
+<tr>
+<td>SHA / golden test</td>
+<td>Canonical SHA <code>2776742d…20d5</code>; V1–V3 fixture byte-golden; V3/A1–A4 <code>metrics.json</code> SHA freeze</td>
+<td>Koşu değişince sessizce sapmasın</td>
+</tr>
+</tbody>
+</table>
+<p>Checkpoint PDF adapter’ı (<code>pymupdf4llm</code> layout, spread-aware iki kolon okuma) <strong>evaluation girdisi</strong> üretir; production IDP değildir. Heading tipi Markdown <code>#</code> işaretinden gelir; parser’ın kaçırdığı veya yanlış başlık saydığı örnekler <code>checkpoint.edge-cases.md</code> içinde açık tutulur. Gold annotation dosyasının durumu <code>in_review</code>: set dondurulmuştur ama “nihai kurumsal gold” iddiası yoktur.</p>
+<p>Parametreler (<code>fixed_threshold=0.20</code>, MAD/quantile, V3 ölçek ağırlıkları <code>0.35/0.26/0.39</code>, V4 <code>semantic_floor=0.12</code> vb.) <strong>optimize edilmiş üretim değerleri değil</strong>, PoC başlangıç değerleridir. Checkpoint’e göre tune edilmediler.</p>
+<hr />
+<h2>3. Geliştirme süreci</h2>
+<p>Sürümler birikimli: her adım bir önceki davranışı dondurup tek bir algoritmik fark ekler. V1–V3’ün ayrı git etiketleri vardır (<code>v1-baseline</code>, <code>v2-adaptive-threshold</code>, <code>v3-multiscale-context</code>). V4 ve KKB checkpoint’i <code>phase3a-failure-analysis</code> ile birlikte dondurulmuştur.</p>
+<h3>İlk baseline — V1</h3>
+<p><strong>Yaklaşım:</strong> Komşu iki içerik biriminin embedding’i karşılaştırılır (<strong>adjacent semantic similarity</strong>). Anlam kayması (<code>semantic_shift</code>, düşük cosine = yüksek kayma) sabit eşiği (<code>0.20</code>) geçerse aday olur. Selector ilk geçen sınırı almaz; <code>[min, soft_max]</code> aralığındaki adaylar arasından anlam + hedef boyuta yakınlık skorunu seçer. Aday yoksa <code>size_fallback</code>, tavan zorlanırsa <code>hard_limit_fallback</code>. Tam render edilmiş metin üzerinde hard cap doğrulanır. Başlıklar embed edilmez, sonraki paragrafa bağlanır.</p>
+<p>Bu dokümanda V1’in en yüksek kayması <code>0.135</code> olduğu için <strong>hiç semantic candidate üretmedi</strong>; seçilen sınırların neredeyse tamamı boyut fallback’i.</p>
+<table>
+<thead>
+<tr>
+<th>Yaklaşım</th>
+<th>Ne değişti?</th>
+<th>Neden?</th>
+<th>Sonuç (15 HIGH, ±1 / exact F1)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1 sabit eşik + 1↔1 + token-aware seçim</td>
+<td>İlk ölçülebilir baseline</td>
+<td>Mevcut cosine+eşik fikrini şeffaf ve tekrarlanabilir kılmak</td>
+<td>0.3571 / 0.2857; 0 semantic candidate; size fallback oranı %92</td>
+</tr>
+</tbody>
+</table>
+<h3>Adaptive threshold — V2</h3>
+<p><strong>Yaklaşım:</strong> Aynı 1↔1 kayma ve aynı selector. Fark: her sınıra <strong>dokümanın / bölümün kendi kayma dağılımından</strong> eşik. Kapsam, komşu <code>section_path</code> ortak öneki; örnek yetmezse parent’a, sonra tüm dokümana çıkılır (hierarchical). Yeterli örnekte medyan + MAD (sağlam yayılım) ile eşik; çok kısa dokümanda sabit <code>0.20</code> fallback.</p>
+<p>V2 bu raporda 138 semantic candidate üretti. Primary ±1 skor <strong>V1 ile aynı kaldı</strong> (TP=5, FP=8, FN=10). Yani “eşik artık adaptive” tek başına gold sınırları kurtarmadı; selector hâlâ ham kayma ile karşılaştırıyordu (bilinen V2 kısıtı).</p>
+<table>
+<thead>
+<tr>
+<th>Yaklaşım</th>
+<th>Ne değişti?</th>
+<th>Neden?</th>
+<th>Sonuç</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V2 hierarchical adaptive eşik</td>
+<td>Sabit 0.20 yerine local dağılım</td>
+<td>Bu dokümanda gerçek kaymalar 0.20’nin altında; tek eşik kör kalıyordu</td>
+<td>±1 F1 0.3571 (V1 ile aynı); exact F1 0.2143’e düştü; semantic candidate 138</td>
+</tr>
+</tbody>
+</table>
+<h3>Multi-scale semantic context — V3</h3>
+<p><strong>Yaklaşım:</strong> Yalnızca “bu paragraf vs sonraki paragraf” (1↔1) değil; mümkünse ikişer ve üçer birimlik pencereler de (2↔2, 3↔3). Pencere vektörü mevcut unit embedding’lerinden token-karekök ağırlığıyla üretilir; yeni model çağrısı yok. Birleşik kayma, eldeki ölçeklerin <code>0.35/0.26/0.39</code> ağırlıklı ortalaması.</p>
+<p><strong>Neden önemli?</strong> Tek cümlelik stil farkı 1↔1’de yüksek kayma gibi görünebilir; asıl konu değişimi birkaç paragraf sonra netleşir. Tersine, geniş pencere yerel geçişi bastırabilir — bunu failure analysis sonra gösterdi.</p>
+<p>V3, frozen sette <strong>en büyük sınır-skoru sıçraması</strong>: ±1 F1 <strong>0.3571 → 0.5517</strong>, exact F1 <strong>0.2143 → 0.4138</strong>. ±1: TP=8, FP=6, FN=7.</p>
+<table>
+<thead>
+<tr>
+<th>Yaklaşım</th>
+<th>Ne değişti?</th>
+<th>Neden?</th>
+<th>Sonuç</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V3 1↔1 + 2↔2 + 3↔3</td>
+<td>Semantic shift çok ölçekli</td>
+<td>Yerel gürültü vs gerçek konu geçişini ayırmak</td>
+<td><strong>±1 F1 0.5517</strong>, exact 0.4138; size fallback %63; 70 seçilmiş semantic sınır</td>
+</tr>
+</tbody>
+</table>
+<h3>Semantic-first V4 (A4 = full core)</h3>
+<p>V4, V3’ün kayma ve adaptive eşiğini korur; üzerine dört parça ekler (A0=V3, A1–A4 ablation):</p>
+<ol>
+<li><strong>Threshold-relative boundary strength:</strong> “Ham kayma ne kadar yüksek?” yerine “eşikten ne kadar yukarıda?” Selector A1/A4’te bunu kullanır; farklı local eşikleri adil karşılaştırmak için.</li>
+<li><strong>Soft structural support:</strong> Başlık, <code>section_path</code> geçişi, tablo/liste/görsel tür değişimi eşiği en fazla <code>0.04</code> gevşetebilir; generic başlık zorunlu kesim değildir.</li>
+<li><strong>Token-aware selector:</strong> Hedef boyuta uzaklık skoru korunur; karar yine render edilmiş metin üzerindendir.</li>
+<li><strong>Semantic-safe merge:</strong> Küçük chunk’ları komşuya, orijinal eşik ve orijinal strength ile, tek geçişte birleştirmeyi dener. Hard cap her zaman üstündür. <code>hard_limit_fallback</code> sınırları merge’e giremez.</li>
+</ol>
+<p><strong>Conformance bug:</strong> İlk A3/A4 koşusunda <code>hard_limit_fallback</code> sınırları yanlışlıkla merge’e uygun sayılıyordu ve sıralama mutlak cohesion margin yerine göreli pair-shift kullanıyordu. Bu yüzden 917, 925, 1307 gibi hard-limit sınırları birleşiyordu. Bugfix sonrası bu kayıtlar reddedilir; authoritative çıktı <code>evaluation/kkb-2024/v4-ablation/</code> altındadır. Eski koşu <code>v4-ablation.pre_conformance_fix/</code> içinde arşivdir, skor iddiasında kullanılmaz.</p>
+<p>Post-fix A4: ±1 F1 <strong>0.5517 → 0.5926</strong>, exact <strong>0.4138 → 0.4444</strong>. Recall aynı (8/15); precision arttı (FP 6→4). İki merge kabul edildi (922 size_fallback, 1327 adaptive). Structural-assisted seçilmiş sınır: <strong>0</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Yaklaşım</th>
+<th>Ne değişti?</th>
+<th>Neden?</th>
+<th>Sonuç (post-fix)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1 relative selector</td>
+<td>Ham kayma yerine eşik-göreli güç</td>
+<td>V2/V3 limitation: farklı eşikli adayları ham shift ile kıyaslamak</td>
+<td>±1 F1 0.5714; küçük chunk oranı arttı</td>
+</tr>
+<tr>
+<td>A2 soft structure</td>
+<td>Eşik gevşetme</td>
+<td>Başlık/section sinyalini sert kural yapmadan kullanmak</td>
+<td><strong>A0 ile birebir aynı</strong>; floor yüzünden gevşeme çalışmadı</td>
+</tr>
+<tr>
+<td>A3 semantic-safe merge</td>
+<td>Küçük parçaları birleştir</td>
+<td>Kısa chunk ve bazı FP’leri azaltmak</td>
+<td>±1 F1 0.5714; 2 merge</td>
+</tr>
+<tr>
+<td>A4 A1+A2+A3</td>
+<td>Full core V4</td>
+<td>Bileşenlerin birlikte etkisi</td>
+<td><strong>±1 F1 0.5926</strong>, exact 0.4444; small-chunk oranı V3 ile aynı %2.46</td>
+</tr>
+</tbody>
+</table>
+<p>Frozen success gate <strong>bütünüyle geçmedi</strong>: primary F1 iyileşti; bugfix sonrası küçük-chunk iyileşmesi kalmadı; all-fallback oranı <code>%71.19 → %71.60</code> arttı.</p>
+<hr />
+<h2>4. Benchmark sonuçları (authoritative)</h2>
+<p>Gold: 15 HIGH sınır, 9 bölge. Primary: ±1 one-to-one F1. Secondary: exact F1. Canonical SHA yukarıdaki frozen girdi.</p>
+<table>
+<thead>
+<tr>
+<th>Koşu</th>
+<th>Exact P / R / F1</th>
+<th>±1 P / R / F1</th>
+<th>±1 TP / FP / FN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>0.3077 / 0.2667 / 0.2857</td>
+<td>0.3846 / 0.3333 / 0.3571</td>
+<td>5 / 8 / 10</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>0.2308 / 0.2000 / 0.2143</td>
+<td>0.3846 / 0.3333 / 0.3571</td>
+<td>5 / 8 / 10</td>
+</tr>
+<tr>
+<td>V3 / A0</td>
+<td>0.4286 / 0.4000 / <strong>0.4138</strong></td>
+<td>0.5714 / 0.5333 / <strong>0.5517</strong></td>
+<td>8 / 6 / 7</td>
+</tr>
+<tr>
+<td>A1</td>
+<td>0.4615 / 0.4000 / 0.4286</td>
+<td>0.6154 / 0.5333 / 0.5714</td>
+<td>8 / 5 / 7</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>0.4286 / 0.4000 / 0.4138</td>
+<td>0.5714 / 0.5333 / 0.5517</td>
+<td>8 / 6 / 7</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>0.4615 / 0.4000 / 0.4286</td>
+<td>0.6154 / 0.5333 / 0.5714</td>
+<td>8 / 5 / 7</td>
+</tr>
+<tr>
+<td><strong>A4 / V4</strong></td>
+<td>0.5000 / 0.4000 / <strong>0.4444</strong></td>
+<td>0.6667 / 0.5333 / <strong>0.5926</strong></td>
+<td>8 / 4 / 7</td>
+</tr>
+</tbody>
+</table>
+<p>V4’ün yaptığı iş: <strong>daha fazla doğru sınır bulmak değil</strong>, yanlış pozitifleri azaltmak. Recall 0.5333’te kaldı. Bu yüzden “V4 semantic olarak V3’ü net geçti” demiyoruz; precision tarafında kontrollü bir kazanç var.</p>
+<p>Success gate’in tam geçilmemesi de buradan okunur: F1 hedefini sınır tarafında gördük, ama küçük-chunk ve fallback oranları V4’ü “boyut davranışı da iyileşti” diye kapatmaya yetmedi. Fallback hâlâ ~%71: yani seçilen sınırların çoğu hâlâ semantic candidate değil, token penceresi dolduğu için kesiliyor.</p>
+<hr />
+<h2>5. Failure analysis</h2>
+<p>Skor tablosundan sonra prediction-level audit çalıştırdım (<code>phase3a-failure-analysis</code>). Evaluator’ın exact/±1 eşlemesi değişmez; yalnız <em>neden</em> doğru/yanlış olduğu yazılır.</p>
+<p>V3, A3 ve A4 için aynı tablo:</p>
+<ul>
+<li>15 HIGH gerçek sınır</li>
+<li><strong>8’i ±1 ile yakalandı, 7’si kaçtı</strong> (exact’te 6 yakalandı)</li>
+<li>Yakalanan 8 TP’nin <strong>yalnız 3’ü semantic sınır</strong>, <strong>5’i size fallback</strong></li>
+<li>Hard-limit TP: 0</li>
+<li>A4’te kalan 4 FP’nin hepsi size/hard fallback; semantic FP yok</li>
+</ul>
+<p>Kaçırılan 7 HIGH’ın <strong>5’inde multi-scale suppression</strong> var: bir ölçekteki kayma eşiğin üstündeyken birleşik kayma eşiğin altında kalıyor. Tipik örüntü: 1↔1 görece yüksek, 2↔2 ve 3↔3 düşük, ortalama eşiği geçemiyor. İki FN’de ise mevcut üç ölçek de eşiğin altında.</p>
+<p>Soft structure bu config’te <strong>aktive olmadı</strong>. Adaptive eşikler (~0.065) <code>semantic_floor=0.12</code>’nin altında. Formül eşiği floor’un <em>altına</em> çekerek yükseltmez; gevşeme 0 kalır. Structural evidence vardır, <code>structural_assisted</code> seçilmiş sınır yoktur. Heading’li FN’ler “yapı kuralı çalıştı ama yetmedi” değil, “gevşeme hiç uygulanmadı”.</p>
+<p>Merge <strong>high-confidence guard</strong> (<code>0.50</code>) gözlenen strength dağılımına göre çok yüksek: A4’te 136 sınırda max strength ≈ 0.035, guard’ı geçen 0 kayıt. Guard fiilen hiç devreye girmiyor.</p>
+<p><strong>Boundary 1327</strong> riskli kabul örneği: orijinal neden <code>adaptive_semantic_boundary</code>, pair kayması eşiğe 0.0006 marjla altında, yapı uyumu <code>False</code>. Tasarım gereği structure veto değildir; finansal tablo bölümü “bilanço tarihinden sonraki olaylar” paragrafına bağlanmış. Gold bölge dışında olsa da merge kuralının sınırda kabul ettiği bir vaka.</p>
+<p>Mesaj: Skora bakıp durmadım. V4’ün kazancı çoğunlukla FP kesmek; hâlâ yakalanan gold’un çoğu şanslı size-fallback; asıl kaçan geçişlerde çok ölçekli ortalama ve çalışmayan soft structure görünüyor.</p>
+<hr />
+<h2>6. Denediğim alternatif araştırmalar</h2>
+<p>Bunlar “başarısız denemeler” değil; hipotezi ölçüp reddeden kontrollü deneyler. Gold ile parametre uydurulmadı.</p>
+<h3>Scale-calibration (Phase 3B, etiket: <code>phase3b-scale-calibration-negative-result</code>)</h3>
+<p><strong>Hipotez:</strong> 1, 2, 3 ölçeklerini <em>kendi</em> dağılımlarına göre kalibre edersek, birleşik ortalamanın bastırdığı konu geçişleri kurtulur.</p>
+<ul>
+<li>B0: V3 kontrol (byte-identical)</li>
+<li>B1: yalnız tanı; chunk çıktısı V3 ile aynı</li>
+<li>B2: ölçek-bazlı eşik-göreli kanıt + “herhangi bir ölçek candidate ise candidate”</li>
+<li>B3: B2 + post-fix semantic-safe merge</li>
+</ul>
+<p><strong>Ölçüm:</strong> B2/B3 ±1 F1 <strong>0.5000 / 0.5185</strong> — V3’ün 0.5517’sinin altında. Orijinal 7 HIGH FN’de B1 hiçbir ölçeği gold konumunda candidate yapmadı. B2/B3’te görülen tek “kurtarma” <code>indirect_size_fallback</code>; genuine semantic rescue <strong>0</strong>.</p>
+<p><strong>Karar:</strong> Hipotez development checkpoint’te desteklenmedi. V5 diye production adayı ilan edilmedi; negative result olarak donduruldu.</p>
+<h3>Local prominence / change-point (Phase 3C, etiket: <code>phase3c-development-result</code>)</h3>
+<p><strong>Hipotez:</strong> Sabit çok ölçekli ortalama yerine lokal semantic tepe (C1) veya cosine-kernel change-point (C2) daha iyi sınır adayı üretir.</p>
+<ul>
+<li>C0: yine V3 kontrol</li>
+<li>C1: <code>local_semantic_prominence</code> — ±1 F1 <strong>0.3200</strong>, önceki doğru HIGH’larda regresyon</li>
+<li>C2: <code>cosine_kernel_change_point</code> — ±1 F1 <strong>0.6452</strong></li>
+<li>C3: C2 + frozen merge — ±1 F1 <strong>0.6667</strong></li>
+</ul>
+<p><strong>Ölçüm:</strong> C3 skoru V3/V4’ten yüksek görünür. Ama orijinal 7 FN’de genuine semantic rescue yine <strong>0</strong>. C3’ün yakaladığı ek sınırlar <code>size_fallback</code> konumunun kayması. Semantic TP sayısı C0 ile aynı: <strong>3</strong>.</p>
+<p><strong>Karar:</strong> C3 “semantic olarak daha iyi yöntem” diye iddia edilmedi. Development winner seçim kuralı skoru C2’ye verdi; yorum kuralı açık: skor ≠ semantic iyileşme.</p>
+<hr />
+<h2>7. Şu anki durum</h2>
+<p>Git’te dondurulmuş hat:</p>
+<ul>
+<li>V1–V3 ayrı tag; V4 + gold + authoritative ablation + failure analysis <code>phase3a-failure-analysis</code></li>
+<li>Phase 3B negative-result checkpoint’i mevcut</li>
+<li>Phase 3C development araştırması tamam (<code>phase3c-development-result</code>)</li>
+<li><code>main</code> origin’den 3 commit önde (3A–3C)</li>
+<li>Phase 3C anındaki test seti: <strong>167 test geçti</strong> (model indirmeden deterministic double’lar)</li>
+</ul>
+<p>Production winner <strong>ilan edilmedi</strong>. V4 core PoC olarak duruyor; frozen success gate tam geçmedi. C3 yalnız araştırma koşusu.</p>
+<p><strong>Çalışma kopyasında (henüz commit/tag yok):</strong> Phase 4 retrieval benchmark’ı yazıldı ve KKB development setinde koşuldu. Parser ve retrieval hattı sabit; yalnız chunker değişiyor. 50 soruluk gold, retrieval çıktıları görülmeden elle yazıldı. Adaylar: public Legacy <code>chat_rag</code> uyumluluk adapter’ı, V3, A4/V4, C3. Dense: E5 (<code>query:</code> / <code>passage:</code>), Unicode BM25, eşit ağırlıklı RRF; query expansion / contextualization / reranker kapalı.</p>
+<p>Authoritative Phase 4 özeti (<code>evaluation/kkb-2024/retrieval-benchmark/results/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Chunker</th>
+<th style="text-align: right;">Hit@1</th>
+<th style="text-align: right;">Hit@3</th>
+<th style="text-align: right;">Hit@5</th>
+<th style="text-align: right;">MRR</th>
+<th style="text-align: right;">Evidence coverage@5</th>
+<th style="text-align: right;">Source coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Legacy (public adapter)</td>
+<td style="text-align: right;">0.26</td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">0.318</td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">0.58</td>
+</tr>
+<tr>
+<td>V3</td>
+<td style="text-align: right;">0.54</td>
+<td style="text-align: right;">0.68</td>
+<td style="text-align: right;">0.80</td>
+<td style="text-align: right;">0.628</td>
+<td style="text-align: right;">0.80</td>
+<td style="text-align: right;">1.00</td>
+</tr>
+<tr>
+<td>A4 / V4</td>
+<td style="text-align: right;">0.54</td>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">0.626</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">1.00</td>
+</tr>
+<tr>
+<td>C3</td>
+<td style="text-align: right;">0.54</td>
+<td style="text-align: right;">0.74</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">0.641</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">1.00</td>
+</tr>
+</tbody>
+</table>
+<p>Bu tablo <strong>KKB production agentic chunker karşılaştırması değildir</strong>. Legacy satırı <code>MurselTasgin/chat_rag</code> public kodunun canonical girdi üzerindeki adapter’ıdır; kısa section düşürme + frozen heading’ler source coverage’ı 0.58’e indirmiştir. C3’ün Hit@5 avantajı, Phase 3C’deki “semantic rescue = 0” uyarısı dururken production kazananı seçmez. V4, V3’e göre Hit@5’te q017’yi kaybeder; kazandığı soru yoktur. Tek belgelik development checkpoint; holdout yok.</p>
+<p>Çalışma kopyasındaki Phase 4 unit/gold testleri ayrıca 9 test geçiyor (toplam collect 176). Bu katman henüz git’te freeze edilmedi.</p>
+<hr />
+<h2>8. Bundan sonraki önerilen adım</h2>
+<ol>
+<li>Phase 4 çıktısını V1–V3 / 3A–3C gibi SHA + rapor + testle dondurmak (şu an uncommitted).</li>
+<li>Retrieval sonucunu sınır F1’inden ayrı okumak: V3 ve V4 bu 50 soruda birbirine çok yakın; C3 hafif önde ama semantic iyileşme kanıtı değil; Legacy satırı production baseline değil.</li>
+<li>Kazanan ilan etmeden önce ikinci belge / holdout veya en azından gold’un <code>in_review</code> kapanışı.</li>
+<li>Ardından seçilen yaklaşımı mevcut <code>chat_rag</code> projesine <strong>minimal</strong> entegre etmek (canonical unit → chunk → aynı retrieval sözleşmesi) ve küçük bir demo/UI: soru, top-k chunk, sınır nedeni (semantic / size / hard), provenance.</li>
+</ol>
+<p>A5 contextualization bilinçli olarak yapılmadı; retrieval-side ayrı deney olarak duruyor.</p>
+<hr />
+<h2>9. Bu projede ne yaptım?</h2>
+<p>Sözlü özet:</p>
+<ol>
+<li>KKB 2024 raporunu canonical unit’lere çevirip SHA ile dondurdum; gold sınırları elle, belirsizleri <code>REVIEW</code> dışında tutarak etiketledim.</li>
+<li>LLM’siz, tekrarlanabilir bir chunker hattı kurdum: E5 embedding, ayrı token sayacı, heading attachment, hard cap, açıklanabilir provenance.</li>
+<li>V1’de komşu benzerlik + sabit eşik ile gerçek baseline aldım; bu dokümanda sabit 0.20 eşiğinin hiç semantic aday üretmediğini ölçtüm.</li>
+<li>V2 ile eşiği doküman dağılımına bağladım; V3 ile 1↔1 / 2↔2 / 3↔3 bağlama geçtim. Asıl sınır-skoru sıçraması V3’te geldi (±1 F1 0.36 → <strong>0.55</strong>).</li>
+<li>V4’te eşik-göreli seçim, yumuşak yapı ve güvenli merge ekledim; merge bug’ını bulup düzelttim. Post-fix A4 ±1 F1 <strong>0.59</strong>, kazanç precision; recall aynı. Success gate tam geçmedi.</li>
+<li>Hataları tek tek ayırdım: 7 kaçan HIGH’ın 5’i multi-scale bastırma; yakalananların çoğu size fallback; soft structure ve merge guard bu config’te fiilen boşta.</li>
+<li>Scale-calibration ve change-point deneylerini gold’a uydurmadan koştum, skor yükselse bile semantic rescue 0 olduğu için “daha iyi semantic yöntem” demeden dondurdum. Production winner yok; sıradaki iş retrieval checkpoint’ini resmi dondurmak ve entegrasyon/demo.</li>
+</ol>
+<hr />
+<p><em>Rapor tarihi: 19 Ağustos 2026. Authoritative sınır metrikleri: <code>evaluation/kkb-2024/baseline/</code> ve <code>evaluation/kkb-2024/v4-ablation/</code>. Failure analysis: <code>evaluation/kkb-2024/failure-analysis/</code>. Phase 3B/3C: ilgili <code>summary.json</code> + tag’ler. Phase 4 retrieval: çalışma kopyası, git freeze yok.</em></p>
+</body>
+</html>

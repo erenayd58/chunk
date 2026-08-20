@@ -35,8 +35,8 @@ class _StrictModel(BaseModel):
 
 
 class BenchmarkIdentityConfig(_StrictModel):
-    version: Literal["phase4-v1"]
-    status: Literal["development_checkpoint"]
+    version: Literal["phase5-holdout"]
+    status: Literal["holdout_validation_checkpoint"]
 
 
 class BenchmarkSourceConfig(_StrictModel):
@@ -203,8 +203,10 @@ def run_retrieval_benchmark(
     gold_path = root / config.source.gold_queries
     if sha256_file(units_path) != config.source.units_sha256:
         raise ValueError("Frozen canonical units SHA256 mismatch")
-    units = load_jsonl_units(units_path)
     gold = RetrievalGoldSet.model_validate_json(gold_path.read_text(encoding="utf-8"))
+    if gold.document_id != "kkb-2022":
+        raise ValueError("Phase 5 holdout is locked to kkb-2022")
+    units = load_jsonl_units(units_path)
     _validate_gold(gold, units, config.source.units_sha256)
     token_counter = TiktokenTokenCounter(config.evaluation.token_counter_encoding)
 
@@ -365,7 +367,7 @@ def run_retrieval_benchmark(
         },
     )
     (output / "retrieval-benchmark-report.md").write_text(
-        _render_report(summary), encoding="utf-8", newline="\n"
+        _render_report(config, summary), encoding="utf-8", newline="\n"
     )
     return summary
 
@@ -747,10 +749,14 @@ def _percentile(values: Sequence[float], quantile: float) -> float:
     return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
 
 
-def _render_report(summary: dict[str, Any]) -> str:
+def _render_report(
+    config: RetrievalBenchmarkConfig,
+    summary: dict[str, Any],
+) -> str:
     lines = [
-        "# Phase 4 — KKB Retrieval Benchmark",
+        "# Phase 5 Holdout Retrieval Validation",
         "",
+        f"**Document**: {config.source.document_id} (Holdout Set)",
         "Bu development benchmark'ında parser/input ve retrieval hattı sabittir; yalnız chunker değişir.",
         "Query expansion, contextualization ve reranker kapalıdır. Dense retrieval, BM25 ve deterministic RRF tüm adaylarda aynıdır.",
         "",

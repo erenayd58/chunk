@@ -1,0 +1,25 @@
+{
+  "candidate_id": "legacy",
+  "chunk_count": 260,
+  "evidence_coverage_at_1": 0.18333333333333332,
+  "evidence_coverage_at_3": 0.31666666666666665,
+  "evidence_coverage_at_5": 0.35,
+  "evidence_fragmentation_mean_covered_queries": 1.1764705882352942,
+  "hit_at_1": 0.2,
+  "hit_at_3": 0.36666666666666664,
+  "hit_at_5": 0.4,
+  "latency": {
+    "estimated_end_to_end_median_ms": 22.164806666666667,
+    "index_build_ms": 92.5783,
+    "search_median_ms": 1.56265,
+    "search_p90_ms": 1.94185,
+    "shared_query_embedding_per_query_ms": 20.602156666666666
+  },
+  "minimum_evidence_cover_chunks_mean": 1.1333333333333333,
+  "mrr": 0.28444444444444444,
+  "query_count": 30,
+  "retrieved_irrelevant_token_ratio_at_1": 0.9412792479438553,
+  "retrieved_irrelevant_token_ratio_at_3": 0.976408974813765,
+  "retrieved_irrelevant_token_ratio_at_5": 0.9858079823654453,
+  "source_evidence_coverage": 0.5333333333333333
+}
