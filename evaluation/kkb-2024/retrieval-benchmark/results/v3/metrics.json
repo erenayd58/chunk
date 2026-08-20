@@ -1,0 +1,25 @@
+{
+  "candidate_id": "v3",
+  "chunk_count": 244,
+  "evidence_coverage_at_1": 0.54,
+  "evidence_coverage_at_3": 0.68,
+  "evidence_coverage_at_5": 0.8,
+  "evidence_fragmentation_mean_covered_queries": 1.0,
+  "hit_at_1": 0.54,
+  "hit_at_3": 0.68,
+  "hit_at_5": 0.8,
+  "latency": {
+    "estimated_end_to_end_median_ms": 28.628922,
+    "index_build_ms": 74.0803,
+    "search_median_ms": 1.1539000000000001,
+    "search_p90_ms": 1.7844900000000001,
+    "shared_query_embedding_per_query_ms": 27.475022
+  },
+  "minimum_evidence_cover_chunks_mean": 1.0,
+  "mrr": 0.628,
+  "query_count": 50,
+  "retrieved_irrelevant_token_ratio_at_1": 0.860160227375094,
+  "retrieved_irrelevant_token_ratio_at_3": 0.941967354507053,
+  "retrieved_irrelevant_token_ratio_at_5": 0.9551604079266965,
+  "source_evidence_coverage": 1.0
+}

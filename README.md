@@ -28,6 +28,12 @@ Gerçek `multilingual-e5-base` modelini kullanmak için:
 py -3.11 -m pip install -e ".[model]"
 ```
 
+Phase 4 retrieval benchmark'ını çalıştırmak için:
+
+```powershell
+py -3.11 -m pip install -e ".[benchmark]"
+```
+
 Checkpoint evaluation için PDF extraction adapter'ını kullanmak üzere:
 
 ```powershell
@@ -85,6 +91,49 @@ Bu katman authoritative `evaluate_checkpoint()` sonucunu persisted `metrics.json
 eşitlik kontrolünden geçirir. Prediction sınıflandırması, HIGH/REVIEW semantiği,
 region filtering ve exact/±1 matching değişmez; yalnız ayrı diagnostic JSONL/Markdown
 üretilir.
+
+## Phase 3C freeze ve Phase 4 retrieval benchmark
+
+Phase 3C comparator sonucu `phase3c-development-result` etiketiyle dondurulmuştur.
+C3'ün boundary `±1 F1=0.6667` sonucu yalnız development bulgusudur; genuine
+semantic rescue sayısı `0` kaldığı için semantic improvement olarak yorumlanmaz.
+
+Phase 4, frozen canonical KKB input üzerinde Legacy `chat_rag`, V3, A4/V4 ve C3
+chunk'larını aynı retrieval hattıyla karşılaştırır. Gold set, retrieval sonuçları
+çalıştırılmadan önce elle hazırlanmış 50 question/evidence kaydı içerir. Query
+expansion, contextualization ve reranker kullanılmaz; bütün adaylarda aynı
+`multilingual-e5-base`, Unicode BM25 ve deterministic RRF config'i çalışır:
+
+```powershell
+py -3.11 -m amsc.run_retrieval_benchmark `
+  --config configs/retrieval-benchmark-v1.yaml `
+  --output evaluation/kkb-2024/retrieval-benchmark/results
+```
+
+Benchmark config'i canonical SHA'yı, public legacy kaynak commit'ini, E5 query ve
+document prefix'lerini, BM25/RRF ayarlarını ve frozen aday chunk dosyalarını
+sabitler. Retrieval embedding cache'i semantic-boundary cache'inden rol ve dizin
+olarak ayrıdır. Query latency ölçümünde query cache kullanılmaz.
+
+Public Legacy karşılaştırması, [MurselTasgin/chat_rag](https://github.com/MurselTasgin/chat_rag)
+kodunun frozen canonical input üzerindeki uyumluluk adapter'ıdır; KKB production
+agentic chunker'ının birebir reprodüksiyonu değildir. Public sentence packing,
+overlap ve kısa-tail düşürme davranışı korunur, fakat canonical parser'ı sabit tutmak
+ve generated retrieval header/contextualization eklememek için adapter sınırları
+açıkça raporlanır. NLTK English Punkt yerine deterministic punctuation-span
+tokenizer kullanılması da pinlenmiş bir compatibility farkıdır.
+
+Üretilen ana çıktılar:
+
+- `summary.json`: Hit@1/3/5, MRR, evidence coverage/fragmentation, irrelevant-token
+  ratio ve latency karşılaştırması.
+- `query-comparison.jsonl`: soru bazında ilk ilgili sıra ve Hit@K değişimleri.
+- Her aday dizinindeki `chunks.jsonl`, `query-results.jsonl` ve `metrics.json`:
+  corpus/provenance, deterministik ranking ve ayrıntılı ölçümler.
+- `retrieval-benchmark-report.md`: aynı sonuçların human-readable özeti.
+
+Bu benchmark KKB development checkpoint'idir; ikinci belge/holdout olmadan
+validated production sonucu değildir.
 
 `chunk` komutu model dosyalarını ilk kullanımda yerel ortama indirir. PDF parsing bu projenin kapsamında değildir; komut hazır canonical IDP/JSONL çıktısı bekler.
 

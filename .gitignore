@@ -1,4 +1,3 @@
-@"
 .cache/
 artifacts/
 __pycache__/
@@ -7,6 +6,7 @@ __pycache__/
 .venv/
 venv/
 kkbfaaliyetraporu2024.pdf
-"@ | Set-Content .gitignore.pytest-tmp/
-*.egg-info/
 .pytest-tmp/
+*.egg-info/
+.tmp/
+data/raw/*.pdf

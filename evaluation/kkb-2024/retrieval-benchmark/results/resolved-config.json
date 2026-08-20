@@ -1,0 +1,99 @@
+{
+  "benchmark": {
+    "status": "development_checkpoint",
+    "version": "phase4-v1"
+  },
+  "bm25": {
+    "b": 0.75,
+    "k1": 1.5,
+    "tokenizer": "unicode_word_casefold_v1"
+  },
+  "candidates": {
+    "c3": {
+      "chunk_overlap_words": null,
+      "chunk_size_words": null,
+      "chunks": "evaluation/kkb-2024/phase3c-semantic-comparators/c3/chunks.jsonl",
+      "kind": "frozen_jsonl",
+      "min_chunk_size_words": null,
+      "profile": null,
+      "sentence_tokenizer": null,
+      "source_commit": null,
+      "source_repository": null,
+      "use_embedding_segmentation": null,
+      "use_semantic_segmentation": null
+    },
+    "legacy": {
+      "chunk_overlap_words": 60,
+      "chunk_size_words": 300,
+      "chunks": null,
+      "kind": "public_chat_rag_compatibility_adapter",
+      "min_chunk_size_words": 50,
+      "profile": "public_code_defaults_on_frozen_canonical_v1",
+      "sentence_tokenizer": "deterministic_punctuation_span_v1",
+      "source_commit": "3fbe307c4d68eedcfb9cdaf14a73ca34eab14bcf",
+      "source_repository": "https://github.com/MurselTasgin/chat_rag",
+      "use_embedding_segmentation": false,
+      "use_semantic_segmentation": true
+    },
+    "v3": {
+      "chunk_overlap_words": null,
+      "chunk_size_words": null,
+      "chunks": "evaluation/kkb-2024/baseline/v3/chunks.jsonl",
+      "kind": "frozen_jsonl",
+      "min_chunk_size_words": null,
+      "profile": null,
+      "sentence_tokenizer": null,
+      "source_commit": null,
+      "source_repository": null,
+      "use_embedding_segmentation": null,
+      "use_semantic_segmentation": null
+    },
+    "v4": {
+      "chunk_overlap_words": null,
+      "chunk_size_words": null,
+      "chunks": "evaluation/kkb-2024/v4-ablation/a4/chunks.jsonl",
+      "kind": "frozen_jsonl",
+      "min_chunk_size_words": null,
+      "profile": null,
+      "sentence_tokenizer": null,
+      "source_commit": null,
+      "source_repository": null,
+      "use_embedding_segmentation": null,
+      "use_semantic_segmentation": null
+    }
+  },
+  "evaluation": {
+    "latency_repetitions": 3,
+    "token_counter_encoding": "cl100k_base",
+    "top_ks": [
+      1,
+      3,
+      5
+    ]
+  },
+  "retrieval_embedding": {
+    "batch_size": 16,
+    "cache_dir": ".cache/retrieval-benchmark-v1",
+    "cache_queries": false,
+    "device": "auto",
+    "document_prefix": "passage: ",
+    "local_files_only": true,
+    "model": "intfloat/multilingual-e5-base",
+    "model_input_limit": 512,
+    "normalize_embeddings": true,
+    "overlength_strategy": "sentence_fragment_token_weighted_pooling",
+    "query_prefix": "query: ",
+    "revision": null
+  },
+  "rrf": {
+    "bm25_weight": 1.0,
+    "candidate_pool_size": 100,
+    "dense_weight": 1.0,
+    "rank_constant": 60
+  },
+  "source": {
+    "gold_queries": "evaluation/kkb-2024/retrieval-benchmark/gold-queries.json",
+    "units": "data/kkb-2024.units.jsonl",
+    "units_sha256": "2776742d5bddad7dcf2a03320dca36e6b384e2ba042ab99ccdecce61612720d5"
+  }
+}

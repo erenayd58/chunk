@@ -1,0 +1,25 @@
+{
+  "candidate_id": "c3",
+  "chunk_count": 239,
+  "evidence_coverage_at_1": 0.54,
+  "evidence_coverage_at_3": 0.74,
+  "evidence_coverage_at_5": 0.82,
+  "evidence_fragmentation_mean_covered_queries": 1.0,
+  "hit_at_1": 0.54,
+  "hit_at_3": 0.74,
+  "hit_at_5": 0.82,
+  "latency": {
+    "estimated_end_to_end_median_ms": 28.015321999999998,
+    "index_build_ms": 68.8911,
+    "search_median_ms": 0.5403,
+    "search_p90_ms": 0.89763,
+    "shared_query_embedding_per_query_ms": 27.475022
+  },
+  "minimum_evidence_cover_chunks_mean": 1.0,
+  "mrr": 0.6413333333333333,
+  "query_count": 50,
+  "retrieved_irrelevant_token_ratio_at_1": 0.8632417148304968,
+  "retrieved_irrelevant_token_ratio_at_3": 0.9347498643623023,
+  "retrieved_irrelevant_token_ratio_at_5": 0.9550550379479816,
+  "source_evidence_coverage": 1.0
+}

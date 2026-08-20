@@ -1,0 +1,190 @@
+{
+  "benchmark_version": "phase4-v1",
+  "candidate_chunk_sha256": {
+    "c3": "2ed63e68f607a768674b4934cef61d2be463de9103b4bc1f30518938a8cfa940",
+    "legacy": "a1b8826c2e9f4142fad2cfe71cc4baea293e36ff77ce85b1ced93d1901a61bd0",
+    "v3": "2390ae44ae963f48895e267408c8eba0f80e0d19b204a55f2876b4ba7c5bd854",
+    "v4": "13f365408f9413f9146ca0bd57efda2f96021c40d12157cdb848ad2f67b1d3ac"
+  },
+  "candidates": {
+    "c3": {
+      "candidate_id": "c3",
+      "chunk_count": 239,
+      "evidence_coverage_at_1": 0.54,
+      "evidence_coverage_at_3": 0.74,
+      "evidence_coverage_at_5": 0.82,
+      "evidence_fragmentation_mean_covered_queries": 1.0,
+      "hit_at_1": 0.54,
+      "hit_at_3": 0.74,
+      "hit_at_5": 0.82,
+      "latency": {
+        "estimated_end_to_end_median_ms": 28.015321999999998,
+        "index_build_ms": 68.8911,
+        "search_median_ms": 0.5403,
+        "search_p90_ms": 0.89763,
+        "shared_query_embedding_per_query_ms": 27.475022
+      },
+      "minimum_evidence_cover_chunks_mean": 1.0,
+      "mrr": 0.6413333333333333,
+      "query_count": 50,
+      "retrieved_irrelevant_token_ratio_at_1": 0.8632417148304968,
+      "retrieved_irrelevant_token_ratio_at_3": 0.9347498643623023,
+      "retrieved_irrelevant_token_ratio_at_5": 0.9550550379479816,
+      "source_evidence_coverage": 1.0
+    },
+    "legacy": {
+      "candidate_id": "legacy",
+      "chunk_count": 244,
+      "evidence_coverage_at_1": 0.26,
+      "evidence_coverage_at_3": 0.38,
+      "evidence_coverage_at_5": 0.4,
+      "evidence_fragmentation_mean_covered_queries": 1.1379310344827587,
+      "hit_at_1": 0.26,
+      "hit_at_3": 0.38,
+      "hit_at_5": 0.4,
+      "latency": {
+        "estimated_end_to_end_median_ms": 28.331422,
+        "index_build_ms": 51.4569,
+        "search_median_ms": 0.8564,
+        "search_p90_ms": 1.19897,
+        "shared_query_embedding_per_query_ms": 27.475022
+      },
+      "minimum_evidence_cover_chunks_mean": 1.0,
+      "mrr": 0.31833333333333336,
+      "query_count": 50,
+      "retrieved_irrelevant_token_ratio_at_1": 0.9281185842430031,
+      "retrieved_irrelevant_token_ratio_at_3": 0.9649859317284692,
+      "retrieved_irrelevant_token_ratio_at_5": 0.9745080451022282,
+      "source_evidence_coverage": 0.58
+    },
+    "v3": {
+      "candidate_id": "v3",
+      "chunk_count": 244,
+      "evidence_coverage_at_1": 0.54,
+      "evidence_coverage_at_3": 0.68,
+      "evidence_coverage_at_5": 0.8,
+      "evidence_fragmentation_mean_covered_queries": 1.0,
+      "hit_at_1": 0.54,
+      "hit_at_3": 0.68,
+      "hit_at_5": 0.8,
+      "latency": {
+        "estimated_end_to_end_median_ms": 28.628922,
+        "index_build_ms": 74.0803,
+        "search_median_ms": 1.1539000000000001,
+        "search_p90_ms": 1.7844900000000001,
+        "shared_query_embedding_per_query_ms": 27.475022
+      },
+      "minimum_evidence_cover_chunks_mean": 1.0,
+      "mrr": 0.628,
+      "query_count": 50,
+      "retrieved_irrelevant_token_ratio_at_1": 0.860160227375094,
+      "retrieved_irrelevant_token_ratio_at_3": 0.941967354507053,
+      "retrieved_irrelevant_token_ratio_at_5": 0.9551604079266965,
+      "source_evidence_coverage": 1.0
+    },
+    "v4": {
+      "candidate_id": "v4",
+      "chunk_count": 244,
+      "evidence_coverage_at_1": 0.54,
+      "evidence_coverage_at_3": 0.7,
+      "evidence_coverage_at_5": 0.78,
+      "evidence_fragmentation_mean_covered_queries": 1.0,
+      "hit_at_1": 0.54,
+      "hit_at_3": 0.7,
+      "hit_at_5": 0.78,
+      "latency": {
+        "estimated_end_to_end_median_ms": 28.253522,
+        "index_build_ms": 79.7498,
+        "search_median_ms": 0.7785,
+        "search_p90_ms": 1.25204,
+        "shared_query_embedding_per_query_ms": 27.475022
+      },
+      "minimum_evidence_cover_chunks_mean": 1.0,
+      "mrr": 0.6256666666666667,
+      "query_count": 50,
+      "retrieved_irrelevant_token_ratio_at_1": 0.860160227375094,
+      "retrieved_irrelevant_token_ratio_at_3": 0.9326727382370873,
+      "retrieved_irrelevant_token_ratio_at_5": 0.9559090154713484,
+      "source_evidence_coverage": 1.0
+    }
+  },
+  "canonical_sha256": "2776742d5bddad7dcf2a03320dca36e6b384e2ba042ab99ccdecce61612720d5",
+  "gold_evidence_profile": {
+    "evidence_link_count": 50,
+    "expected_answer_count": 50,
+    "list_evidence_link_count": 0,
+    "multi_unit_query_count": 0,
+    "table_evidence_link_count": 14,
+    "visual_evidence_link_count": 6
+  },
+  "gold_queries_sha256": "3bd5bf1e25ff3de5759e8b9cd5eda8cfa9cb54697e85fa34608b22b0c2bedcc6",
+  "interpretation_guardrail": "C3 boundary ±1 F1=0.6667 is a development result, not evidence of semantic improvement; Phase 3C genuine semantic rescue count remained 0.",
+  "query_comparison": {
+    "c3_vs_v3_hit_at_5_gained": [
+      "q012",
+      "q036",
+      "q037"
+    ],
+    "c3_vs_v3_hit_at_5_lost": [
+      "q001",
+      "q024"
+    ],
+    "missed_by_all_at_5": [
+      "q009",
+      "q044",
+      "q045",
+      "q046",
+      "q047",
+      "q048",
+      "q050"
+    ],
+    "v4_vs_v3_hit_at_5_gained": [],
+    "v4_vs_v3_hit_at_5_lost": [
+      "q017"
+    ]
+  },
+  "query_count": 50,
+  "retrieval_pipeline": {
+    "bm25": {
+      "b": 0.75,
+      "k1": 1.5,
+      "tokenizer": "unicode_word_casefold_v1"
+    },
+    "contextualization": false,
+    "document_prefix": "passage: ",
+    "model_id": "intfloat/multilingual-e5-base@default",
+    "model_input_limit": 512,
+    "overlength_strategy": "sentence_fragment_token_weighted_pooling",
+    "query_expansion": false,
+    "query_prefix": "query: ",
+    "reranker": false,
+    "rrf": {
+      "bm25_weight": 1.0,
+      "candidate_pool_size": 100,
+      "dense_weight": 1.0,
+      "rank_constant": 60
+    },
+    "token_counter_id": "tiktoken:cl100k_base@0.14.0"
+  },
+  "schema_version": "1.0",
+  "shared_embedding": {
+    "document_stats": {
+      "cache_hits": 601,
+      "cache_misses": 0,
+      "fragment_count": 0,
+      "role": "document",
+      "text_count": 601
+    },
+    "document_total_ms": 197.4058,
+    "query_stats": {
+      "cache_hits": 0,
+      "cache_misses": 50,
+      "fragment_count": 50,
+      "role": "query",
+      "text_count": 50
+    },
+    "query_total_ms": 1373.7511,
+    "unique_document_text_count": 601
+  },
+  "status": "development_checkpoint"
+}

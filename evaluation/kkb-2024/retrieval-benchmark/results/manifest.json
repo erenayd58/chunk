@@ -1,0 +1,14 @@
+{
+  "candidate_chunk_sha256": {
+    "c3": "2ed63e68f607a768674b4934cef61d2be463de9103b4bc1f30518938a8cfa940",
+    "legacy": "a1b8826c2e9f4142fad2cfe71cc4baea293e36ff77ce85b1ced93d1901a61bd0",
+    "v3": "2390ae44ae963f48895e267408c8eba0f80e0d19b204a55f2876b4ba7c5bd854",
+    "v4": "13f365408f9413f9146ca0bd57efda2f96021c40d12157cdb848ad2f67b1d3ac"
+  },
+  "canonical_sha256": "2776742d5bddad7dcf2a03320dca36e6b384e2ba042ab99ccdecce61612720d5",
+  "config_sha256": "d8ccc13c426c966b280335b74d331648ee7d4138e6a481d87d30a0fb4a8a7d29",
+  "gold_authoring_method": "Questions and evidence links were written manually from the frozen canonical units before any retrieval outputs were generated.",
+  "gold_queries_sha256": "3bd5bf1e25ff3de5759e8b9cd5eda8cfa9cb54697e85fa34608b22b0c2bedcc6",
+  "legacy_source_commit": "3fbe307c4d68eedcfb9cdaf14a73ca34eab14bcf",
+  "only_chunker_varies": true
+}

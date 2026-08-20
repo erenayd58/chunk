@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "amsc-poc"
 version = "0.1.0"
-description = "V1/V2/V3 proof of concept for adaptive multi-signal semantic chunking"
+description = "V1-V4 proof of concept for adaptive multi-signal semantic chunking"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "numpy>=1.26,<3",
@@ -17,6 +17,9 @@ dependencies = [
 [project.optional-dependencies]
 model = ["sentence-transformers>=3,<6"]
 checkpoint = ["pymupdf4llm[layout]==0.3.4"]
+benchmark = [
+  "sentence-transformers>=3,<6",
+]
 dev = ["pytest>=8,<10"]
 
 [project.scripts]

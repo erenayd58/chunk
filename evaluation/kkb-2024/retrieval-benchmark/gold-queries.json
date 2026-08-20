@@ -1,0 +1,360 @@
+{
+  "schema_version": "1.0",
+  "document_id": "kkb-2024",
+  "source_units_file": "data/kkb-2024.units.jsonl",
+  "source_units_sha256": "2776742d5bddad7dcf2a03320dca36e6b384e2ba042ab99ccdecce61612720d5",
+  "annotation_status": "manual_development_checkpoint",
+  "authoring_method": "Questions and evidence links were written manually from the frozen canonical units before any retrieval outputs were generated.",
+  "queries": [
+    {
+      "query_id": "q001",
+      "question": "KKB 2024 Faaliyet Raporu hangi hesap dönemini kapsıyor?",
+      "evidence_unit_ids": ["p-00001"],
+      "evidence_pages": [2],
+      "expected_answer": "01.01.2024-31.12.2024"
+    },
+    {
+      "query_id": "q002",
+      "question": "KKB'nin ticaret sicil numarası nedir?",
+      "evidence_unit_ids": ["p-00001"],
+      "evidence_pages": [2],
+      "expected_answer": "329148 - 0"
+    },
+    {
+      "query_id": "q003",
+      "question": "KKB çağrı merkezinin telefon numarası nedir?",
+      "evidence_unit_ids": ["p-00001"],
+      "evidence_pages": [2],
+      "expected_answer": "444 4 552"
+    },
+    {
+      "query_id": "q004",
+      "question": "KKB kaç bankanın ortaklığıyla kuruldu ve 2024'te kuruluşunun kaçıncı yılındaydı?",
+      "evidence_unit_ids": ["p-00044"],
+      "evidence_pages": [3],
+      "expected_answer": "9 bankanın ortaklığıyla kuruldu; kuruluşunun 30. yılıydı."
+    },
+    {
+      "query_id": "q005",
+      "question": "Findeks 10. yılında kaç üyeye ulaşmıştı?",
+      "evidence_unit_ids": ["p-00050"],
+      "evidence_pages": [5],
+      "expected_answer": "8 milyon üye"
+    },
+    {
+      "query_id": "q006",
+      "question": "TBB Risk Merkezi ne zaman faaliyete geçti ve KKB kaç Risk Merkezi üyesine hizmet veriyor?",
+      "evidence_unit_ids": ["p-00071"],
+      "evidence_pages": [8],
+      "expected_answer": "28 Haziran 2013; 197 üye finansal kuruluş"
+    },
+    {
+      "query_id": "q007",
+      "question": "KKB Çek Raporu ve Risk Raporu'nu ne zaman hizmete sundu?",
+      "evidence_unit_ids": ["p-00073"],
+      "evidence_pages": [8],
+      "expected_answer": "Ocak 2013"
+    },
+    {
+      "query_id": "q008",
+      "question": "Findeks hangi yıl hayata geçirildi?",
+      "evidence_unit_ids": ["p-00074"],
+      "evidence_pages": [8],
+      "expected_answer": "2014"
+    },
+    {
+      "query_id": "q009",
+      "question": "Findeks Karekodlu Çek Sistemi ne zaman yürürlüğe girdi?",
+      "evidence_unit_ids": ["p-00074"],
+      "evidence_pages": [8],
+      "expected_answer": "1 Ocak 2017"
+    },
+    {
+      "query_id": "q010",
+      "question": "KKB Anadolu Veri Merkezi ne zaman faaliyete başladı?",
+      "evidence_unit_ids": ["p-00074"],
+      "evidence_pages": [8],
+      "expected_answer": "Aralık 2016"
+    },
+    {
+      "query_id": "q011",
+      "question": "KKB'nin 2024 yıl sonundaki çalışan sayısı kaçtı?",
+      "evidence_unit_ids": ["p-00076"],
+      "evidence_pages": [8],
+      "expected_answer": "709 kişi"
+    },
+    {
+      "query_id": "q012",
+      "question": "KKB'nin misyonu kurumların hangi verimliliğini artırmayı hedefliyor?",
+      "evidence_unit_ids": ["p-00087"],
+      "evidence_pages": [9],
+      "expected_answer": "Operasyonel verimliliklerini artırmak"
+    },
+    {
+      "query_id": "q013",
+      "question": "2024 stratejik önceliklerinde yapay zekâ ile hangi çalışmalar hedeflendi?",
+      "evidence_unit_ids": ["p-00095"],
+      "evidence_pages": [9],
+      "expected_answer": "Veri analizi ve modellemelerle yeni ürünler geliştirmek"
+    },
+    {
+      "query_id": "q014",
+      "question": "Dijital Doküman Merkezi hangi ihtiyaca çözüm olarak stratejik önceliklere alındı?",
+      "evidence_unit_ids": ["p-00100"],
+      "evidence_pages": [10],
+      "expected_answer": "Ticari müşteri belgelerini dijital platforma taşımak ve tüm bankaların görüntüleyebilmesini sağlamak"
+    },
+    {
+      "query_id": "q015",
+      "question": "Findeks için 2024'te hedeflenen geliştirmelerin kullanıcıya sağlayacağı temel fayda neydi?",
+      "evidence_unit_ids": ["p-00104"],
+      "evidence_pages": [10],
+      "expected_answer": "Kullanıcıların finansal durumlarını daha kolay takip edebilmesi"
+    },
+    {
+      "query_id": "q016",
+      "question": "Greendeks kurumların sürdürülebilirlik durumunu hangi kriterlere göre raporluyor?",
+      "evidence_unit_ids": ["p-00110"],
+      "evidence_pages": [10],
+      "expected_answer": "Çevresel, Sosyal ve Kurumsal Yönetişim (ESG/ÇSY) kriterleri"
+    },
+    {
+      "query_id": "q017",
+      "question": "KKB 2024'te sadeleşme ve verimlilik kapsamında hangi alanları optimize etmeye odaklandı?",
+      "evidence_unit_ids": ["p-00115"],
+      "evidence_pages": [10],
+      "expected_answer": "Süreçler, ürünler, kullanılan teknolojiler ve organizasyon"
+    },
+    {
+      "query_id": "q018",
+      "question": "2024'te KRS sorgulama sayısı kaç milyondu?",
+      "evidence_unit_ids": ["t-00196"],
+      "evidence_pages": [14],
+      "expected_answer": "1.650 milyon"
+    },
+    {
+      "query_id": "q019",
+      "question": "2024'te Kurumsal Büro sorgulama sayısı kaç milyondu?",
+      "evidence_unit_ids": ["t-00196"],
+      "evidence_pages": [14],
+      "expected_answer": "217 milyon"
+    },
+    {
+      "query_id": "q020",
+      "question": "2024'te Bireysel Kredi Notu sayısı kaç milyondu?",
+      "evidence_unit_ids": ["t-00196"],
+      "evidence_pages": [14],
+      "expected_answer": "1.513 milyon"
+    },
+    {
+      "query_id": "q021",
+      "question": "2024 LKS sorgulama sayısı kaç milyon olarak raporlandı?",
+      "evidence_unit_ids": ["t-00196"],
+      "evidence_pages": [14],
+      "expected_answer": "874 milyon"
+    },
+    {
+      "query_id": "q022",
+      "question": "2024'te IBAN Doğrulama Hizmeti kaç milyon sorguya ulaştı?",
+      "evidence_unit_ids": ["t-00196"],
+      "evidence_pages": [14],
+      "expected_answer": "632 milyon"
+    },
+    {
+      "query_id": "q023",
+      "question": "2024'te Kredi Anlık Paylaşım (KAPS) hacmi kaç milyondu?",
+      "evidence_unit_ids": ["t-00196"],
+      "evidence_pages": [14],
+      "expected_answer": "1.092 milyon"
+    },
+    {
+      "query_id": "q024",
+      "question": "2024 BBE göstergesi kaç milyondu?",
+      "evidence_unit_ids": ["t-00196"],
+      "evidence_pages": [14],
+      "expected_answer": "216 milyon"
+    },
+    {
+      "query_id": "q025",
+      "question": "KKB 2024'te Great Place to Work kapsamında hangi işveren listesine yeniden girdi?",
+      "evidence_unit_ids": ["p-00345"],
+      "evidence_pages": [18],
+      "expected_answer": "Türkiye'nin En İyi İşverenleri 2024 Listesi"
+    },
+    {
+      "query_id": "q026",
+      "question": "Çek Raporu çekin karşılıksız çıkma ihtimalini yüzde kaça varan oranda tahmin edebiliyor?",
+      "evidence_unit_ids": ["p-00499"],
+      "evidence_pages": [27],
+      "expected_answer": "%80'e varan oranda"
+    },
+    {
+      "query_id": "q027",
+      "question": "Elektronik Teminat Mektubu'nda lehtar firmalar mektubun durumunu nereden takip edebiliyor?",
+      "evidence_unit_ids": ["p-00630"],
+      "evidence_pages": [30],
+      "expected_answer": "Findeks üzerinden"
+    },
+    {
+      "query_id": "q028",
+      "question": "Greendeks değerlendirme formları kaçtan fazla sektör için tasarlandı ve ortalama kaç soru içeriyor?",
+      "evidence_unit_ids": ["p-00675"],
+      "evidence_pages": [31],
+      "expected_answer": "30'dan fazla sektör; form başına ortalama 80 soru"
+    },
+    {
+      "query_id": "q029",
+      "question": "Greendeks'i hangi ölçekteki ticari firmalar kullanabilir?",
+      "evidence_unit_ids": ["p-00676"],
+      "evidence_pages": [31],
+      "expected_answer": "Büyük, orta ve küçük ölçekli tüm ticari firmalar"
+    },
+    {
+      "query_id": "q030",
+      "question": "Greendeks işletmelere aksiyon önerilerini neye göre sunuyor?",
+      "evidence_unit_ids": ["p-00683"],
+      "evidence_pages": [31],
+      "expected_answer": "Değerlendirme formuna verilen yanıtlara göre"
+    },
+    {
+      "query_id": "q031",
+      "question": "Bireysel Kredi Notu hangi bilgileri özetleyen sayısal bir göstergedir?",
+      "evidence_unit_ids": ["p-00687"],
+      "evidence_pages": [31],
+      "expected_answer": "KRS üzerinden elde edilen kredi ödeme performansı bilgilerini"
+    },
+    {
+      "query_id": "q032",
+      "question": "Ticari Kredi Notu firmalar hakkında neyi tahmin etmek amacıyla üretilir?",
+      "evidence_unit_ids": ["p-00692"],
+      "evidence_pages": [31],
+      "expected_answer": "Kredi geri ödeme yükümlülüklerini ne ölçüde yerine getireceklerini"
+    },
+    {
+      "query_id": "q033",
+      "question": "TKN ve TBE'nin yeni versiyonlarının ne zaman kullanıma açılması planlandı?",
+      "evidence_unit_ids": ["p-00699"],
+      "evidence_pages": [32],
+      "expected_answer": "2025"
+    },
+    {
+      "query_id": "q034",
+      "question": "Kurumsal strateji kazanımlarında planlanan ve gerçekleşen FTE değerleri kaçtı?",
+      "evidence_unit_ids": ["v-00958"],
+      "evidence_pages": [43],
+      "expected_answer": "Planlanan 17 FTE, gerçekleşen 8,7 FTE"
+    },
+    {
+      "query_id": "q035",
+      "question": "KKB'nin 709 çalışanının kadın ve erkek dağılımı nasıldı?",
+      "evidence_unit_ids": ["v-01052"],
+      "evidence_pages": [48],
+      "expected_answer": "270 kadın (%38), 439 erkek (%62)"
+    },
+    {
+      "query_id": "q036",
+      "question": "KKB çalışanlarının kaçının lisans mezunu olduğu ve oranı nedir?",
+      "evidence_unit_ids": ["v-01052"],
+      "evidence_pages": [48],
+      "expected_answer": "479 çalışan, %68"
+    },
+    {
+      "query_id": "q037",
+      "question": "KKB çalışanlarının yaş ortalaması kaçtır?",
+      "evidence_unit_ids": ["v-01052"],
+      "evidence_pages": [48],
+      "expected_answer": "35,65"
+    },
+    {
+      "query_id": "q038",
+      "question": "2024'te İç Kontrol Bölümü içinde hangi yeni ekip kuruldu?",
+      "evidence_unit_ids": ["p-01111"],
+      "evidence_pages": [51],
+      "expected_answer": "Kontrol Otomasyon ve Analitik Ekibi"
+    },
+    {
+      "query_id": "q039",
+      "question": "Denetim Komitesi hangi bölümlerin faaliyetlerini üst yönetimle paylaşmak için toplanır?",
+      "evidence_unit_ids": ["p-01164"],
+      "evidence_pages": [53],
+      "expected_answer": "İç Denetim, Yasal Uyum ve Operasyon, İç Kontrol ve Risk Yönetimi"
+    },
+    {
+      "query_id": "q040",
+      "question": "KKB Yönlendirme Komitesi hangi konuları değerlendirir?",
+      "evidence_unit_ids": ["p-01166"],
+      "evidence_pages": [53],
+      "expected_answer": "Güncel finansallar, stratejik hedeflere uyum ve planlanan yeni ürün/hizmetler"
+    },
+    {
+      "query_id": "q041",
+      "question": "Bilgi Güvenliği Komitesi hangi zafiyetlerle ilgili kaynak ve koordinasyon ihtiyacını değerlendirir?",
+      "evidence_unit_ids": ["p-01170"],
+      "evidence_pages": [53],
+      "expected_answer": "Bilgi güvenliği zafiyetleri"
+    },
+    {
+      "query_id": "q042",
+      "question": "2024'te aktif KKB gönüllüsü ve toplam gönüllülük projesi sayısı kaçtı?",
+      "evidence_unit_ids": ["v-01197"],
+      "evidence_pages": [54],
+      "expected_answer": "204 aktif gönüllü ve 19 proje"
+    },
+    {
+      "query_id": "q043",
+      "question": "KKB gönüllülerinin kişi başı sosyal etki değeri kaç TL olarak verildi?",
+      "evidence_unit_ids": ["v-01221"],
+      "evidence_pages": [55],
+      "expected_answer": "3.182,87 TL"
+    },
+    {
+      "query_id": "q044",
+      "question": "31 Aralık 2024 itibarıyla KKB'nin toplam yükümlülükleri ne kadardı?",
+      "evidence_unit_ids": ["t-01242"],
+      "evidence_pages": [62],
+      "expected_answer": "2.736.345.213 TL"
+    },
+    {
+      "query_id": "q045",
+      "question": "31 Aralık 2024 itibarıyla KKB'nin özkaynakları ne kadardı?",
+      "evidence_unit_ids": ["t-01242"],
+      "evidence_pages": [62],
+      "expected_answer": "1.053.022.482 TL"
+    },
+    {
+      "query_id": "q046",
+      "question": "KKB'nin 2024 sonundaki ödenmiş sermayesi ne kadardı?",
+      "evidence_unit_ids": ["t-01242"],
+      "evidence_pages": [62],
+      "expected_answer": "7.425.000 TL"
+    },
+    {
+      "query_id": "q047",
+      "question": "KKB'nin 2024 hasılatı ne kadardı?",
+      "evidence_unit_ids": ["t-01246"],
+      "evidence_pages": [63],
+      "expected_answer": "3.543.163.259 TL"
+    },
+    {
+      "query_id": "q048",
+      "question": "KKB'nin 2024 net dönem kârı ne kadardı?",
+      "evidence_unit_ids": ["t-01246"],
+      "evidence_pages": [63],
+      "expected_answer": "736.116.819 TL"
+    },
+    {
+      "query_id": "q049",
+      "question": "KKB'nin 2024 sürdürülen faaliyetler vergi öncesi kârı ne kadardı?",
+      "evidence_unit_ids": ["t-01246"],
+      "evidence_pages": [63],
+      "expected_answer": "987.116.220 TL"
+    },
+    {
+      "query_id": "q050",
+      "question": "KKB'nin 2024 brüt satış kârı ne kadardı?",
+      "evidence_unit_ids": ["t-01246"],
+      "evidence_pages": [63],
+      "expected_answer": "2.291.775.852 TL"
+    }
+  ]
+}

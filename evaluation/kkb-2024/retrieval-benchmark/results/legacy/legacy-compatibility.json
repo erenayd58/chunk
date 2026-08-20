@@ -1,0 +1,21 @@
+{
+  "compatibility_notes": [
+    "canonical headings replace the public repository's parser heuristic",
+    "generated Title/Document/Section retrieval headers are disabled",
+    "TextTiling is configured but deterministically falls back after whitespace collapse",
+    "public sentence packing, word limits, overlap, and short-tail dropping are retained",
+    "dependency-free punctuation spans replace public NLTK English Punkt sentence tokenization",
+    "this comparator is not the inaccessible KKB production agentic chunker"
+  ],
+  "profile": {
+    "chunk_overlap_words": 60,
+    "chunk_size_words": 300,
+    "min_chunk_size_words": 50,
+    "profile_id": "public_code_defaults_on_frozen_canonical_v1",
+    "sentence_tokenizer": "deterministic_punctuation_span_v1",
+    "source_commit": "3fbe307c4d68eedcfb9cdaf14a73ca34eab14bcf",
+    "source_repository": "https://github.com/MurselTasgin/chat_rag",
+    "use_embedding_segmentation": false,
+    "use_semantic_segmentation": true
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "cache_state": "cold",
+  "document_embedding_total_ms": 278054.6191,
+  "document_fragment_count": 691,
+  "note": "Observed during the first Phase 4 CPU run before populating the retrieval embedding cache; wall-clock values are environment-specific.",
+  "query_count": 50,
+  "query_embedding_total_ms": 2287.8301,
+  "unique_document_text_count": 601
+}
