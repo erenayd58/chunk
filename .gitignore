@@ -10,3 +10,4 @@ kkbfaaliyetraporu2024.pdf
 *.egg-info/
 .tmp/
 data/raw/*.pdf
+logs/
