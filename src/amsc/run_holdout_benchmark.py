@@ -28,9 +28,14 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(
             {
                 "status": "ok",
-                "document": summary.get("document_id"),
-                "total_queries": summary.get("total_queries"),
-                "overall": summary.get("overall"),
+                "benchmark_version": summary["benchmark_version"],
+                "benchmark_status": summary["status"],
+                "query_count": summary["query_count"],
+                "output": str(args.output),
+                "hit_at_5": {
+                    candidate_id: metric["hit_at_5"]
+                    for candidate_id, metric in summary["candidates"].items()
+                },
             },
             ensure_ascii=False,
             indent=2,

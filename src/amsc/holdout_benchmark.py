@@ -173,10 +173,16 @@ class RetrievalGoldSet(_StrictModel):
     source_units_file: str
     source_units_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     annotation_status: Literal[
-        "manual_development_checkpoint", "manual_holdout_checkpoint"
+        "manual_development_checkpoint",
+        "manual_holdout_checkpoint",
+        # v2 sets are authored to a stricter design (multi-unit evidence,
+        # limited unit reuse, balanced page coverage). The frozen v1 sets are
+        # untouched and keep their original status values.
+        "manual_v2_development_checkpoint",
+        "manual_v2_holdout_checkpoint",
     ]
     authoring_method: str
-    queries: list[RetrievalGoldQuery] = Field(min_length=30, max_length=50)
+    queries: list[RetrievalGoldQuery] = Field(min_length=20, max_length=200)
 
     @model_validator(mode="after")
     def validate_unique_ids(self) -> "RetrievalGoldSet":
@@ -367,7 +373,7 @@ def run_retrieval_benchmark(
         },
     )
     (output / "retrieval-benchmark-report.md").write_text(
-        _render_report(config, summary), encoding="utf-8", newline="\n"
+        _render_report(config, gold, summary), encoding="utf-8", newline="\n"
     )
     return summary
 
@@ -751,12 +757,13 @@ def _percentile(values: Sequence[float], quantile: float) -> float:
 
 def _render_report(
     config: RetrievalBenchmarkConfig,
+    gold: RetrievalGoldSet,
     summary: dict[str, Any],
 ) -> str:
     lines = [
         "# Phase 5 Holdout Retrieval Validation",
         "",
-        f"**Document**: {config.source.document_id} (Holdout Set)",
+        f"**Document**: {gold.document_id} (Holdout Set)",
         "Bu development benchmark'ında parser/input ve retrieval hattı sabittir; yalnız chunker değişir.",
         "Query expansion, contextualization ve reranker kapalıdır. Dense retrieval, BM25 ve deterministic RRF tüm adaylarda aynıdır.",
         "",

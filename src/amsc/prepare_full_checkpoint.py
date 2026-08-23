@@ -8,6 +8,7 @@ from typing import Sequence
 
 from .checkpoint_adapter import (
     AtomicBlock,
+    CanonicalExtraction,
     CanonicalUnitWriter,
     ExtractionManifestWriter,
     ExtractionResult,
@@ -74,20 +75,33 @@ def apply_profile_to_spread_logical_pages(
     )
 
 
-def prepare_full_checkpoint(
+def extract_full_canonical_units(
     *,
     input_path: str | Path,
-    output_path: str | Path,
-    layout_profile_path: str | Path,
+    layout_profile_path: str | Path | None = None,
     document_id: str = "kkb-2024",
     extractor: PyMuPDF4LLMExtractor | None = None,
-) -> FullCheckpointResult:
-    profile = load_checkpoint_layout_profile(layout_profile_path)
+) -> CanonicalExtraction:
+    """Produce mixed-orientation canonical units in memory, writing no file.
+
+    This is the shared body of :func:`prepare_full_checkpoint`.  Unlike that
+    function the layout profile is optional: when it is omitted the frozen
+    extractor's own reading order is kept for spread pages.  Portrait-only
+    documents are unaffected either way because
+    :func:`apply_profile_to_spread_logical_pages` skips ``single`` pages.
+    """
+
+    profile = (
+        load_checkpoint_layout_profile(layout_profile_path)
+        if layout_profile_path is not None
+        else None
+    )
     extraction = (extractor or PyMuPDF4LLMExtractor()).extract(
         input_path,
         pages=None,
     )
-    extraction = apply_profile_to_spread_logical_pages(extraction, profile)
+    if profile is not None:
+        extraction = apply_profile_to_spread_logical_pages(extraction, profile)
 
     parser = MarkdownAtomicUnitParser()
     blocks: list[AtomicBlock] = []
@@ -115,6 +129,53 @@ def prepare_full_checkpoint(
         canonical_blocks,
         document_id=document_id,
     )
+    return CanonicalExtraction(
+        units=tuple(units),
+        blocks=tuple(blocks),
+        selected_pages=extraction.selected_pages,
+        pymupdf4llm_version=extraction.pymupdf4llm_version,
+        picture_count=sum(block.content_origin == "visual" for block in blocks),
+        layout_profile=profile,
+        page_count=extraction.page_count,
+        portrait_single_pages=tuple(
+            sorted(
+                {
+                    page.page
+                    for page in extraction.pages
+                    if page.logical_page_side == "single"
+                }
+            )
+        ),
+        landscape_spread_pages=tuple(
+            sorted(
+                {
+                    page.page
+                    for page in extraction.pages
+                    if page.logical_page_side in {"left", "right"}
+                }
+            )
+        ),
+    )
+
+
+def prepare_full_checkpoint(
+    *,
+    input_path: str | Path,
+    output_path: str | Path,
+    layout_profile_path: str | Path,
+    document_id: str = "kkb-2024",
+    extractor: PyMuPDF4LLMExtractor | None = None,
+) -> FullCheckpointResult:
+    extracted = extract_full_canonical_units(
+        input_path=input_path,
+        layout_profile_path=layout_profile_path,
+        document_id=document_id,
+        extractor=extractor,
+    )
+    profile = extracted.layout_profile
+    units = list(extracted.units)
+    blocks = list(extracted.blocks)
+
     CanonicalUnitWriter().write(units, output_path)
     visual_path = VisualProvenanceWriter().write(
         canonical_path=output_path,
@@ -126,30 +187,14 @@ def prepare_full_checkpoint(
         canonical_path=output_path,
         source_pdf=input_path,
         document_id=document_id,
-        selected_pages=extraction.selected_pages,
-        pymupdf4llm_version=extraction.pymupdf4llm_version,
+        selected_pages=extracted.selected_pages,
+        pymupdf4llm_version=extracted.pymupdf4llm_version,
         visual_provenance_path=visual_path,
         layout_profile=profile,
     )
 
-    portrait_pages = tuple(
-        sorted(
-            {
-                page.page
-                for page in extraction.pages
-                if page.logical_page_side == "single"
-            }
-        )
-    )
-    landscape_pages = tuple(
-        sorted(
-            {
-                page.page
-                for page in extraction.pages
-                if page.logical_page_side in {"left", "right"}
-            }
-        )
-    )
+    portrait_pages = extracted.portrait_single_pages
+    landscape_pages = extracted.landscape_spread_pages
     _record_full_document_profile_application(
         manifest_path,
         portrait_pages=portrait_pages,
@@ -160,8 +205,8 @@ def prepare_full_checkpoint(
         units=tuple(units),
         manifest_path=manifest_path,
         visual_provenance_path=visual_path,
-        selected_pages=extraction.selected_pages,
-        pymupdf4llm_version=extraction.pymupdf4llm_version,
+        selected_pages=extracted.selected_pages,
+        pymupdf4llm_version=extracted.pymupdf4llm_version,
         picture_count=sum(block.content_origin == "visual" for block in blocks),
         visual_atomic_unit_count=sum(
             getattr(unit.source, "content_origin", None) == "visual"
@@ -171,7 +216,7 @@ def prepare_full_checkpoint(
     )
     return FullCheckpointResult(
         preparation=preparation,
-        physical_page_count=extraction.page_count,
+        physical_page_count=extracted.page_count,
         portrait_single_pages=portrait_pages,
         landscape_spread_pages=landscape_pages,
         canonical_sha256=sha256_file(output_path),

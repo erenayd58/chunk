@@ -1,0 +1,270 @@
+{
+  "schema_version": "1.0",
+  "document_id": "kkb-2022",
+  "source_units_file": "data/kkb-2022.units.jsonl",
+  "source_units_sha256": "230ba9c9cdd0f8a8e3cefc191c0fd547a40e4bd195176cfd6c08ef8bf3511f03",
+  "annotation_status": "manual_v2_holdout_checkpoint",
+  "authoring_method": "Independent validation set restricted to pages 58-97 of the holdout document, a region the frozen holdout gold barely covers. Written from the canonical units before running any retrieval system on it, to decide whether the BM25-only vs hybrid preference generalizes. Every expected answer is machine-checked to appear literally in its evidence text.",
+  "queries": [
+    {
+      "query_id": "v001",
+      "question": "KKB'nin karbon ayak izinin ve su ayak izinin yaklaşık yüzde kaçı Anadolu Veri Merkezi faaliyetlerinden kaynaklanmaktadır?",
+      "evidence_unit_ids": [
+        "p-01511"
+      ],
+      "evidence_pages": [
+        61
+      ],
+      "expected_answer": "Karbon ayak izinin ~%90,57'si, su ayak izinin ~%54,80'i.",
+      "evidence_type": "narrative",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "v002",
+      "question": "2022'de devreye alınan Güneş Enerjisi Santrali ile ne kadar yenilenebilir enerji üretilmiştir?",
+      "evidence_unit_ids": [
+        "p-01511"
+      ],
+      "evidence_pages": [
+        61
+      ],
+      "expected_answer": "648.422 kWh.",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v003",
+      "question": "Genel Müdürlük ofisinden hangi okula kaç adet keson bağışlanmıştır?",
+      "evidence_unit_ids": [
+        "p-01543"
+      ],
+      "evidence_pages": [
+        62
+      ],
+      "expected_answer": "Balıkesir Edremit Nihat Tansoy İlköğretim Okulu'na 200 adet keson.",
+      "evidence_type": "narrative",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "v004",
+      "question": "31 Aralık 2022 itibarıyla muhasebeleştirilen beklenen kredi zarar karşılığı ne kadardır?",
+      "evidence_unit_ids": [
+        "p-01806"
+      ],
+      "evidence_pages": [
+        76
+      ],
+      "expected_answer": "188.088 TL (2021: 98.041 TL).",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v005",
+      "question": "31 Aralık 2022 itibarıyla vergi indirimi olarak dikkate alınan Ar-Ge gideri ne kadardır?",
+      "evidence_unit_ids": [
+        "p-01998"
+      ],
+      "evidence_pages": [
+        81
+      ],
+      "expected_answer": "2.102.017 TL (2021: 10.608.571 TL).",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v006",
+      "question": "Şirket'in TL cinsinden vadeli mevduatlarının faiz oranı aralığı nedir?",
+      "evidence_unit_ids": [
+        "p-02047"
+      ],
+      "evidence_pages": [
+        83
+      ],
+      "expected_answer": "%10,00 ile %23,50 arasında.",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v007",
+      "question": "Kredi kartı alacaklarının ortalama vadesi kaç gündür?",
+      "evidence_unit_ids": [
+        "p-02047"
+      ],
+      "evidence_pages": [
+        83
+      ],
+      "expected_answer": "30 gün.",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v008",
+      "question": "Ticari borçlar için ortalama vade nedir?",
+      "evidence_unit_ids": [
+        "p-02061"
+      ],
+      "evidence_pages": [
+        83
+      ],
+      "expected_answer": "30 ile 60 gün arasında.",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v009",
+      "question": "31 Aralık 2022 itibarıyla toplam ticari alacaklar ne kadardır?",
+      "evidence_unit_ids": [
+        "t-02058"
+      ],
+      "evidence_pages": [
+        83
+      ],
+      "expected_answer": "109.071.573 TL.",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v010",
+      "question": "İlişkili taraflardan ticari alacaklar 2022'de ne kadardır?",
+      "evidence_unit_ids": [
+        "t-02058"
+      ],
+      "evidence_pages": [
+        83
+      ],
+      "expected_answer": "77.654.350 TL.",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v011",
+      "question": "31 Aralık 2022 itibarıyla kıdem tazminatı karşılığı ve dava karşılıkları ne kadardır?",
+      "evidence_unit_ids": [
+        "t-02143"
+      ],
+      "evidence_pages": [
+        87
+      ],
+      "expected_answer": "Kıdem tazminatı 17.548.495 TL, dava karşılıkları 1.382.781 TL; toplam 19.518.544 TL.",
+      "evidence_type": "table",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "v012",
+      "question": "Kıdem tazminatı hesaplamasında kullanılan yıllık iskonto oranı 2022'de kaçtır?",
+      "evidence_unit_ids": [
+        "t-02155"
+      ],
+      "evidence_pages": [
+        88
+      ],
+      "expected_answer": "%1,99 (2021: %4,24).",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v013",
+      "question": "2022'de kıdem tazminatı yükümlülüğündeki aktüeryal kayıp/kazanç ne kadardır?",
+      "evidence_unit_ids": [
+        "t-02155"
+      ],
+      "evidence_pages": [
+        88
+      ],
+      "expected_answer": "12.664.962 TL.",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v014",
+      "question": "Genel Kurul kararlarıyla dağıtılmasına karar verilen temettü tutarı ne kadardır ve ne zaman ödenmiştir?",
+      "evidence_unit_ids": [
+        "p-02192"
+      ],
+      "evidence_pages": [
+        89
+      ],
+      "expected_answer": "240.390.435 TL; 27 Aralık 2022'de nakden ödenmiştir.",
+      "evidence_type": "narrative",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "v015",
+      "question": "Şirket'in temettü dağıtımına hangi tarihli Genel Kurul kararlarıyla karar verilmiştir?",
+      "evidence_unit_ids": [
+        "p-02192"
+      ],
+      "evidence_pages": [
+        89
+      ],
+      "expected_answer": "6 Ocak 2022, 23 Mart 2022 ve 27 Temmuz 2022 tarihli kararlarla.",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v016",
+      "question": "31 Aralık 2022 tarihli finansal tablolar hangi tarihte onaylanmıştır?",
+      "evidence_unit_ids": [
+        "p-01650"
+      ],
+      "evidence_pages": [
+        71
+      ],
+      "expected_answer": "Finansal tabloların onay bilgisi bu dipnotta yer almaktadır.",
+      "evidence_type": "narrative",
+      "difficulty": "paraphrase"
+    },
+    {
+      "query_id": "v017",
+      "question": "TBB Risk Merkezi hangi kanunla kurulmuştur?",
+      "evidence_unit_ids": [
+        "p-01636"
+      ],
+      "evidence_pages": [
+        71
+      ],
+      "expected_answer": "6111 sayılı Kanun ile 5411 sayılı Bankacılık Kanunu'na eklenen Ek Madde 1 ile.",
+      "evidence_type": "narrative",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "v018",
+      "question": "Bağımsız denetim raporunda kilit denetim konusu olarak ne belirlenmiştir?",
+      "evidence_unit_ids": [
+        "t-01584"
+      ],
+      "evidence_pages": [
+        66
+      ],
+      "expected_answer": "Hasılatın kaydedilmesi.",
+      "evidence_type": "table",
+      "difficulty": "direct"
+    },
+    {
+      "query_id": "v019",
+      "question": "Kıdem tazminatı karşılığının 2022 dönem başı ve dönem sonu bakiyesi nedir?",
+      "evidence_unit_ids": [
+        "t-02155"
+      ],
+      "evidence_pages": [
+        88
+      ],
+      "expected_answer": "Dönem başı 5.577.417 TL, dönem sonu 17.548.495 TL.",
+      "evidence_type": "table",
+      "difficulty": "cross-context"
+    },
+    {
+      "query_id": "v020",
+      "question": "KKB CLOUD'da tüketilen enerjinin yüzde kaçı üretilen yenilenebilir enerjiyle karşılanmıştır?",
+      "evidence_unit_ids": [
+        "p-01511"
+      ],
+      "evidence_pages": [
+        61
+      ],
+      "expected_answer": "%31,6.",
+      "evidence_type": "narrative",
+      "difficulty": "direct"
+    }
+  ]
+}

@@ -79,6 +79,21 @@ class AtomicBlock:
 
 
 @dataclass(frozen=True)
+class CanonicalExtraction:
+    """In-memory canonical units plus the provenance needed to persist them."""
+
+    units: tuple[RawDocumentUnit, ...]
+    blocks: tuple[AtomicBlock, ...]
+    selected_pages: tuple[int, ...]
+    pymupdf4llm_version: str
+    picture_count: int
+    layout_profile: CheckpointLayoutProfile | None = None
+    page_count: int | None = None
+    portrait_single_pages: tuple[int, ...] = ()
+    landscape_spread_pages: tuple[int, ...] = ()
+
+
+@dataclass(frozen=True)
 class PreparationResult:
     units: tuple[RawDocumentUnit, ...]
     manifest_path: Path
@@ -913,15 +928,20 @@ def sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
-def prepare_checkpoint(
+def extract_canonical_units(
     *,
     input_path: str | Path,
-    output_path: str | Path,
     pages: str | None = None,
     document_id: str = "kkb-2024",
     extractor: PyMuPDF4LLMExtractor | None = None,
     layout_profile: str | Path | CheckpointLayoutProfile | None = None,
-) -> PreparationResult:
+) -> CanonicalExtraction:
+    """Produce canonical units in memory without writing any file.
+
+    This is the shared body of :func:`prepare_checkpoint`; callers that only
+    need units (for example an application ingestion path) use this directly so
+    there is exactly one canonical extraction implementation.
+    """
     if isinstance(layout_profile, CheckpointLayoutProfile):
         resolved_profile = layout_profile
     elif layout_profile is not None:
@@ -968,6 +988,35 @@ def prepare_checkpoint(
         canonical_blocks,
         document_id=document_id,
     )
+    return CanonicalExtraction(
+        units=tuple(units),
+        blocks=tuple(blocks),
+        selected_pages=extraction.selected_pages,
+        pymupdf4llm_version=extraction.pymupdf4llm_version,
+        picture_count=sum(block.content_origin == "visual" for block in blocks),
+        layout_profile=active_profile,
+    )
+
+
+def prepare_checkpoint(
+    *,
+    input_path: str | Path,
+    output_path: str | Path,
+    pages: str | None = None,
+    document_id: str = "kkb-2024",
+    extractor: PyMuPDF4LLMExtractor | None = None,
+    layout_profile: str | Path | CheckpointLayoutProfile | None = None,
+) -> PreparationResult:
+    extracted = extract_canonical_units(
+        input_path=input_path,
+        pages=pages,
+        document_id=document_id,
+        extractor=extractor,
+        layout_profile=layout_profile,
+    )
+    units = list(extracted.units)
+    blocks = list(extracted.blocks)
+    active_profile = extracted.layout_profile
     CanonicalUnitWriter().write(units, output_path)
     visual_provenance_path = VisualProvenanceWriter().write(
         canonical_path=output_path,
@@ -979,19 +1028,18 @@ def prepare_checkpoint(
         canonical_path=output_path,
         source_pdf=input_path,
         document_id=document_id,
-        selected_pages=extraction.selected_pages,
-        pymupdf4llm_version=extraction.pymupdf4llm_version,
+        selected_pages=extracted.selected_pages,
+        pymupdf4llm_version=extracted.pymupdf4llm_version,
         visual_provenance_path=visual_provenance_path,
         layout_profile=active_profile,
     )
-    picture_count = sum(block.content_origin == "visual" for block in blocks)
     return PreparationResult(
         units=tuple(units),
         manifest_path=manifest_path,
         visual_provenance_path=visual_provenance_path,
-        selected_pages=extraction.selected_pages,
-        pymupdf4llm_version=extraction.pymupdf4llm_version,
-        picture_count=picture_count,
+        selected_pages=extracted.selected_pages,
+        pymupdf4llm_version=extracted.pymupdf4llm_version,
+        picture_count=extracted.picture_count,
         visual_atomic_unit_count=sum(
             getattr(unit.source, "content_origin", None) == "visual"
             for unit in units

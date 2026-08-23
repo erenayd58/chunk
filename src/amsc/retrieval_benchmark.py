@@ -173,10 +173,16 @@ class RetrievalGoldSet(_StrictModel):
     source_units_file: str
     source_units_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     annotation_status: Literal[
-        "manual_development_checkpoint", "manual_holdout_checkpoint"
+        "manual_development_checkpoint",
+        "manual_holdout_checkpoint",
+        # v2 sets are authored to a stricter design (multi-unit evidence,
+        # limited unit reuse, balanced page coverage). The frozen v1 sets are
+        # untouched and keep their original status values.
+        "manual_v2_development_checkpoint",
+        "manual_v2_holdout_checkpoint",
     ]
     authoring_method: str
-    queries: list[RetrievalGoldQuery] = Field(min_length=30, max_length=50)
+    queries: list[RetrievalGoldQuery] = Field(min_length=20, max_length=200)
 
     @model_validator(mode="after")
     def validate_unique_ids(self) -> "RetrievalGoldSet":
