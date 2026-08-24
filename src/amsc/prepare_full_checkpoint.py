@@ -26,6 +26,7 @@ from .checkpoint_layout import (
     load_checkpoint_layout_profile,
 )
 from .models import RawDocumentUnit
+from .running_headers import drop_running_headers
 
 
 @dataclass(frozen=True)
@@ -78,9 +79,10 @@ def apply_profile_to_spread_logical_pages(
 def extract_full_canonical_units(
     *,
     input_path: str | Path,
-    layout_profile_path: str | Path | None = None,
+    layout_profile_path: str | Path | CheckpointLayoutProfile | None = None,
     document_id: str = "kkb-2024",
     extractor: PyMuPDF4LLMExtractor | None = None,
+    running_header_min_pages: int | None = None,
 ) -> CanonicalExtraction:
     """Produce mixed-orientation canonical units in memory, writing no file.
 
@@ -91,11 +93,12 @@ def extract_full_canonical_units(
     :func:`apply_profile_to_spread_logical_pages` skips ``single`` pages.
     """
 
-    profile = (
-        load_checkpoint_layout_profile(layout_profile_path)
-        if layout_profile_path is not None
-        else None
-    )
+    if isinstance(layout_profile_path, CheckpointLayoutProfile):
+        profile = layout_profile_path
+    elif layout_profile_path is not None:
+        profile = load_checkpoint_layout_profile(layout_profile_path)
+    else:
+        profile = None
     extraction = (extractor or PyMuPDF4LLMExtractor()).extract(
         input_path,
         pages=None,
@@ -124,6 +127,19 @@ def extract_full_canonical_units(
     ]
     if not canonical_blocks:
         raise ValueError("Full PDF produced no canonical semantic units")
+
+    if running_header_min_pages is not None:
+        # Opt-in: a chapter banner repeated at the top of each page reaches the
+        # section state machine as a heading and reassigns the paragraph that
+        # continues across the page break. Removing it before the hierarchy is
+        # built is the only point where the attribution can still be correct.
+        canonical_blocks, _furniture = drop_running_headers(
+            canonical_blocks, min_pages=running_header_min_pages
+        )
+        if not canonical_blocks:
+            raise ValueError(
+                "Running-header removal left no canonical semantic units"
+            )
 
     units = SectionHierarchyBuilder().build(
         canonical_blocks,
