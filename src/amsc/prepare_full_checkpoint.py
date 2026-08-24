@@ -25,6 +25,7 @@ from .checkpoint_layout import (
     ExplicitLogicalPageColumnOrderer,
     load_checkpoint_layout_profile,
 )
+from .lead_in_headings import demote_lead_ins
 from .models import RawDocumentUnit
 from .running_headers import drop_running_headers
 
@@ -84,6 +85,7 @@ def extract_full_canonical_units(
     extractor: PyMuPDF4LLMExtractor | None = None,
     running_header_min_pages: int | None = None,
     reconstruct_visual_grids: bool = False,
+    demote_lead_in_headings: bool = False,
 ) -> CanonicalExtraction:
     """Produce mixed-orientation canonical units in memory, writing no file.
 
@@ -93,8 +95,9 @@ def extract_full_canonical_units(
     documents are unaffected either way because
     :func:`apply_profile_to_spread_logical_pages` skips ``single`` pages.
 
-    ``reconstruct_visual_grids`` is likewise opt-in and off by default, so the
-    frozen research canonical stays byte-identical.
+    ``reconstruct_visual_grids`` and ``demote_lead_in_headings`` are likewise
+    opt-in and off by default, so the frozen research canonical stays
+    byte-identical.
     """
 
     if isinstance(layout_profile_path, CheckpointLayoutProfile):
@@ -149,6 +152,15 @@ def extract_full_canonical_units(
             raise ValueError(
                 "Running-header removal left no canonical semantic units"
             )
+
+    if demote_lead_in_headings:
+        # Opt-in: a sentence that introduces the bullets under it reaches the
+        # section state machine as a heading and detaches those bullets from
+        # their own section. Rewriting it as body text before the hierarchy is
+        # built is the only point where the attribution can still be correct.
+        # Runs after running-header removal so that step still sees the
+        # untouched heading stream.
+        canonical_blocks, _lead_ins = demote_lead_ins(canonical_blocks)
 
     units = SectionHierarchyBuilder().build(
         canonical_blocks,
