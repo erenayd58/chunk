@@ -121,3 +121,77 @@ def test_short_text_is_never_split(unit_type):
     fragments = split_unit_text("kisa metin", unit_type=unit_type, max_tokens=50,
                                 counter=counter)
     assert [f.strategy for f in fragments] == ["whole"]
+
+
+def test_new_section_is_never_merged_back_into_the_previous_one():
+    """A small section that starts with its own heading stays its own chunk.
+
+    Merging it backwards silently reattributes its content to the preceding
+    section, which is the exact failure this chunker exists to prevent.
+    """
+    counter = WordTokenCounter()
+    units = [
+        unit("h-1", 1, "Bolum A", UnitType.HEADING, ("Bolum A",)),
+        unit("p-1", 2, "alpha " * 30, section=("Bolum A",)),
+        unit("h-2", 3, "Bolum B", UnitType.HEADING, ("Bolum B",)),
+        unit("p-2", 4, "beta beta", section=("Bolum B",)),
+        unit("h-3", 5, "Bolum C", UnitType.HEADING, ("Bolum C",)),
+        unit("p-3", 6, "gamma " * 30, section=("Bolum C",)),
+    ]
+    chunks = chunk_units(units, counter=counter, min_tokens=20, target_tokens=200,
+                         soft_max_tokens=300, hard_max_tokens=400)
+
+    assert [c["heading"] for c in chunks] == ["Bolum A", "Bolum B", "Bolum C"]
+    a = next(c for c in chunks if c["heading"] == "Bolum A")
+    assert "Bolum B" not in a["text"]
+    assert "beta" not in a["text"]
+    b = next(c for c in chunks if c["heading"] == "Bolum B")
+    assert b["unit_ids"] == ["p-2"]
+
+
+def test_an_undersized_previous_section_does_not_absorb_the_next_one():
+    counter = WordTokenCounter()
+    units = [
+        unit("h-1", 1, "Bolum A", UnitType.HEADING, ("Bolum A",)),
+        unit("p-1", 2, "tek", section=("Bolum A",)),
+        unit("h-2", 3, "Bolum B", UnitType.HEADING, ("Bolum B",)),
+        unit("p-2", 4, "beta " * 30, section=("Bolum B",)),
+    ]
+    chunks = chunk_units(units, counter=counter, min_tokens=50, target_tokens=300,
+                         soft_max_tokens=400, hard_max_tokens=500)
+    assert len(chunks) == 2
+    assert chunks[0]["unit_ids"] == ["p-1"]
+    assert "beta" not in chunks[0]["text"]
+
+
+def test_a_section_path_change_without_a_heading_also_blocks_the_merge():
+    counter = WordTokenCounter()
+    units = [
+        unit("h-1", 1, "Bolum A", UnitType.HEADING, ("Bolum A",)),
+        unit("p-1", 2, "tek", section=("Bolum A",)),
+        unit("p-2", 3, "iki", section=("Bolum B",)),
+    ]
+    chunks = chunk_units(units, counter=counter, min_tokens=50, target_tokens=300,
+                         soft_max_tokens=400, hard_max_tokens=500)
+    assert len(chunks) == 2
+    assert chunks[0]["unit_ids"] == ["p-1"]
+    assert chunks[1]["unit_ids"] == ["p-2"]
+
+
+def test_pieces_of_one_oversized_section_still_rejoin():
+    """Splitting a section then merging its own parts back must still work."""
+    counter = WordTokenCounter()
+    units = [
+        unit("h-1", 1, "Bolum", UnitType.HEADING),
+        unit("p-1", 2, "a " * 40),
+        unit("p-2", 3, "b " * 40),
+        unit("p-3", 4, "c"),
+    ]
+    chunks = chunk_units(units, counter=counter, min_tokens=30, target_tokens=45,
+                         soft_max_tokens=50, hard_max_tokens=400)
+    assert len(chunks) > 1
+    assert all(c["heading"] == "Bolum" for c in chunks)
+    assert [u for c in chunks for u in c["unit_ids"]] == ["p-1", "p-2", "p-3"]
+    # The tiny trailing piece joined its own section rather than standing alone.
+    assert "p-3" in chunks[-1]["unit_ids"]
+    assert len(chunks[-1]["unit_ids"]) > 1

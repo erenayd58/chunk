@@ -210,22 +210,30 @@ def chunk_units(
         if current.pieces:
             split_sections.append(current)
 
-    # 2. merge undersized neighbours.
+    # 2. merge undersized neighbours that belong to the same section.
     #
-    # The parser emits a flat, depth-1 section_path, so a document with 508
-    # headings has ~508 "sections" of a few units each. Requiring merge
-    # partners to share a section_path therefore never fires and leaves a
-    # heavily fragmented corpus, which measurably costs retrieval. Undersized
-    # blocks are allowed to merge across the section boundary; every block
-    # keeps its own heading in the rendered text, so no heading is lost and the
-    # chunk still states which sections it covers.
+    # Only the pieces of one section may be rejoined. An explicit heading or a
+    # section_path change starts a new section, and its content must never be
+    # pulled back into the preceding section's chunk however small it is:
+    # doing so silently reattributes it, which is the failure this whole
+    # chunker exists to avoid. Splitting an oversized section produces several
+    # blocks that carry the same heading and section_path, and those are the
+    # ones this step puts back together.
     Block = tuple[str | None, list[Piece], tuple[str, ...]]
     groups: list[list[Block]] = []
     sizes: list[int] = []
     for section in split_sections:
         block: Block = (section.heading, section.pieces, section.section_path)
         size = section.tokens + (counter.count(section.heading) + 2 if section.heading else 0)
-        if groups and (sizes[-1] < min_tokens or size < min_tokens) and sizes[-1] + size <= target_tokens:
+        same_section = bool(groups) and (
+            groups[-1][-1][0] == section.heading
+            and groups[-1][-1][2] == section.section_path
+        )
+        if (
+            same_section
+            and (sizes[-1] < min_tokens or size < min_tokens)
+            and sizes[-1] + size <= target_tokens
+        ):
             groups[-1].append(block)
             sizes[-1] += size
             continue
