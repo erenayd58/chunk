@@ -29,6 +29,7 @@ from .lead_in_headings import demote_lead_ins
 from .models import RawDocumentUnit
 from .numbered_headings import promote_numbered_headings
 from .running_headers import drop_running_headers
+from .sentence_headings import demote_sentence_headings
 from .split_headings import rejoin_split_headings
 from .table_captions import demote_table_captions
 
@@ -92,6 +93,7 @@ def extract_full_canonical_units(
     promote_missed_headings: bool = False,
     demote_caption_headings: bool = False,
     rejoin_split_headings_enabled: bool = False,
+    demote_sentence_headings_enabled: bool = False,
 ) -> CanonicalExtraction:
     """Produce mixed-orientation canonical units in memory, writing no file.
 
@@ -103,9 +105,9 @@ def extract_full_canonical_units(
 
     Every canonical repair -- ``reconstruct_visual_grids``,
     ``demote_lead_in_headings``, ``promote_missed_headings``,
-    ``demote_caption_headings`` and ``rejoin_split_headings_enabled`` -- is
-    likewise opt-in and off by default, so the frozen research canonical stays
-    byte-identical.
+    ``demote_caption_headings``, ``rejoin_split_headings_enabled`` and
+    ``demote_sentence_headings_enabled`` -- is likewise opt-in and off by
+    default, so the frozen research canonical stays byte-identical.
     """
 
     if isinstance(layout_profile_path, CheckpointLayoutProfile):
@@ -181,6 +183,12 @@ def extract_full_canonical_units(
         # caption. It is recognisable because the layout model also emits it
         # as the table's own leading cell.
         canonical_blocks, _captions = demote_table_captions(canonical_blocks)
+
+    if demote_sentence_headings_enabled:
+        # Opt-in: a standfirst set in display type is reported as a section
+        # header, so a whole sentence opens a section. Demoting it keeps the
+        # units below under the chapter title they belong to.
+        canonical_blocks, _sentences = demote_sentence_headings(canonical_blocks)
 
     if demote_lead_in_headings:
         # Opt-in: a sentence that introduces the bullets under it reaches the
