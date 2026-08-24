@@ -29,6 +29,7 @@ from .lead_in_headings import demote_lead_ins
 from .models import RawDocumentUnit
 from .numbered_headings import promote_numbered_headings
 from .running_headers import drop_running_headers
+from .table_captions import demote_table_captions
 
 
 @dataclass(frozen=True)
@@ -88,6 +89,7 @@ def extract_full_canonical_units(
     reconstruct_visual_grids: bool = False,
     demote_lead_in_headings: bool = False,
     promote_missed_headings: bool = False,
+    demote_caption_headings: bool = False,
 ) -> CanonicalExtraction:
     """Produce mixed-orientation canonical units in memory, writing no file.
 
@@ -97,9 +99,10 @@ def extract_full_canonical_units(
     documents are unaffected either way because
     :func:`apply_profile_to_spread_logical_pages` skips ``single`` pages.
 
-    ``reconstruct_visual_grids``, ``demote_lead_in_headings`` and
-    ``promote_missed_headings`` are likewise opt-in and off by default, so the
-    frozen research canonical stays byte-identical.
+    ``reconstruct_visual_grids``, ``demote_lead_in_headings``,
+    ``promote_missed_headings`` and ``demote_caption_headings`` are likewise
+    opt-in and off by default, so the frozen research canonical stays
+    byte-identical.
     """
 
     if isinstance(layout_profile_path, CheckpointLayoutProfile):
@@ -162,6 +165,13 @@ def extract_full_canonical_units(
             raise ValueError(
                 "Running-header removal left no canonical semantic units"
             )
+
+    if demote_caption_headings:
+        # Opt-in: a period label printed above its table reaches the section
+        # state machine as a heading and opens a section named after a table
+        # caption. It is recognisable because the layout model also emits it
+        # as the table's own leading cell.
+        canonical_blocks, _captions = demote_table_captions(canonical_blocks)
 
     if demote_lead_in_headings:
         # Opt-in: a sentence that introduces the bullets under it reaches the
