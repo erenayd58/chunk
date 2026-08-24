@@ -29,6 +29,7 @@ from .lead_in_headings import demote_lead_ins
 from .models import RawDocumentUnit
 from .numbered_headings import promote_numbered_headings
 from .running_headers import drop_running_headers
+from .split_headings import rejoin_split_headings
 from .table_captions import demote_table_captions
 
 
@@ -90,6 +91,7 @@ def extract_full_canonical_units(
     demote_lead_in_headings: bool = False,
     promote_missed_headings: bool = False,
     demote_caption_headings: bool = False,
+    rejoin_split_headings_enabled: bool = False,
 ) -> CanonicalExtraction:
     """Produce mixed-orientation canonical units in memory, writing no file.
 
@@ -99,9 +101,10 @@ def extract_full_canonical_units(
     documents are unaffected either way because
     :func:`apply_profile_to_spread_logical_pages` skips ``single`` pages.
 
-    ``reconstruct_visual_grids``, ``demote_lead_in_headings``,
-    ``promote_missed_headings`` and ``demote_caption_headings`` are likewise
-    opt-in and off by default, so the frozen research canonical stays
+    Every canonical repair -- ``reconstruct_visual_grids``,
+    ``demote_lead_in_headings``, ``promote_missed_headings``,
+    ``demote_caption_headings`` and ``rejoin_split_headings_enabled`` -- is
+    likewise opt-in and off by default, so the frozen research canonical stays
     byte-identical.
     """
 
@@ -144,6 +147,12 @@ def extract_full_canonical_units(
     ]
     if not canonical_blocks:
         raise ValueError("Full PDF produced no canonical semantic units")
+
+    if rejoin_split_headings_enabled:
+        # Opt-in: one printed heading line can arrive as two layout boxes, the
+        # section number in one and the title in the other. Rejoining them
+        # first means every later pass sees whole headings.
+        canonical_blocks, _rejoined = rejoin_split_headings(canonical_blocks)
 
     if promote_missed_headings:
         # Opt-in: the layout model reports a few numbered section titles as
