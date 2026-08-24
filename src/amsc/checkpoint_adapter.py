@@ -18,6 +18,12 @@ from .checkpoint_layout import (
 )
 from .io import validate_document_units
 from .models import RawDocumentUnit, SourceSpan, UnitType
+from .visual_grid import (
+    BBox,
+    PictureGeometry,
+    VisualTextLine,
+    reconstruct_card_grid,
+)
 
 
 PYMUPDF4LLM_VERSION = "0.3.4"
@@ -115,6 +121,141 @@ class _LogicalPageSpec:
     logical_page_width: float
 
 
+def _logical_bbox(
+    spec: _LogicalPageSpec,
+    bbox: Sequence[float],
+) -> BBox:
+    """Clamp a layout box to the cropped logical page it was reported on."""
+    return (
+        min(spec.logical_page_width, max(0.0, float(bbox[0]))),
+        min(spec.physical_page_height, max(0.0, float(bbox[1]))),
+        min(spec.logical_page_width, max(0.0, float(bbox[2]))),
+        min(spec.physical_page_height, max(0.0, float(bbox[3]))),
+    )
+
+
+def _physical_bbox(
+    spec: _LogicalPageSpec,
+    logical_bbox: BBox,
+) -> BBox:
+    """Move a logical-page box back into physical PDF page coordinates."""
+    return (
+        min(
+            spec.physical_page_width,
+            max(0.0, logical_bbox[0] + spec.crop_x_offset),
+        ),
+        logical_bbox[1],
+        min(
+            spec.physical_page_width,
+            max(0.0, logical_bbox[2] + spec.crop_x_offset),
+        ),
+        logical_bbox[3],
+    )
+
+
+def _page_text_lines(page: Any) -> tuple[VisualTextLine, ...]:
+    """Every text line on a physical page with its box and largest font size."""
+    lines: list[VisualTextLine] = []
+    for block in page.get_text("dict").get("blocks", []):
+        for line in block.get("lines", []):
+            spans = [
+                span
+                for span in line.get("spans", [])
+                if str(span.get("text", "")).strip()
+            ]
+            if not spans:
+                continue
+            box = line.get("bbox")
+            if not isinstance(box, (list, tuple)) or len(box) != 4:
+                continue
+            lines.append(
+                VisualTextLine(
+                    text=" ".join(str(span["text"]).strip() for span in spans),
+                    bbox=tuple(float(value) for value in box),
+                    font_size=max(float(span.get("size", 0.0)) for span in spans),
+                )
+            )
+    return tuple(lines)
+
+
+def _page_container_rects(page: Any) -> tuple[BBox, ...]:
+    """Bounding rectangles of every vector drawing on a physical page."""
+    rects: list[BBox] = []
+    for drawing in page.get_drawings():
+        rect = drawing.get("rect")
+        if rect is None:
+            continue
+        rects.append(
+            (float(rect.x0), float(rect.y0), float(rect.x1), float(rect.y1))
+        )
+    return tuple(rects)
+
+
+def _capture_picture_geometry(
+    source_document: Any,
+    logical_pages: Sequence[_LogicalPageSpec],
+    chunks: Sequence[Any],
+) -> dict[tuple[int, int], PictureGeometry]:
+    """Collect text and container geometry for every picture region.
+
+    Runs while the source PDF is still open, keyed by ``(logical page index,
+    layout box index)`` so the caller can attach it without a second pass.
+    Only pages that actually contain a picture are read.
+    """
+    if len(chunks) != len(logical_pages):
+        return {}
+    geometry: dict[tuple[int, int], PictureGeometry] = {}
+    per_page: dict[int, tuple[tuple[VisualTextLine, ...], tuple[BBox, ...]]] = {}
+    for logical_index, (spec, chunk) in enumerate(
+        zip(logical_pages, chunks), start=1
+    ):
+        if not isinstance(chunk, dict):
+            continue
+        for raw_box in chunk.get("page_boxes") or []:
+            if not isinstance(raw_box, dict) or raw_box.get("class") != "picture":
+                continue
+            bbox = raw_box.get("bbox")
+            if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+                continue
+            region = _physical_bbox(spec, _logical_bbox(spec, bbox))
+            if spec.physical_page not in per_page:
+                page = source_document[spec.physical_page - 1]
+                per_page[spec.physical_page] = (
+                    _page_text_lines(page),
+                    _page_container_rects(page),
+                )
+            lines, rects = per_page[spec.physical_page]
+            geometry[(logical_index, int(raw_box.get("index", -1)))] = (
+                PictureGeometry(
+                    region=region,
+                    lines=tuple(
+                        line
+                        for line in lines
+                        if _box_centre_inside(line.bbox, region)
+                    ),
+                    containers=tuple(
+                        rect for rect in rects if _boxes_intersect(rect, region)
+                    ),
+                )
+            )
+    return geometry
+
+
+def _box_centre_inside(box: BBox, region: BBox) -> bool:
+    x = (box[0] + box[2]) / 2.0
+    y = (box[1] + box[3]) / 2.0
+    return region[0] <= x <= region[2] and region[1] <= y <= region[3]
+
+
+def _boxes_intersect(box: BBox, region: BBox) -> bool:
+    return (
+        box[0] < region[2]
+        and box[2] > region[0]
+        and box[1] < region[3]
+        and box[3] > region[1]
+    )
+
+
 def load_layout_backend(
     import_module: Callable[[str], ModuleType] = importlib.import_module,
 ) -> LayoutBackend:
@@ -210,9 +351,13 @@ class PyMuPDF4LLMExtractor:
         backend_loader: Callable[[], LayoutBackend] = load_layout_backend,
         *,
         layout_profile: CheckpointLayoutProfile | None = None,
+        capture_picture_geometry: bool = False,
     ) -> None:
         self.backend_loader = backend_loader
         self.layout_profile = layout_profile
+        # Opt-in. Off by default so the frozen research extraction keeps
+        # producing byte-identical canonical units.
+        self.capture_picture_geometry = capture_picture_geometry
 
     def extract(
         self,
@@ -289,6 +434,14 @@ class PyMuPDF4LLMExtractor:
                     )
                 finally:
                     extraction_document.close()
+
+                picture_geometry = (
+                    _capture_picture_geometry(
+                        source_document, logical_pages, chunks
+                    )
+                    if self.capture_picture_geometry
+                    else {}
+                )
         except Exception as exc:
             raise ValueError(f"Unable to open input PDF {source}: {exc}") from exc
 
@@ -339,44 +492,20 @@ class PyMuPDF4LLMExtractor:
                 start, end = int(pos[0]), int(pos[1])
                 if not 0 <= start <= end <= len(markdown):
                     raise ValueError("Layout box Markdown offsets are out of range")
-                logical_bbox = (
-                    min(
-                        spec.logical_page_width,
-                        max(0.0, float(bbox[0])),
-                    ),
-                    min(
-                        spec.physical_page_height,
-                        max(0.0, float(bbox[1])),
-                    ),
-                    min(
-                        spec.logical_page_width,
-                        max(0.0, float(bbox[2])),
-                    ),
-                    min(
-                        spec.physical_page_height,
-                        max(0.0, float(bbox[3])),
-                    ),
-                )
-                physical_bbox = (
-                    min(
-                        spec.physical_page_width,
-                        max(0.0, logical_bbox[0] + spec.crop_x_offset),
-                    ),
-                    logical_bbox[1],
-                    min(
-                        spec.physical_page_width,
-                        max(0.0, logical_bbox[2] + spec.crop_x_offset),
-                    ),
-                    logical_bbox[3],
-                )
+                logical_bbox = _logical_bbox(spec, bbox)
+                physical_bbox = _physical_bbox(spec, logical_bbox)
+                box_index = int(raw_box.get("index", len(layout_boxes)))
                 layout_boxes.append(
                     LayoutBox(
-                        index=int(raw_box.get("index", len(layout_boxes))),
+                        index=box_index,
                         layout_class=layout_class,
                         bbox=physical_bbox,
                         markdown_start=start,
                         markdown_end=end,
                         logical_bbox=logical_bbox,
+                        picture_geometry=picture_geometry.get(
+                            (logical_index, box_index)
+                        ),
                     )
                 )
             ordered_boxes: tuple[LayoutBox, ...]
@@ -576,10 +705,21 @@ class MarkdownAtomicUnitParser:
         markdown: str,
     ) -> AtomicBlock:
         raw_picture_text = self._extract_picture_text(markdown)
-        if raw_picture_text:
+        # PyMuPDF4LLM serializes a picture's text by vertical position,
+        # which breaks the label/value pairing of a KPI card grid whenever
+        # two cards in a row use different font sizes. When the card
+        # geometry is unambiguous the pairing is rebuilt from it; otherwise
+        # the extractor's own text is kept untouched.
+        reconstructed = reconstruct_card_grid(layout_box.picture_geometry)
+        if reconstructed is not None:
+            surrogate = reconstructed
+            extraction_method = "layout_text_card_grid"
+        elif raw_picture_text:
             surrogate = self._HTML_BREAK.sub("\n", raw_picture_text).strip()
+            extraction_method = "layout_text"
         else:
             surrogate = self._NO_LAYOUT_TEXT_SURROGATE
+            extraction_method = "layout_text"
         visual_id = (
             f"picture-p{page.page:05d}-{page.logical_page_side}-"
             f"{layout_box.index:03d}"
@@ -594,10 +734,11 @@ class MarkdownAtomicUnitParser:
             picture_bbox=layout_box.bbox,
             raw_layout_class=layout_box.layout_class,
             content_origin="visual",
-            extraction_method="layout_text",
+            extraction_method=extraction_method,
             visual_provenance_id=visual_id,
             raw_extracted_picture_text=raw_picture_text or None,
-            has_extracted_picture_text=bool(raw_picture_text),
+            has_extracted_picture_text=bool(raw_picture_text)
+            or reconstructed is not None,
             layout_box_index=layout_box.index,
             logical_bbox=layout_box.logical_bbox,
             physical_bbox=layout_box.bbox,

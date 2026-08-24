@@ -7,6 +7,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 import yaml
 
+from .visual_grid import PictureGeometry
+
 
 LogicalColumn = Literal["left", "right", "full_width"]
 
@@ -54,6 +56,10 @@ class LayoutBox:
     layout_band: int | None = None
     reading_order_index: int | None = None
     reading_order_policy: str | None = None
+    # Text and container geometry inside a picture region. Captured only
+    # when the extractor is asked for it, so the default extraction is
+    # byte-identical to the frozen one.
+    picture_geometry: PictureGeometry | None = None
 
 
 class ExplicitLogicalPageColumnOrderer:

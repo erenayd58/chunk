@@ -83,6 +83,7 @@ def extract_full_canonical_units(
     document_id: str = "kkb-2024",
     extractor: PyMuPDF4LLMExtractor | None = None,
     running_header_min_pages: int | None = None,
+    reconstruct_visual_grids: bool = False,
 ) -> CanonicalExtraction:
     """Produce mixed-orientation canonical units in memory, writing no file.
 
@@ -91,6 +92,9 @@ def extract_full_canonical_units(
     extractor's own reading order is kept for spread pages.  Portrait-only
     documents are unaffected either way because
     :func:`apply_profile_to_spread_logical_pages` skips ``single`` pages.
+
+    ``reconstruct_visual_grids`` is likewise opt-in and off by default, so the
+    frozen research canonical stays byte-identical.
     """
 
     if isinstance(layout_profile_path, CheckpointLayoutProfile):
@@ -99,7 +103,12 @@ def extract_full_canonical_units(
         profile = load_checkpoint_layout_profile(layout_profile_path)
     else:
         profile = None
-    extraction = (extractor or PyMuPDF4LLMExtractor()).extract(
+    # Opt-in: rebuild label/value pairs inside KPI card grids from page
+    # geometry. An explicitly supplied extractor keeps its own configuration.
+    extraction = (
+        extractor
+        or PyMuPDF4LLMExtractor(capture_picture_geometry=reconstruct_visual_grids)
+    ).extract(
         input_path,
         pages=None,
     )
