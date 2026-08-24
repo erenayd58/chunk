@@ -27,6 +27,7 @@ from .checkpoint_layout import (
 )
 from .lead_in_headings import demote_lead_ins
 from .models import RawDocumentUnit
+from .numbered_headings import promote_numbered_headings
 from .running_headers import drop_running_headers
 
 
@@ -86,6 +87,7 @@ def extract_full_canonical_units(
     running_header_min_pages: int | None = None,
     reconstruct_visual_grids: bool = False,
     demote_lead_in_headings: bool = False,
+    promote_missed_headings: bool = False,
 ) -> CanonicalExtraction:
     """Produce mixed-orientation canonical units in memory, writing no file.
 
@@ -95,9 +97,9 @@ def extract_full_canonical_units(
     documents are unaffected either way because
     :func:`apply_profile_to_spread_logical_pages` skips ``single`` pages.
 
-    ``reconstruct_visual_grids`` and ``demote_lead_in_headings`` are likewise
-    opt-in and off by default, so the frozen research canonical stays
-    byte-identical.
+    ``reconstruct_visual_grids``, ``demote_lead_in_headings`` and
+    ``promote_missed_headings`` are likewise opt-in and off by default, so the
+    frozen research canonical stays byte-identical.
     """
 
     if isinstance(layout_profile_path, CheckpointLayoutProfile):
@@ -139,6 +141,14 @@ def extract_full_canonical_units(
     ]
     if not canonical_blocks:
         raise ValueError("Full PDF produced no canonical semantic units")
+
+    if promote_missed_headings:
+        # Opt-in: the layout model reports a few numbered section titles as
+        # body text, so the section they open never starts and their tables
+        # keep the previous note's path. Recovering them before the furniture
+        # and lead-in passes means those passes see the complete heading
+        # stream.
+        canonical_blocks, _promoted = promote_numbered_headings(canonical_blocks)
 
     if running_header_min_pages is not None:
         # Opt-in: a chapter banner repeated at the top of each page reaches the
