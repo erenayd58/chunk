@@ -111,3 +111,53 @@ def test_threshold_must_be_at_least_two():
 
 def test_default_threshold_is_three_pages():
     assert DEFAULT_MIN_PAGES == 3
+
+
+def test_markdown_emphasis_does_not_split_one_banner_into_two():
+    """PyMuPDF4LLM emphasises the same banner on some pages and not others."""
+    blocks = [
+        banner(1, "**BOLUM BASLIGI**"),
+        body(1),
+        banner(2, "BOLUM BASLIGI"),
+        body(2),
+        banner(3, "_BOLUM BASLIGI_"),
+        body(3),
+    ]
+    assert running_header_texts(blocks) == {"bolum basligi"}
+    kept, furniture = drop_running_headers(blocks)
+    assert furniture == {"bolum basligi"}
+    assert all(block.heading_level is None for block in kept)
+
+
+def test_a_banner_hidden_under_another_banner_is_still_caught():
+    """Detection only sees the block that leads a page, so one pass is short.
+
+    ``OUTER`` leads every page and ``INNER`` sits directly beneath it. Until
+    ``OUTER`` is gone, ``INNER`` never leads anything.
+    """
+    blocks = []
+    for page in (1, 2, 3):
+        blocks += [
+            banner(page, "OUTER"),
+            banner(page, "INNER"),
+            body(page, f"govde {page}"),
+        ]
+
+    kept, furniture = drop_running_headers(blocks)
+
+    assert furniture == {"outer", "inner"}
+    assert [b.text for b in kept] == ["govde 1", "govde 2", "govde 3"]
+
+
+def test_iteration_stops_at_a_real_heading():
+    blocks = []
+    for page in (1, 2, 3):
+        blocks += [banner(page, "OUTER"), banner(page, f"GERCEK {page}"),
+                   body(page, f"govde {page}")]
+
+    kept, furniture = drop_running_headers(blocks)
+
+    assert furniture == {"outer"}
+    assert [b.text for b in kept] == [
+        "GERCEK 1", "govde 1", "GERCEK 2", "govde 2", "GERCEK 3", "govde 3",
+    ]

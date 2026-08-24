@@ -16,15 +16,22 @@ This is opt-in. Callers that do not ask for it get the untouched block stream.
 from __future__ import annotations
 
 from collections import defaultdict
+import re
 from typing import Sequence, TypeVar
 
 _Block = TypeVar("_Block")
 
 DEFAULT_MIN_PAGES = 3
 
+#: The same banner reaches us both as ``**BOLUM**`` and as ``BOLUM``: whether
+#: PyMuPDF4LLM emphasises it varies page by page. Emphasis is serialization,
+#: not content, so comparing with it splits one banner into two texts and each
+#: half falls below the threshold.
+_EMPHASIS = re.compile(r"^[*_]+|[*_]+$")
+
 
 def _normalized(text: str) -> str:
-    return " ".join(text.split()).strip().casefold()
+    return " ".join(_EMPHASIS.sub("", text.strip()).split()).strip().casefold()
 
 
 def running_header_texts(
@@ -64,18 +71,31 @@ def drop_running_headers(
 ) -> tuple[list[_Block], set[str]]:
     """Remove every occurrence of a detected running header.
 
+    Detection is repeated until it finds nothing new, so a banner that only
+    leads its pages once the banner above it has gone is still caught.
+
     Returns the filtered blocks and the texts that were treated as furniture,
     so the decision stays auditable rather than silent.
     """
-    furniture = running_header_texts(blocks, min_pages=min_pages)
-    if not furniture:
-        return list(blocks), furniture
-    kept = [
-        block
-        for block in blocks
-        if not (
-            block.heading_level is not None
-            and _normalized(block.text) in furniture
-        )
-    ]
-    return kept, furniture
+    kept = list(blocks)
+    furniture: set[str] = set()
+    # Detection only sees the block that *leads* a logical page. A banner
+    # printed under another banner is therefore invisible until the one above
+    # it is gone, so a single pass stops one layer short. Repeating the same
+    # rule until it finds nothing new terminates: every round that fires
+    # removes blocks, and a text whose headings are all removed can never be
+    # detected again.
+    while True:
+        found = running_header_texts(kept, min_pages=min_pages)
+        new = found - furniture
+        if not new:
+            return kept, furniture
+        furniture |= new
+        kept = [
+            block
+            for block in kept
+            if not (
+                block.heading_level is not None
+                and _normalized(block.text) in new
+            )
+        ]
