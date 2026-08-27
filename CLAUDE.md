@@ -60,6 +60,10 @@ Every other stage is its own `python -m amsc.<module>` entry point:
 | `amsc.chunk_benchmark` | Markdown / Hybrid / Structure-only comparison on time and quality (`--output` is **required**) |
 | `amsc.semantic_roles` | Library only — the heading/section split; no CLI |
 | `amsc.structural_qa` | Structural QA linter over a canonical corpus and its chunks |
+| `amsc.viewer_v2` | Presentation-grade single-file HTML viewer over a completed chunk-benchmark tree (Sunum/Sorgu/Debug/Benchmark modes); pure reader, verifies the tree's `units_sha256` pin |
+| `amsc.chunk_relations` | Derived continuation sidecars over frozen chunks (adjacent + same heading + joining section paths, nothing else), typed by the observable boundary: `TOKEN_BUDGET_CONTINUATION` only for a plain `budget_split`; label seams and markdown cuts get their own types. `expand_context` walks **only** TOKEN_BUDGET_CONTINUATION — never re-ranks, hard token budget, section change or any non-budget boundary is a hard stop |
+| `amsc.semantic_assist` | Library only — **embedding-assisted research baseline** (not the product mode): `STANDARD` delegates to `structural_chunker`, `SEMANTIC_ASSIST` to `hybrid_chunker` (both byte-identical to the benchmarked arms); `eligible_sections` names the ambiguity surface embedder-free. `OpenRouterEmbeddingProvider` is adapter-only, NOT VERIFIED; Qwen3-Embedding-8B is reserved as a future *retrieval* embedding candidate |
+| `amsc.llm_boundary_judge` | Library only — the product's **Deep Analysis** mode: structure-first chunking whose plain budget cuts with ≥2 admissible positions are judged SPLIT/KEEP by a backend generative LLM at ingest. Label seams stay structural; no judge / all-KEEP / parse or provider failure is byte-identical to `structural_chunker` (pinned). Structured decisions only (`reason_code` is audit, never steering); provider-agnostic `OpenAICompatibleJudgeProvider` (model id required, key env configurable, NOT VERIFIED); backend-only — no key or LLM call ever reaches viewer HTML |
 
 Both preparers are thin CLI wrappers over an in-memory core —
 `checkpoint_adapter.extract_canonical_units()` and
