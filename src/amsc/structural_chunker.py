@@ -7,6 +7,8 @@ token-budget cuts and leaves 62% of chunks spanning more than one section.
 This chunker inverts that: document structure decides, size constrains.
 
   * a chunk opens at every heading and at every ``section_path`` change
+  * with ``respect_semantic_roles`` it opens only at a heading that *bears*
+    hierarchy, and a label that does not becomes a preferred seam instead
   * oversized sections are split at internal *structural* seams -- table row
     groups (header row repeated), list item boundaries, sentence boundaries --
     never by character-index bisection
@@ -127,6 +129,9 @@ class Piece:
     page: int | None
     section_path: tuple[str, ...]
     strategy: str
+    #: A heading that did not open a section: still rendered where it was
+    #: printed, and preferred over an arbitrary size cut when one is needed.
+    label: bool = False
 
 
 @dataclass
@@ -140,15 +145,28 @@ class Section:
         return sum(p.tokens for p in self.pieces)
 
 
+def _bears_hierarchy(unit: RawDocumentUnit, respect_roles: bool) -> bool:
+    """Whether this heading may open a section.
+
+    Off, every heading does, exactly as before roles existed. On, only a
+    heading the canonical marked ``opens_section`` does -- and a corpus that
+    carries no decision still opens at every heading, so switching the flag on
+    against an older canonical changes nothing.
+    """
+    if not respect_roles:
+        return True
+    return unit.opens_section is not False
+
+
 def _sections(units: Sequence[RawDocumentUnit], counter: TokenCounter,
-              hard_max: int) -> list[Section]:
+              hard_max: int, respect_roles: bool = False) -> list[Section]:
     sections: list[Section] = []
     current: Section | None = None
     pending_heading: list[str] = []
 
     for unit in units:
         path = tuple(unit.section_path or ())
-        if unit.type == UnitType.HEADING:
+        if unit.type == UnitType.HEADING and _bears_hierarchy(unit, respect_roles):
             pending_heading.append(unit.text)
             current = None
             continue
@@ -160,6 +178,7 @@ def _sections(units: Sequence[RawDocumentUnit], counter: TokenCounter,
 
         budget = hard_max - (counter.count(current.heading) + 2 if current.heading else 0)
         budget = max(budget, 32)
+        is_label = unit.type == UnitType.HEADING
         for index, fragment in enumerate(
             split_unit_text(unit.text, unit_type=unit.type, max_tokens=budget, counter=counter)
         ):
@@ -172,6 +191,7 @@ def _sections(units: Sequence[RawDocumentUnit], counter: TokenCounter,
                     page=unit.source.page,
                     section_path=path,
                     strategy=fragment.strategy,
+                    label=is_label,
                 )
             )
     return [s for s in sections if s.pieces]
@@ -190,20 +210,32 @@ def chunk_units(
     target_tokens: int = 700,
     soft_max_tokens: int = 900,
     hard_max_tokens: int = 1126,
+    respect_semantic_roles: bool = False,
 ) -> list[dict]:
-    sections = _sections(units, counter, hard_max_tokens)
+    sections = _sections(units, counter, hard_max_tokens, respect_semantic_roles)
 
     # 1. split oversized sections at piece boundaries, aiming at target
     split_sections: list[Section] = []
     for section in sections:
-        if section.tokens <= soft_max_tokens:
+        # A label seam is a place a reader would already cut, so a section that
+        # has one and has grown past the target is split there rather than left
+        # whole up to the soft maximum. Without this an item run that stays just
+        # under the soft maximum survives as one long chunk -- which is what a
+        # chairman's message with bold run-in subheads becomes.
+        seamed = respect_semantic_roles and any(piece.label for piece in section.pieces)
+        ceiling = target_tokens if seamed else soft_max_tokens
+        if section.tokens <= ceiling:
             split_sections.append(section)
             continue
         head_cost = counter.count(section.heading) + 2 if section.heading else 0
         current = Section(section.heading, section.section_path)
         for piece in section.pieces:
             projected = head_cost + current.tokens + piece.tokens
-            if current.pieces and projected > target_tokens:
+            # An item title is where a reader would cut, so cut there rather
+            # than a few tokens later at an arbitrary size boundary -- but only
+            # once the chunk already carries enough to stand on its own.
+            at_label = piece.label and current.tokens >= min_tokens
+            if current.pieces and (projected > target_tokens or at_label):
                 split_sections.append(current)
                 current = Section(section.heading, section.section_path)
             current.pieces.append(piece)

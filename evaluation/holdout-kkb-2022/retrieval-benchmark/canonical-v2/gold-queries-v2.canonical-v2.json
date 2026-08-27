@@ -1,0 +1,270 @@
+{
+  "annotation_status": "manual_v2_holdout_checkpoint",
+  "authoring_method": "Questions and evidence links were written manually from the frozen canonical units of the holdout document, before any output of the new chunking work existed and without inspecting any retrieval result on this document. Every expected answer is machine-checked to appear literally in its evidence text; no canonical unit backs more than two questions.",
+  "document_id": "kkb-2022",
+  "queries": [
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        2
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00001"
+      ],
+      "expected_answer": "01.01.2022-31.12.2022 dönemi; MERSİS numarası 0564-0004-2270-0011.",
+      "query_id": "h001",
+      "question": "KKB 2022 Faaliyet Raporu hangi hesap dönemini kapsamaktadır ve şirketin MERSİS numarası nedir?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        14
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00128"
+      ],
+      "expected_answer": "168; bu rakam Risk Merkezi üzerinden hizmet verilen üyeleri tanımlar.",
+      "query_id": "h002",
+      "question": "31 Aralık 2022 itibarıyla KKB'nin üye sayısı kaçtır ve bu rakam neyi tanımlar?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        15
+      ],
+      "evidence_type": "table",
+      "evidence_unit_ids": [
+        "t-00180"
+      ],
+      "expected_answer": "1.030 milyon.",
+      "query_id": "h003",
+      "question": "2022 yılında Bireysel Büro Sorgulama Sayısı kaç milyondur?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        15
+      ],
+      "evidence_type": "table",
+      "evidence_unit_ids": [
+        "t-00180"
+      ],
+      "expected_answer": "Kurumsal Büro 136 milyon, LKS 521 milyon.",
+      "query_id": "h004",
+      "question": "2022 yılında Kurumsal Büro ve LKS sorgulama sayıları kaç milyondur?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        19
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00301"
+      ],
+      "expected_answer": "Dokuz banka ortaklığıyla.",
+      "query_id": "h005",
+      "question": "KKB kaç bankanın ortaklığıyla faaliyete başlamıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        17
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-00266"
+      ],
+      "expected_answer": "%70 artış.",
+      "query_id": "h006",
+      "question": "KRS'de 1 milyar sorgu adedine ulaşıldığında ürün kullanımında ne kadar artış olmuştur?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        54
+      ],
+      "evidence_type": "visual",
+      "evidence_unit_ids": [
+        "v-01360"
+      ],
+      "expected_answer": "Toplam 550 çalışan; %61 erkek, %39 kadın.",
+      "query_id": "h007",
+      "question": "KKB çalışanlarının cinsiyet dağılımı nedir ve toplam çalışan sayısı kaçtır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        54
+      ],
+      "evidence_type": "visual",
+      "evidence_unit_ids": [
+        "v-01360"
+      ],
+      "expected_answer": "34,64.",
+      "query_id": "h008",
+      "question": "KKB çalışanlarının yaş ortalaması kaçtır?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        31
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00531"
+      ],
+      "expected_answer": "Keşidecinin çek kullanım alışkanlığını ve güvenilirliğini özetleyen, puana dayalı grafiksel bir risk göstergesidir.",
+      "query_id": "h009",
+      "question": "Çek Endeksi neyi özetler?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        30
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00464"
+      ],
+      "expected_answer": "İlk yıl gelirinin iki katını, ikinci yıl dört katını aşamaz.",
+      "query_id": "h010",
+      "question": "İlk defa kredi kartı kullanan bir müşterinin toplam kart limiti ilk ve ikinci yıl için gelirinin kaç katını aşamaz?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        32
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00592"
+      ],
+      "expected_answer": "Bankalar ve finans kurumlarınca bildirilen kredi limit/risk ve tasfiye olunacak alacak bilgilerini, şubenin il ve ilçe adres bilgisiyle.",
+      "query_id": "h011",
+      "question": "GeoMIS Memzuç hangi bilgileri harita üzerine taşır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        34
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00693"
+      ],
+      "expected_answer": "Online/real-time çalışan uygulamada web servis entegrasyonuyla sağlanmaktadır.",
+      "query_id": "h012",
+      "question": "Teminat mektubu sorgulama uygulamasında veri akışı bankalarla nasıl sağlanmaktadır?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        49
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01211"
+      ],
+      "expected_answer": "Üyelerin KKB ürün ve hizmetlerinden etkin ve verimli şekilde faydalanabilmesini sağlamak.",
+      "query_id": "h013",
+      "question": "Üye Kuruluşlar Destek Birimi'nin hedefi nedir?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        57
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-01402"
+      ],
+      "expected_answer": "24.412,20 TL.",
+      "query_id": "h014",
+      "question": "08.08.2022 tarihinde KKB aleyhine açılan tazminat davasının tutarı nedir?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        57
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-01425"
+      ],
+      "expected_answer": "98.237,20 TL maddi ve 30.000,00 TL manevi, toplam 128.237,20 TL.",
+      "query_id": "h015",
+      "question": "27.10.2016 tarihinde açılan davada talep edilen maddi ve manevi tazminat tutarları nedir?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        84
+      ],
+      "evidence_type": "table",
+      "evidence_unit_ids": [
+        "t-02072"
+      ],
+      "expected_answer": "Gelirler 624.823.340 TL, giderler 190.986.938 TL; net 433.836.402 TL.",
+      "query_id": "h016",
+      "question": "2022 yılında ilişkili taraflardan elde edilen gelirler ve giderler ne kadardır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        17
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-00223"
+      ],
+      "expected_answer": "Türkiye Bankalar Birliği (TBB) iş birliğiyle.",
+      "query_id": "h017",
+      "question": "Findeks Karekodlu Çek Sistemi hangi iş birliğiyle uygulamaya alınmıştır?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        21
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00316"
+      ],
+      "expected_answer": "Gençlerin ilk işlerinde işe alım, eğitim ve uyum süreçlerine katkı sağlamayı amaçlar.",
+      "query_id": "h018",
+      "question": "Genç Yetenekler Programı neyi amaçlamaktadır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        62
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01538"
+      ],
+      "expected_answer": "Türk Eğitim Vakfı (TEV)'nın 'Yarıda Kalmasın' projesi.",
+      "query_id": "h019",
+      "question": "KKB çalışanları 44'üncü N Kolay İstanbul Maratonu'nda hangi vakfın projesi için koşmuştur?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        81
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-02000"
+      ],
+      "expected_answer": "Cari vergi ve ertelenmiş vergi giderinin toplamından.",
+      "query_id": "h020",
+      "question": "Gelir vergisi gideri hangi kalemlerin toplamından oluşur?"
+    }
+  ],
+  "schema_version": "1.0",
+  "source_units_file": "data/kkb-2022.units.v2.jsonl",
+  "source_units_sha256": "482da27f297b6288bcf62e2f99be0957398158614ed7c136b02b0ca862576b4f"
+}

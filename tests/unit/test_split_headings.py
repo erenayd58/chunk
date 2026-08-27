@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from amsc.split_headings import is_numbering_only, rejoin_split_headings
+from amsc.split_headings import (
+    continues_mid_word,
+    ends_mid_word,
+    is_numbering_only,
+    rejoin_hyphenated_headings,
+    rejoin_split_headings,
+)
 
 
 @dataclass
@@ -132,3 +138,143 @@ def test_a_stream_without_candidates_is_returned_unchanged():
     rewritten, merged = rejoin_split_headings(blocks)
     assert merged == set()
     assert [b.text for b in rewritten] == [b.text for b in blocks]
+
+
+# --- the hyphenated wrap ---------------------------------------------------
+#
+# A heading too long for its column breaks mid-word and each printed line
+# arrives as its own heading box. These boxes are *stacked*, which is exactly
+# what the side-by-side pass above refuses to touch.
+
+WRAP_TOP = (306.0, 597.0, 539.0, 605.0)
+WRAP_BOTTOM = (306.0, 608.0, 332.0, 616.0)
+
+
+def test_ends_mid_word_needs_a_letter_before_the_hyphen():
+    assert ends_mid_word("Devam Eden Da-")
+    assert ends_mid_word("**Devam Eden Da-**")
+    assert not ends_mid_word("-")             # a bullet, not a broken word
+    assert not ends_mid_word("2019-")         # an open range
+    assert not ends_mid_word("Devam Eden")
+
+
+def test_continues_mid_word_needs_a_lowercase_start():
+    assert continues_mid_word("valar")
+    assert continues_mid_word("**valar**")
+    assert not continues_mid_word("Valar")    # a new heading
+    assert not continues_mid_word("12. UST YONETIM")
+    assert not continues_mid_word("")
+
+
+def test_a_wrapped_heading_is_rejoined_without_its_hyphen():
+    blocks = [
+        heading("Birim Nezdinde Takibi Yurutulen Devam Eden Da-", WRAP_TOP),
+        heading("valar", WRAP_BOTTOM),
+        body("31.12.2024 tarihi itibariyla..."),
+    ]
+
+    rewritten, merged = rejoin_hyphenated_headings(blocks)
+
+    assert len(rewritten) == 2
+    assert rewritten[0].text == "Birim Nezdinde Takibi Yurutulen Devam Eden Davalar"
+    assert merged == {"Birim Nezdinde Takibi Yurutulen Devam Eden Davalar"}
+    assert rewritten[0].heading_level == 2
+    # The surviving box spans both printed lines.
+    assert rewritten[0].physical_bbox == (306.0, 597.0, 539.0, 616.0)
+
+
+def test_emphasis_ends_up_around_the_joined_title_not_inside_it():
+    blocks = [
+        heading("**Devam Eden Da-**", WRAP_TOP),
+        heading("**valar**", WRAP_BOTTOM),
+    ]
+
+    rewritten, _ = rejoin_hyphenated_headings(blocks)
+
+    assert rewritten[0].text == "**Devam Eden Davalar**"
+
+
+def test_a_heading_wrapped_twice_comes_out_as_one_heading():
+    blocks = [
+        heading("Devam Eden Da-", (306.0, 597.0, 539.0, 605.0)),
+        heading("va-", (306.0, 606.0, 332.0, 614.0)),
+        heading("lar", (306.0, 615.0, 332.0, 623.0)),
+    ]
+
+    rewritten, _ = rejoin_hyphenated_headings(blocks)
+
+    assert len(rewritten) == 1
+    assert rewritten[0].text == "Devam Eden Davalar"
+
+
+def test_a_capitalised_line_below_is_a_new_heading_not_a_continuation():
+    blocks = [
+        heading("Kredi Limit-", WRAP_TOP),
+        heading("Risk Bildirimi", WRAP_BOTTOM),
+    ]
+
+    _, merged = rejoin_hyphenated_headings(blocks)
+
+    assert merged == set()
+
+
+def test_a_subtitle_set_below_a_heading_is_left_alone():
+    """No hyphen, so nothing claims the two lines are one word."""
+    blocks = [
+        heading("Kurumsal", WRAP_TOP),
+        heading("Yonetisim", WRAP_BOTTOM),
+    ]
+
+    _, merged = rejoin_hyphenated_headings(blocks)
+
+    assert merged == set()
+
+
+def test_a_paragraph_below_a_hyphenated_heading_is_not_pulled_in():
+    blocks = [
+        heading("Devam Eden Da-", WRAP_TOP),
+        body("valarin listesi asagidadir.", WRAP_BOTTOM),
+    ]
+
+    _, merged = rejoin_hyphenated_headings(blocks)
+
+    assert merged == set()
+
+
+def test_a_line_further_down_the_column_is_too_far_to_be_a_continuation():
+    """The next paragraph clears a heading by a leading of its own."""
+    blocks = [
+        heading("Devam Eden Da-", (306.0, 597.0, 539.0, 605.0)),
+        heading("valar", (306.0, 660.0, 332.0, 668.0)),
+    ]
+
+    _, merged = rejoin_hyphenated_headings(blocks)
+
+    assert merged == set()
+
+
+def test_a_fragment_beside_the_heading_is_not_a_continuation():
+    """Horizontally disjoint means side by side -- the other pass's case."""
+    blocks = [
+        heading("Devam Eden Da-", (51.0, 597.0, 200.0, 605.0)),
+        heading("valar", (306.0, 606.0, 332.0, 614.0)),
+    ]
+
+    _, merged = rejoin_hyphenated_headings(blocks)
+
+    assert merged == set()
+
+
+def test_the_two_passes_do_not_see_each_others_pairs():
+    """A stacked wrap and a side-by-side number never cross-match."""
+    wrap = [
+        heading("Devam Eden Da-", WRAP_TOP),
+        heading("valar", WRAP_BOTTOM),
+    ]
+    numbered = [
+        heading("**YATIRIM FAALIYETLERINDEN GELIRLER**", TITLE_BOX),
+        heading("**24.**", NUMBER_BOX),
+    ]
+
+    assert rejoin_split_headings(wrap)[1] == set()
+    assert rejoin_hyphenated_headings(numbered)[1] == set()

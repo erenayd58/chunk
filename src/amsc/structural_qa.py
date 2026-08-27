@@ -17,7 +17,9 @@ Rules, all text-agnostic -- no document, heading or page is matched by name:
                              neither its own heading nor any of its sections
 ``sentence_like_heading``    a heading that reads as a sentence or clause
 ``section_inconsistency``    the section state machine and the heading
-                             stream disagree
+                             stream disagree -- a heading that opens a section
+                             is not the tail of its own path, or the path moved
+                             where nothing opened a section
 ``running_header``           the same heading leads a logical page on
                              several distinct physical pages
 ``unresolved_visual``        a picture unit with an unpaired label/value
@@ -323,15 +325,42 @@ def check_sentence_like_headings(units: Sequence[dict]) -> list[Finding]:
     return findings
 
 
+def _opens_section(unit: dict) -> bool:
+    """Whether this unit is a heading that starts a section.
+
+    Looking like a heading and bearing hierarchy are two different claims (see
+    :mod:`amsc.semantic_roles`). A canonical extracted before the role pass
+    existed carries no decision, and every heading opens a section exactly as
+    it always did -- which is what keeps this linter's verdict unchanged on
+    those corpora.
+    """
+    if unit.get("type") != "heading":
+        return False
+    return unit.get("opens_section") is not False
+
+
 def check_section_consistency(
     units: Sequence[dict], chunks: Sequence[dict]
 ) -> list[Finding]:
-    """Disagreements between the heading stream and the section state."""
+    """Disagreements between the heading stream and the section state.
+
+    Two claims, and which one applies depends on one thing: does this unit open
+    a section?
+
+    A unit that does -- a heading bearing hierarchy -- must be the tail of its
+    own path. A unit that does not must carry exactly the path of the unit
+    before it. The second claim used to be made only of a body unit following
+    another body unit, because every heading was assumed to open a section.
+    Once ``item`` labels and ``display`` banners deliberately open nothing,
+    that assumption both flags the model working correctly *and* excuses the
+    unit after a label from any check at all. Reading the same predicate on
+    both sides fixes both halves.
+    """
     findings: list[Finding] = []
     previous: dict | None = None
     for unit in units:
         path = list(unit.get("section_path") or [])
-        if unit.get("type") == "heading":
+        if _opens_section(unit):
             if not path or _normalized(path[-1]) != _normalized(
                 str(unit.get("text") or "")
             ):
@@ -348,8 +377,14 @@ def check_section_consistency(
                         evidence=f"{str(unit.get('text'))[:60]} -> {path}",
                     )
                 )
-        elif previous is not None and previous.get("type") != "heading":
-            if path != list(previous.get("section_path") or []):
+        elif previous is not None or unit.get("type") == "heading":
+            # Nothing has opened a section yet at the first unit, so the path it
+            # may carry is the empty one. A body unit in that position was never
+            # checked and still is not; a heading there was, and still is.
+            expected = (
+                list(previous.get("section_path") or []) if previous is not None else []
+            )
+            if path != expected:
                 findings.append(
                     Finding(
                         rule="section_inconsistency",
@@ -357,10 +392,14 @@ def check_section_consistency(
                         target_id=str(unit.get("unit_id")),
                         page=_page(unit),
                         reason=(
-                            "the section changed without a heading in between "
-                            f"(previous unit {previous.get('unit_id')})"
+                            "the section changed at a unit that opens none "
+                            + (
+                                f"(previous unit {previous.get('unit_id')})"
+                                if previous is not None
+                                else "(first unit, nothing is open yet)"
+                            )
                         ),
-                        evidence=f"{list(previous.get('section_path') or [])} -> {path}",
+                        evidence=f"{expected} -> {path}",
                     )
                 )
         previous = unit

@@ -60,6 +60,9 @@ class LayoutBox:
     # when the extractor is asked for it, so the default extraction is
     # byte-identical to the frozen one.
     picture_geometry: PictureGeometry | None = None
+    # Largest type size printed inside this box. Captured only when the
+    # extractor is asked for it; the default extraction never reads it.
+    font_size: float | None = None
 
 
 class ExplicitLogicalPageColumnOrderer:

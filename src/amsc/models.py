@@ -15,6 +15,35 @@ class UnitType(StrEnum):
     TABLE = "table"
 
 
+class SemanticRole(StrEnum):
+    """What a heading is, as distinct from what it looks like.
+
+    ``amsc.semantic_roles`` assigns these; the rules and their evidence live
+    there. Only the mapping below is schema, because it is the contract every
+    consumer of ``section_path`` depends on.
+    """
+
+    #: A title that owns the content under it.
+    SECTION = "section"
+    #: A key partitioning the section it sits in -- a year, an ordinal.
+    GROUP = "group"
+    #: One of a repeated run of labels, each naming a single list entry.
+    ITEM = "item"
+    #: Type set for the page rather than for the structure: a standfirst, a
+    #: decorative phrase, a banner repeated as page furniture.
+    DISPLAY = "display"
+
+
+#: Looking like a heading and bearing hierarchy are different claims, and this
+#: is where the second one is decided. Nothing else may open a section.
+ROLE_OPENS_SECTION: dict[SemanticRole, bool] = {
+    SemanticRole.SECTION: True,
+    SemanticRole.GROUP: True,
+    SemanticRole.ITEM: False,
+    SemanticRole.DISPLAY: False,
+}
+
+
 class SourceSpan(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -43,6 +72,12 @@ class RawDocumentUnit(BaseModel):
     text: str = Field(min_length=1)
     type: UnitType
     heading_level: int | None = Field(default=None, ge=1, le=6)
+    #: What this heading *is*, as opposed to what it looks like. Absent on a
+    #: corpus extracted before the role pass existed, which is why it is
+    #: optional: looking like a heading and bearing hierarchy are different
+    #: claims, and only ``opens_section`` decides ``section_path``.
+    semantic_role: SemanticRole | None = None
+    opens_section: bool | None = None
     section_path: list[str] = Field(default_factory=list)
     source: SourceSpan = Field(default_factory=SourceSpan)
 
@@ -52,6 +87,27 @@ class RawDocumentUnit(BaseModel):
             raise ValueError("heading_level is required for heading units")
         if self.type != UnitType.HEADING and self.heading_level is not None:
             raise ValueError("heading_level is only valid for heading units")
+        return self
+
+    @model_validator(mode="after")
+    def validate_semantic_role(self) -> "RawDocumentUnit":
+        if self.type != UnitType.HEADING:
+            if self.semantic_role is not None or self.opens_section is not None:
+                raise ValueError(
+                    "semantic_role and opens_section are only valid for heading units"
+                )
+            return self
+        if (self.semantic_role is None) != (self.opens_section is None):
+            raise ValueError(
+                "semantic_role and opens_section are recorded together or not at all"
+            )
+        if self.semantic_role is not None:
+            expected = ROLE_OPENS_SECTION[self.semantic_role]
+            if self.opens_section != expected:
+                raise ValueError(
+                    f"{self.semantic_role.value} opens_section is {expected}, "
+                    f"not {self.opens_section}"
+                )
         return self
 
 

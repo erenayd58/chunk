@@ -25,12 +25,14 @@ from .checkpoint_layout import (
     ExplicitLogicalPageColumnOrderer,
     load_checkpoint_layout_profile,
 )
+from .heading_levels import assign_heading_levels
 from .lead_in_headings import demote_lead_ins
 from .models import RawDocumentUnit
 from .numbered_headings import promote_numbered_headings
 from .running_headers import drop_running_headers
+from .semantic_roles import assign_semantic_roles
 from .sentence_headings import demote_sentence_headings
-from .split_headings import rejoin_split_headings
+from .split_headings import rejoin_hyphenated_headings, rejoin_split_headings
 from .table_captions import demote_table_captions
 
 
@@ -41,6 +43,42 @@ class FullCheckpointResult:
     portrait_single_pages: tuple[int, ...]
     landscape_spread_pages: tuple[int, ...]
     canonical_sha256: str
+    canonical_profile: str = "v1-frozen"
+
+
+#: The canonical repairs applied by ``--canonical-profile v2-repaired``.
+#:
+#: Running-header removal is deliberately **not** in this set. On kkb-2024 the
+#: pass removes 42 furniture headings but also deletes every occurrence of two
+#: genuine numbered chapter titles, because those are printed as a banner on
+#: each page of their own chapter. Losing a chapter title is a worse defect
+#: than keeping the banners, so the pass stays off and the banners stay a
+#: recorded limitation.
+V2_CANONICAL_REPAIRS: dict[str, bool] = {
+    "reconstruct_visual_grids": True,
+    "demote_lead_in_headings": True,
+    "promote_missed_headings": True,
+    "demote_caption_headings": True,
+    "rejoin_split_headings_enabled": True,
+    "rejoin_hyphenated_headings_enabled": True,
+    "demote_sentence_headings_enabled": True,
+    "assign_typographic_heading_levels": True,
+}
+
+#: ``v3-semantic`` adds the heading/section split: every repair in v2, plus
+#: semantic roles, so ``section_path`` changes only at a heading that actually
+#: bears hierarchy. Kept as its own profile rather than folded into v2 so the
+#: two remain measurable against each other.
+V3_CANONICAL_REPAIRS: dict[str, bool] = {
+    **V2_CANONICAL_REPAIRS,
+    "assign_semantic_heading_roles": True,
+}
+
+CANONICAL_PROFILES: dict[str, dict[str, bool]] = {
+    "v1-frozen": {},
+    "v2-repaired": V2_CANONICAL_REPAIRS,
+    "v3-semantic": V3_CANONICAL_REPAIRS,
+}
 
 
 def apply_profile_to_spread_logical_pages(
@@ -93,7 +131,10 @@ def extract_full_canonical_units(
     promote_missed_headings: bool = False,
     demote_caption_headings: bool = False,
     rejoin_split_headings_enabled: bool = False,
+    rejoin_hyphenated_headings_enabled: bool = False,
     demote_sentence_headings_enabled: bool = False,
+    assign_typographic_heading_levels: bool = False,
+    assign_semantic_heading_roles: bool = False,
 ) -> CanonicalExtraction:
     """Produce mixed-orientation canonical units in memory, writing no file.
 
@@ -105,8 +146,10 @@ def extract_full_canonical_units(
 
     Every canonical repair -- ``reconstruct_visual_grids``,
     ``demote_lead_in_headings``, ``promote_missed_headings``,
-    ``demote_caption_headings``, ``rejoin_split_headings_enabled`` and
-    ``demote_sentence_headings_enabled`` -- is likewise opt-in and off by
+    ``demote_caption_headings``, ``rejoin_split_headings_enabled``,
+    ``rejoin_hyphenated_headings_enabled``,
+    ``demote_sentence_headings_enabled``, ``assign_typographic_heading_levels``
+    and ``assign_semantic_heading_roles`` -- is likewise opt-in and off by
     default, so the frozen research canonical stays byte-identical.
     """
 
@@ -120,7 +163,12 @@ def extract_full_canonical_units(
     # geometry. An explicitly supplied extractor keeps its own configuration.
     extraction = (
         extractor
-        or PyMuPDF4LLMExtractor(capture_picture_geometry=reconstruct_visual_grids)
+        or PyMuPDF4LLMExtractor(
+            capture_picture_geometry=reconstruct_visual_grids,
+            capture_heading_prominence=(
+                assign_typographic_heading_levels or assign_semantic_heading_roles
+            ),
+        )
     ).extract(
         input_path,
         pages=None,
@@ -149,6 +197,13 @@ def extract_full_canonical_units(
     ]
     if not canonical_blocks:
         raise ValueError("Full PDF produced no canonical semantic units")
+
+    if rejoin_hyphenated_headings_enabled:
+        # Opt-in: a heading too long for its column wraps mid-word and each
+        # printed line arrives as its own heading box, so the chunker is free
+        # to cut between ``Da-`` and ``valar``. Rejoining before the
+        # side-by-side pass means that pass sees whole titles.
+        canonical_blocks, _wrapped = rejoin_hyphenated_headings(canonical_blocks)
 
     if rejoin_split_headings_enabled:
         # Opt-in: one printed heading line can arrive as two layout boxes, the
@@ -199,6 +254,21 @@ def extract_full_canonical_units(
         # untouched heading stream.
         canonical_blocks, _lead_ins = demote_lead_ins(canonical_blocks)
 
+    if assign_semantic_heading_roles:
+        # Opt-in, and before the levels: a level only means something for a
+        # heading that bears hierarchy, and which headings those are is exactly
+        # what this pass decides. Runs after every demotion above so it never
+        # classifies a heading that is about to stop being one.
+        canonical_blocks, _roles = assign_semantic_roles(canonical_blocks)
+
+    if assign_typographic_heading_levels:
+        # Opt-in, and deliberately last: every pass above adds, removes or
+        # demotes headings, and a level is only meaningful once the heading
+        # stream is final. Levels stay relative to the document's own
+        # shallowest heading, so a corpus with one typographic tier comes out
+        # exactly as it went in.
+        canonical_blocks, _levels = assign_heading_levels(canonical_blocks)
+
     units = SectionHierarchyBuilder().build(
         canonical_blocks,
         document_id=document_id,
@@ -239,12 +309,19 @@ def prepare_full_checkpoint(
     layout_profile_path: str | Path,
     document_id: str = "kkb-2024",
     extractor: PyMuPDF4LLMExtractor | None = None,
+    canonical_profile: str = "v1-frozen",
 ) -> FullCheckpointResult:
+    if canonical_profile not in CANONICAL_PROFILES:
+        raise ValueError(
+            f"Unknown canonical profile {canonical_profile!r}; "
+            f"expected one of {sorted(CANONICAL_PROFILES)}"
+        )
     extracted = extract_full_canonical_units(
         input_path=input_path,
         layout_profile_path=layout_profile_path,
         document_id=document_id,
         extractor=extractor,
+        **CANONICAL_PROFILES[canonical_profile],
     )
     profile = extracted.layout_profile
     units = list(extracted.units)
@@ -271,8 +348,10 @@ def prepare_full_checkpoint(
     landscape_pages = extracted.landscape_spread_pages
     _record_full_document_profile_application(
         manifest_path,
+        canonical_path=output_path,
         portrait_pages=portrait_pages,
         landscape_pages=landscape_pages,
+        canonical_profile=canonical_profile,
     )
 
     preparation = PreparationResult(
@@ -294,19 +373,44 @@ def prepare_full_checkpoint(
         portrait_single_pages=portrait_pages,
         landscape_spread_pages=landscape_pages,
         canonical_sha256=sha256_file(output_path),
+        canonical_profile=canonical_profile,
     )
 
 
 def _record_full_document_profile_application(
     manifest_path: Path,
     *,
+    canonical_path: Path,
     portrait_pages: Sequence[int],
     landscape_pages: Sequence[int],
+    canonical_profile: str = "v1-frozen",
 ) -> None:
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    # The manifest names the PDF it came from and pins its sha; without the
+    # same pin on its own output, a canonical and its manifest can drift apart
+    # silently -- and every benchmark config downstream pins a sha the manifest
+    # could not confirm. ``units_sha256`` closes that loop.
+    #
+    # Only for a repaired profile. ``v1-frozen`` is the historical baseline and
+    # its checked-in manifest predates both this field and ``canonical_profile``;
+    # writing them would make a regenerated v1 manifest differ from the frozen
+    # one for no gain, since the v1 canonical is pinned by its ``.sha256``
+    # sidecar and by the configs that consume it. Each profile keeps its own
+    # manifest contract rather than one schema being retrofitted onto all three.
+    if CANONICAL_PROFILES[canonical_profile]:
+        payload["units_file"] = canonical_path.name
+        payload["units_sha256"] = sha256_file(canonical_path)
     payload["extraction_parameters"]["spread_detection"] = (
         "frozen_extractor_physical_page_width_gt_height"
     )
+    # Which repairs produced this canonical is provenance, not configuration:
+    # two files extracted from the same PDF are only comparable when both say
+    # so. ``v1-frozen`` records the empty set explicitly rather than by
+    # omission.
+    payload["canonical_profile"] = {
+        "profile_id": canonical_profile,
+        "repairs": dict(sorted(CANONICAL_PROFILES[canonical_profile].items())),
+    }
     payload["layout_profile_application"] = {
         "landscape_physical_pages": list(landscape_pages),
         "landscape_policy": (
@@ -334,6 +438,16 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--layout-profile", required=True, type=Path)
+    parser.add_argument(
+        "--canonical-profile",
+        default="v1-frozen",
+        choices=sorted(CANONICAL_PROFILES),
+        help=(
+            "v1-frozen reproduces the checked-in research canonical byte for "
+            "byte; v2-repaired applies the audited canonical repairs"
+        ),
+    )
+    parser.add_argument("--document-id", default="kkb-2024")
     return parser
 
 
@@ -343,6 +457,8 @@ def main(argv: list[str] | None = None) -> int:
         input_path=args.input,
         output_path=args.output,
         layout_profile_path=args.layout_profile,
+        document_id=args.document_id,
+        canonical_profile=args.canonical_profile,
     )
     units: Sequence[RawDocumentUnit] = result.preparation.units
     counts = unit_type_counts(units)
@@ -353,6 +469,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         json.dumps(
             {
+                "canonical_profile": result.canonical_profile,
                 "canonical_sha256": result.canonical_sha256,
                 "canonical_unit_count": len(units),
                 "forced_atomic_split_count": 0,

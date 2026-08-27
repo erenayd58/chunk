@@ -1,0 +1,639 @@
+{
+  "annotation_status": "manual_v2_development_checkpoint",
+  "authoring_method": "Questions and evidence links were written manually from the frozen canonical units of the source document, before any output of the new chunking work existed. Design fixes the known weaknesses of the v1 set: multi-unit evidence is used wherever the answer genuinely spans units, no canonical unit backs more than two questions, and page coverage is spread across the document. Every expected answer is machine-checked to appear literally in its evidence text. Caveat: the author had previously inspected v1 retrieval results on this document, so questions were sampled systematically by page band rather than drawn from known failure cases.",
+  "document_id": "kkb-2024",
+  "queries": [
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        8
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-00061",
+        "l-00062",
+        "l-00063",
+        "l-00064",
+        "l-00065",
+        "l-00066",
+        "l-00067",
+        "p-00068"
+      ],
+      "expected_answer": "Toplam 197 üye: 64 banka, 24 tüketici finansmanı, 48 faktoring, 19 finansal kiralama, 10 sigorta, 24 varlık yönetim şirketi ve 8 diğer.",
+      "query_id": "d001",
+      "question": "KKB'nin 31 Aralık 2024 itibarıyla toplam üye sayısı kaçtır ve bu üyeler hangi kuruluş türlerine dağılmaktadır?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        8
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "p-00060",
+        "l-00063"
+      ],
+      "expected_answer": "48 faktoring şirketi.",
+      "query_id": "d002",
+      "question": "KKB üyeleri arasında kaç faktoring şirketi bulunmaktadır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        8
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00071"
+      ],
+      "expected_answer": "28 Haziran 2013 tarihinde faaliyete geçmiştir.",
+      "query_id": "d003",
+      "question": "TBB Risk Merkezi hangi tarihte faaliyete geçmiştir?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        8
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00075"
+      ],
+      "expected_answer": "95 ürün ve hizmet.",
+      "query_id": "d004",
+      "question": "KKB 2024 yıl sonu itibarıyla üyelerinin kullanımına kaç ürün ve hizmet sunmaktadır?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        8,
+        48
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00076",
+        "v-01051"
+      ],
+      "expected_answer": "709 kişi.",
+      "query_id": "d005",
+      "question": "2024 yıl sonu itibarıyla KKB'nin çalışan sayısı kaçtır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        9
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00081"
+      ],
+      "expected_answer": "9 hissedarı bulunmaktadır.",
+      "query_id": "d006",
+      "question": "KKB'nin hâlihazırda kaç hissedarı bulunmaktadır?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        9
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00087"
+      ],
+      "expected_answer": "Finans sektörü ile reel sektörün finansal ihtiyaçlarını karşılayan bilgi ve teknolojiyi en iyi şekilde sunmak, kurumların operasyonel verimliliklerini artırmak.",
+      "query_id": "d007",
+      "question": "KKB'nin misyonu nedir?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        8
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00074"
+      ],
+      "expected_answer": "2016 yılı Aralık ayında faaliyete başlamıştır.",
+      "query_id": "d008",
+      "question": "KKB Anadolu Veri Merkezi ne zaman faaliyete başlamıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        13
+      ],
+      "evidence_type": "table",
+      "evidence_unit_ids": [
+        "t-00184"
+      ],
+      "expected_answer": "2018'de 52 iken 2024'te 64'e yükselmiştir.",
+      "query_id": "d009",
+      "question": "KKB'nin banka üyesi sayısı 2018'den 2024'e nasıl değişmiştir?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        13
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-00185"
+      ],
+      "expected_answer": "KKB'nin üye sayısı 31 Aralık 2024 itibarıyla 185'tir; 197 rakamı Risk Merkezi üzerinden hizmet verilen üyeleri de kapsar.",
+      "query_id": "d010",
+      "question": "KKB'nin kendi üye sayısı ile faaliyet raporunda geçen 197 rakamı neden farklıdır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        14
+      ],
+      "evidence_type": "table",
+      "evidence_unit_ids": [
+        "t-00196"
+      ],
+      "expected_answer": "Tabloda 2024 yılı KRS sorgulama sayısı verilmektedir.",
+      "query_id": "d011",
+      "question": "2024 yılında KRS sorgulama sayısı kaç milyon adettir?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        14
+      ],
+      "evidence_type": "visual",
+      "evidence_unit_ids": [
+        "v-00197"
+      ],
+      "expected_answer": "%5,3.",
+      "query_id": "d012",
+      "question": "KKB üye profilinde sigorta şirketlerinin payı yüzde kaçtır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        15
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-00254"
+      ],
+      "expected_answer": "29796 sayılı Resmî Gazete ile 9 Ağustos 2016 tarihinde yasalaşmıştır.",
+      "query_id": "d013",
+      "question": "Karekodlu Çek hangi tarihte ve hangi Resmî Gazete sayısıyla yasalaşmıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        15
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-00278"
+      ],
+      "expected_answer": "%70 artış sağlanmıştır.",
+      "query_id": "d014",
+      "question": "KRS'de 1 milyar sorgu adedine ulaşıldığında ürün kullanımında bir önceki yıla göre ne kadar artış olmuştur?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        17
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00328"
+      ],
+      "expected_answer": "Olgun Tufan Kurbanoğlu.",
+      "query_id": "d015",
+      "question": "KKB Yönetim Kurulu Başkanı kimdir?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        21
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00399"
+      ],
+      "expected_answer": "Gökhan Şahin, Ekim 2023 itibarıyla KKB Genel Müdürü ve Yönetim Kurulu Üyesidir.",
+      "query_id": "d016",
+      "question": "KKB Genel Müdürü kimdir ve bu göreve ne zaman başlamıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        23
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00429"
+      ],
+      "expected_answer": "19/06/2024 tarihinde gerçekleştirilen Yönetim Kurulu Toplantısı'nda onaylanmıştır.",
+      "query_id": "d017",
+      "question": "KKB organizasyon şeması hangi tarihli Yönetim Kurulu toplantısında onaylanmıştır?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        27
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00443"
+      ],
+      "expected_answer": "2013 yılı sonlarında test ortamına açılmış, Ocak 2014 itibarıyla bankaların tüm kart müşterilerine ilişkin veriler sisteme yüklenmiştir.",
+      "query_id": "d018",
+      "question": "Limit Kontrol Sistemi ne zaman test ortamına açılmış ve bankaların kart verileri ne zaman sisteme yüklenmiştir?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        27
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00475"
+      ],
+      "expected_answer": "Nisan 2012'de hayata geçirmiştir.",
+      "query_id": "d019",
+      "question": "KKB Çek Raporu Sunum Sistemi'ni ne zaman hayata geçirmiştir?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        28
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00505"
+      ],
+      "expected_answer": "Keşidecinin çek kullanım alışkanlığını ve güvenilirliğini özetleyen, puana dayalı grafiksel bir risk göstergesidir.",
+      "query_id": "d020",
+      "question": "Çek Endeksi neyi ölçer?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        28
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00513"
+      ],
+      "expected_answer": "Kişilerin geçmiş davranışlarından yola çıkarak gelecekte yeni bir kredi ürünü kullanma eğilimlerini tahmin etmek için kullanılır.",
+      "query_id": "d021",
+      "question": "KKB Eğilim Skorları ne amaçla kullanılır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        27
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00472"
+      ],
+      "expected_answer": "Son 18 aylık ödeme performansını göstermektedir.",
+      "query_id": "d022",
+      "question": "Risk Raporu her bir kredinin kaç aylık ödeme performansını göstermektedir?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        45
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00981"
+      ],
+      "expected_answer": "Teknik kurulum 5 Ağustos 2024'te tamamlanmış, Eximbank ile yürütülen pilotta 5 firma Greendeks'i deneyimlemiştir.",
+      "query_id": "d023",
+      "question": "Greendeks'in teknik kurulumu ne zaman tamamlanmış ve pilot sürece kaç firma katılmıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        45
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00983"
+      ],
+      "expected_answer": "11 yeni banka entegre edilmiş, toplamda 51 banka platforma dahil edilmiştir.",
+      "query_id": "d024",
+      "question": "2024 yılında Elektronik Teminat Mektubu Platformu'na kaç yeni banka entegre edilmiş ve toplam kaç bankaya ulaşılmıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        45
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00984"
+      ],
+      "expected_answer": "Tüm tarımsal kredilerin yaklaşık %15'i, özel bankalar içinde ise yaklaşık %70'i.",
+      "query_id": "d025",
+      "question": "2024 yılında Türkiye'de verilen tarımsal kredilerin ne kadarı TARDES değerlendirmesiyle gerçekleştirilmiştir?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        47
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01020"
+      ],
+      "expected_answer": "%91 ile rekor oranda katılım gerçekleşmiştir.",
+      "query_id": "d026",
+      "question": "Great Place to Work sertifikası için KKB çalışanlarının katılım oranı ne olmuştur?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        47
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01022"
+      ],
+      "expected_answer": "Başvuru oranları %200 artmış, KKB bünyesine katılan 126 genç yeteneğin tutundurma oranı %80 olmuştur.",
+      "query_id": "d027",
+      "question": "Genç Yetenekler Programı'nın beşinci döneminde başvuru oranı ne kadar artmış ve tutundurma oranı ne olmuştur?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        48
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01045"
+      ],
+      "expected_answer": "559 çalışan katılmış, 22 kişi 10'uncu yıl plaketi almıştır.",
+      "query_id": "d028",
+      "question": "Sinerji 2024 etkinliğine kaç KKB çalışanı katılmış ve kaç kişi 10'uncu yıl kıdem plaketi almıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        49
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01060"
+      ],
+      "expected_answer": "Yaklaşık 260 aktif ürün/hizmet, 425 tedarikçi, 900 süreç ve 5.000'e yakın varlık.",
+      "query_id": "d029",
+      "question": "2024 yılında kaç ürün/hizmet, tedarikçi, süreç ve varlık için risk değerlendirmesi yapılmıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        47
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-01031"
+      ],
+      "expected_answer": "731 (390 tekil) KKB çalışanı 74 eğitimle toplam 144 gün.",
+      "query_id": "d030",
+      "question": "KKB Akademi kapsamında yıl içinde kaç çalışan kaç eğitimle kaç gün öğrenerek geçirmiştir?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        47
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-01032"
+      ],
+      "expected_answer": "126 KKB çalışanı 31 ayrı etkinliğe katılmıştır.",
+      "query_id": "d031",
+      "question": "Konferans, seminer ve zirve talebinde bulunan kaç KKB çalışanı kaç etkinliğe katılmıştır?"
+    },
+    {
+      "difficulty": "paraphrase",
+      "evidence_pages": [
+        49
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01058"
+      ],
+      "expected_answer": "Oluşturulan Güvence Raporu hizmet alan paydaşlarla paylaşılmıştır.",
+      "query_id": "d032",
+      "question": "ISAE 3402 Tip-2 Güvence Denetimi'nin sonucu kimlerle paylaşılmıştır?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        65
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01260"
+      ],
+      "expected_answer": "185 üye: 61 banka, 24 tüketici finansmanı, 48 faktoring, 19 finansal kiralama, 5 sigorta, 20 varlık yönetim şirketi ve 8 diğer.",
+      "query_id": "d033",
+      "question": "Finansal tablo dipnotlarına göre KKB'nin 31 Aralık 2024 itibarıyla toplam üye sayısı kaçtır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        65
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01266"
+      ],
+      "expected_answer": "8 adet banka.",
+      "query_id": "d034",
+      "question": "31 Aralık 2024 itibarıyla kaç banka olağan durum merkezini KKB Anadolu Veri Merkezi'nde konumlandırmıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        65
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01269"
+      ],
+      "expected_answer": "Varyap Meridian Sitesi, F Blok, Barbaros Mah. Ardıç Sk., 34746, Ataşehir, İstanbul, Türkiye.",
+      "query_id": "d035",
+      "question": "KKB'nin kayıtlı adresi nedir?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        68
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01417"
+      ],
+      "expected_answer": "228.970 TL; 31 Aralık 2023 itibarıyla 96.483 TL.",
+      "query_id": "d036",
+      "question": "31 Aralık 2024 itibarıyla muhasebeleştirilen beklenen kredi zarar karşılığı tutarı nedir ve bir önceki yıl ne kadardı?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        31
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00676",
+        "p-00682",
+        "p-00683"
+      ],
+      "expected_answer": "Endeks (A'dan E'ye derecelendirme), Aksiyon Planı ve Greendeks Raporu ile Sertifikası.",
+      "query_id": "d037",
+      "question": "Greendeks hangi bileşenlerden oluşmaktadır?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        31
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-00658",
+        "l-00659",
+        "l-00661"
+      ],
+      "expected_answer": "Minimum BT kaynağı gerektirmesi, entegrasyon sürelerini kısaltması ve Strategy Design Studio ile iş biriminin BT'den bağımsız karar alabilmesi.",
+      "query_id": "d038",
+      "question": "Merkezi Karar Destek Sistemleri'nin üyelere sağladığı başlıca avantajlar nelerdir?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        51
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-01107",
+        "l-01108"
+      ],
+      "expected_answer": "Bilgi Sistemleri Kontrol Birimi (BT süreçlerinin güvenliği, sürekliliği, verimliliği) ve İş Süreçleri ve Finansal Kontrol Birimi (süreç analizi, finansal raporlama doğruluğu ve mevzuata uygunluk).",
+      "query_id": "d039",
+      "question": "KKB İç Kontrol Bölümü hangi iki birimden oluşur ve her biri neyden sorumludur?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        31
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00691",
+        "p-00692"
+      ],
+      "expected_answer": "Firmanın kredi geri ödeme yükümlülüklerini ne ölçüde yerine getireceğini tahmin eder; TKN ne kadar yüksekse firmanın 12 ay içinde takibe girme olasılığı o kadar düşüktür.",
+      "query_id": "d040",
+      "question": "Ticari Kredi Notu neyi tahmin eder ve yüksek bir TKN ne anlama gelir?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        32
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00704",
+        "p-00705"
+      ],
+      "expected_answer": "Tarım sektöründeki kişilerin kredilerinin 12 ay içinde ödenmeme olasılığını ölçer; finansal kuruluşların daha hızlı ve objektif kredi kararları almasını sağlar.",
+      "query_id": "d041",
+      "question": "Tarım Skoru neyi ölçer ve finansal kuruluşlara ne sağlar?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        31
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-00651",
+        "p-00652"
+      ],
+      "expected_answer": "Bir kişinin aynı gün içinde farklı kurumlardan kredi kullanımını anlık paylaşarak, ödeme gücünün üzerinde kredi almasının önüne geçilmesine olanak tanır.",
+      "query_id": "d042",
+      "question": "Kredi Kullandırımı Anlık Paylaşım Servisi ne işe yarar?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        75
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01669"
+      ],
+      "expected_answer": "Toplam 17 adet dava; 2.167.206 TL karşılık ayrılmıştır.",
+      "query_id": "d043",
+      "question": "31 Aralık 2024 itibarıyla KKB aleyhine açılmış maddi talepli kaç dava vardır ve ne kadar karşılık ayrılmıştır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        72
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01569"
+      ],
+      "expected_answer": "41.290.677 TL (31 Aralık 2023: 34.080.839 TL).",
+      "query_id": "d044",
+      "question": "31 Aralık 2024 itibarıyla vergi hesaplamasında indirim olarak dikkate alınan Ar-Ge gideri ne kadardır?"
+    },
+    {
+      "difficulty": "cross-context",
+      "evidence_pages": [
+        77
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01726"
+      ],
+      "expected_answer": "Her biri 1 TL nominal bedelli 7.425.000 TL hisse; pay başına oy hakkı 1'dir.",
+      "query_id": "d045",
+      "question": "Şirket'in onaylanmış ve çıkarılmış sermayesi ne kadardır ve pay başına oy hakkı kaçtır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        52
+      ],
+      "evidence_type": "narrative",
+      "evidence_unit_ids": [
+        "p-01142"
+      ],
+      "expected_answer": "Resmi Yazışmalar, Yetkilendirme ve İletişim Merkezi olmak üzere üç ekipten oluşmaktadır.",
+      "query_id": "d046",
+      "question": "KKB Operasyon Birimi hangi ekiplerden oluşmaktadır?"
+    },
+    {
+      "difficulty": "direct",
+      "evidence_pages": [
+        52
+      ],
+      "evidence_type": "list",
+      "evidence_unit_ids": [
+        "l-01140"
+      ],
+      "expected_answer": "10 adet.",
+      "query_id": "d047",
+      "question": "KKB aleyhine devam eden davalar arasında işçilik alacağı ve kıdem/ihbar tazminatı davası kaç adettir?"
+    }
+  ],
+  "schema_version": "1.0",
+  "source_units_file": "data/kkb-2024.units.v3.jsonl",
+  "source_units_sha256": "99ab0e950020dc785246689e2f7026aa1878eeda7b2cb2288ad1f8034a382229"
+}

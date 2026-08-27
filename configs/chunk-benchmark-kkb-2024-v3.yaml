@@ -1,0 +1,50 @@
+benchmark:
+  version: chunk-benchmark-v1
+  canonical_profile: v3-semantic
+  status: development_checkpoint
+
+source:
+  units: data/kkb-2024.units.v3.jsonl
+  units_sha256: 99ab0e950020dc785246689e2f7026aa1878eeda7b2cb2288ad1f8034a382229
+  gold_queries: evaluation/kkb-2024/retrieval-benchmark/canonical-v3/gold-queries-v2.canonical-v3.json
+  secondary_gold_queries: evaluation/kkb-2024/retrieval-benchmark/canonical-v3/gold-queries.canonical-v3.json
+  document_pdf: kkbfaaliyetraporu2024.pdf
+  layout_profile: configs/checkpoint-kkb-2024.yaml
+
+arms:
+  markdown:
+    kind: markdown_recursive
+    # Frozen for this benchmark so all three arms share one token budget.
+    # Not a reproduction of any library default. poc_initial_not_optimized.
+    chunk_size_tokens: 700
+    chunk_overlap_tokens: 140
+  hybrid:
+    kind: hybrid_h1
+    respect_semantic_roles: true
+  structure-only:
+    kind: structure_first
+    respect_semantic_roles: true
+
+
+tokens:
+  min_tokens: 160
+  target_tokens: 700
+  soft_max_tokens: 900
+  hard_max_tokens: 1126
+
+bm25:
+  # Reproduces the production BM25OnlyRetriever exactly.
+  k1: 1.5
+  b: 0.75
+  fold: turkish_diacritics_v1
+
+boundary_embedding:
+  # Read-only reference to the frozen V4 settings; the config is never extended.
+  config: configs/v4.yaml
+
+evaluation:
+  # [1, 3, 5] is required: the reused metric function hardcodes those keys.
+  top_ks: [1, 3, 5]
+  latency_repetitions: 5
+  chunking_repetitions: 5
+  token_counter_encoding: cl100k_base

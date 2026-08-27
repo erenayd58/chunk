@@ -1,0 +1,31 @@
+{
+  "evidence_unit_ids_verified": [
+    "l-00223",
+    "l-00266",
+    "l-01402",
+    "l-01425",
+    "p-00001",
+    "p-00128",
+    "p-00301",
+    "p-00316",
+    "p-00464",
+    "p-00531",
+    "p-00592",
+    "p-00693",
+    "p-01211",
+    "p-01538",
+    "p-02000",
+    "t-00180",
+    "t-02072",
+    "v-01360"
+  ],
+  "repinned_from": {
+    "source_units_file": "data/kkb-2022.units.jsonl",
+    "source_units_sha256": "230ba9c9cdd0f8a8e3cefc191c0fd547a40e4bd195176cfd6c08ef8bf3511f03"
+  },
+  "repinned_to": {
+    "source_units_file": "data/kkb-2022.units.v2.jsonl",
+    "source_units_sha256": "482da27f297b6288bcf62e2f99be0957398158614ed7c136b02b0ca862576b4f"
+  },
+  "verification": "every evidence unit id resolves in the new canonical, on the page the gold set recorded; the questions and expected answers are untouched"
+}

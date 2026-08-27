@@ -49,7 +49,7 @@ Every other stage is its own `python -m amsc.<module>` entry point:
 | Module | Purpose |
 |---|---|
 | `amsc.prepare_checkpoint` | PDF → canonical JSONL for selected pages (`--pages 40-55`) |
-| `amsc.prepare_full_checkpoint` | Full mixed-orientation document, requires `--layout-profile` |
+| `amsc.prepare_full_checkpoint` | Full mixed-orientation document, requires `--layout-profile`; `--canonical-profile v1-frozen\|v2-repaired\|v3-semantic` |
 | `amsc.checkpoint_qa` | Human-readable QA preview of canonical JSONL |
 | `amsc.evaluation` | `worksheet` / `evaluate` — the **authoritative** boundary + chunk metrics |
 | `amsc.failure_analysis` | Prediction/gold/merge audit, `--run ID=DIR` (diagnostic only) |
@@ -57,6 +57,9 @@ Every other stage is its own `python -m amsc.<module>` entry point:
 | `amsc.v5_research` | Phase 3B scale-calibration B0–B3 |
 | `amsc.run_retrieval_benchmark` | Phase 4 retrieval benchmark on KKB 2024 |
 | `amsc.run_holdout_benchmark` | Phase 5 holdout validation on KKB 2022 |
+| `amsc.chunk_benchmark` | Markdown / Hybrid / Structure-only comparison on time and quality (`--output` is **required**) |
+| `amsc.semantic_roles` | Library only — the heading/section split; no CLI |
+| `amsc.structural_qa` | Structural QA linter over a canonical corpus and its chunks |
 
 Both preparers are thin CLI wrappers over an in-memory core —
 `checkpoint_adapter.extract_canonical_units()` and
@@ -66,6 +69,98 @@ files (the `chat_rag` ingestion path does) call those directly, so there is exac
 canonical extraction implementation. `extract_full_canonical_units` takes the layout
 profile as **optional**: omit it and spread pages keep the frozen extractor's own reading
 order, which is correct for ordinary portrait documents.
+
+**Canonical profiles.** Every canonical repair is opt-in and off by default, so
+`--canonical-profile v1-frozen` reproduces `data/*.units.jsonl` byte for byte (verified
+against the pinned `units_sha256`). **The three profiles do not share a manifest
+contract and must not be made to.** v1-frozen is the historical baseline: its manifest
+predates `canonical_profile` and `units_sha256`, and the writer deliberately skips both
+for that profile, so a v1 regeneration does not rewrite the one artifact whose value is
+that it has not been rewritten. v1 is pinned instead by `data/kkb-2024.units.sha256`,
+by literal constants in [test_canonical_pins.py](tests/integration/test_canonical_pins.py)
+and by every config that consumes it. v2/v3 are generated artifacts and their manifests
+must carry `canonical_profile` (profile id **and** the exact repair set),
+`units_file` and a matching `units_sha256`. `v2-repaired` is the named set in
+`prepare_full_checkpoint.V2_CANONICAL_REPAIRS`: visual-grid reconstruction, lead-in and
+standfirst demotion, table-caption demotion, split-heading rejoin, hyphenated-heading
+rejoin, missed numbered-heading promotion and
+[heading_levels.py](src/amsc/heading_levels.py). `v3-semantic` adds
+[semantic_roles.py](src/amsc/semantic_roles.py) on top. Each writes `data/*.units.v{2,3}.jsonl`
+and records its repair set under `canonical_profile` in the manifest. [split_headings.py](src/amsc/split_headings.py) carries two rejoins that are geometric
+opposites and cannot match each other's pairs: `rejoin_split_headings` merges heading
+fragments printed **side by side** on one line (a bare `24.` beside its title),
+`rejoin_hyphenated_headings` merges fragments **stacked** on two lines of one column, where
+the upper one ends mid-word at a hyphen and the lower one resumes it in lower case. Both
+signals stay narrow because two headings sharing a line are usually two real headings, and
+two stacked headings are usually a title and its subtitle. The one guess in the hyphen rule
+is dropping the hyphen: a hard hyphen in a compound that breaks at its own hyphen is
+indistinguishable from a soft one without a lexicon. Fires twice on kkb-2024, never on
+kkb-2022 — where the same defect exists but the continuation is three blocks away in another
+column, so it stays a recorded limitation rather than a looser rule.
+
+**Running-header removal is deliberately not in the set** — on kkb-2024
+`drop_running_headers` deletes 42 furniture headings but also every occurrence of two real
+numbered chapter titles, so it stays off and the banners stay a recorded limitation
+(`artifacts/parser-audit/`).
+
+**Looking like a heading and bearing hierarchy are two different claims**, and conflating
+them is what made a card grid open twenty-nine sections where a reader sees one.
+[semantic_roles.py](src/amsc/semantic_roles.py) separates them: every heading gets a
+`semantic_role` (`section` / `group` / `item` / `display`) and the `opens_section` that role
+implies, via `models.ROLE_OPENS_SECTION` — the single contract every consumer of
+`section_path` depends on. Four rules decide it, each one claim about layout or orthography;
+section numbering overrides all of them, because a heading opening `7.` or `2.4` is the
+document's own statement of its structure. `SectionHierarchyBuilder` then touches the stack
+only for a heading marked `opens_section`, and a corpus carrying no decision (`None`) opens
+at every heading exactly as before. The contract: **`section_path` changes only at a
+hierarchy-bearing unit**. Read it as a structural guarantee, not a measurement — the builder
+touches the stack only when `opens_section is not False`, so the reported "0 violations" holds
+even if every role decision were inverted. What it does *not* guarantee is that the roles are
+right, and nothing downstream cross-checks them: `heading_level` is derived from the same flag,
+and `role_reason` is computed but never written to `RawDocumentUnit`.
+
+**`section_path` is not display metadata.** `thresholds.py` scopes each boundary's adaptive
+threshold by the longest common prefix of the two units' `section_path`, so a change that only
+rewrites paths still moves V2/V3/V4 boundaries. It *is* inert for the three chunk-benchmark arms
+and for BM25, which index chunk text only — do not generalise from those runs. Downstream,
+`chat_rag`'s contextual enhancer joins `section_paths[0]` into a `Section: …` line that reaches
+the indexed text.
+
+`structural_qa.check_section_consistency` reads that same invariant through one predicate,
+`_opens_section(unit)`: a unit that opens a section must be the tail of its own path, and a unit
+that does not must carry the previous unit's path unchanged. Before it did, the linter demanded
+the tail of *every* heading and reported 260 (kkb-2024) and 322 (kkb-2022) HIGH findings against
+the role model working correctly — while excusing the unit after a label from any check at all.
+Totals on a role-free corpus are unchanged, which is what makes the predicate safe.
+
+`heading_levels.assign_heading_levels` exists because PyMuPDF4LLM's layout backend writes
+`##` for every section-header box: all 508 kkb-2024 headings arrived at level 2, so each
+evicted the one before it and every `section_path` was one element long. Levels come from
+*relative* type size, with two overrides that both say the same thing — the document's own
+numbering outranks its typography: an unnumbered heading may not out-rank the numbered one
+enclosing it (a standfirst is routinely set larger than its chapter title), and two numbered
+headings at the same numbering depth are siblings whatever size they are printed at. A third
+override comes from the role pass rather than from numbering: **a run of `group` keys sits at
+one tier**, because a key partitions the section it sits in and two keys of one partition are
+siblings however each is printed. Without it kkb-2024's timeline, whose year labels are set
+at 20pt and 9pt on the same page, read as `8. KİLOMETRE TAŞLARI > 1995 > 2009`. The run is
+closed by the next heading that is not a key, and a key printed deeper than the one that
+opened the run (`2.4` under `2`) keeps its own tier. Levels
+are anchored to the document's shallowest heading, so a genuinely flat corpus comes out
+unchanged, and tiers past the schema's sixth level merge **into** it. That merge direction
+was reversed once, on measurement: merging the shallow end was right while item labels still
+consumed tiers, and wrong once roles kept them off the stack (63.6% vs 48.1% of kkb-2024
+content units naming their chapter; identical on kkb-2022, where no path is deep enough for
+the cap to bite). **Beware the metric itself**: an earlier version counted every `^\d+\.`
+heading as a chapter, so local list numbering inflated it to 100% and hid the defect it was
+meant to measure. Chapters are now the longest strictly increasing run of depth-1 section
+numbers in reading order — 33 on each corpus.
+
+A canonical re-extraction invalidates every gold set pinned to the old sha.
+[gold_repin.py](src/amsc/gold_repin.py) carries a gold set across **only** when every
+evidence unit id still resolves to the same page and byte-identical text; otherwise it
+refuses and the key needs re-authoring. Provenance is written to a sibling
+`.provenance.json` because `RetrievalGoldSet` forbids unknown keys.
 
 ## Architecture
 
@@ -97,6 +192,24 @@ Seams that exist to be swapped without touching orchestration:
 - Boundary embedding and retrieval embedding are **separate interfaces with separate cache
   namespaces** (`.cache/boundary-embeddings` vs `.cache/retrieval-benchmark-v1`). The
   retrieval evaluator must never reach into the boundary embedder.
+
+**The chunk-benchmark layer is chunker-agnostic on purpose.**
+[chunk_benchmark.py](src/amsc/chunk_benchmark.py) compares three arms — `markdown_recursive`
+([markdown_chunker.py](src/amsc/markdown_chunker.py)), `hybrid_h1`
+([hybrid_chunker.py](src/amsc/hybrid_chunker.py)) and `structure_first`
+([structural_chunker.py](src/amsc/structural_chunker.py)) — over one frozen canonical input
+with BM25-only retrieval, so only the chunker varies. It **imports** the frozen metric
+functions from `retrieval_benchmark.py` rather than restating them, which imposes four
+conditions documented at the top of the module (frozen `RetrievalHit`, `top_ks == [1,3,5]`,
+`int`/`float` casts, `documents` passed separately). Chunk rows are reduced to canonical unit
+ids before scoring (`normalize_unit_ids_for_retrieval`) because `_to_document` filters unknown
+ids and would silently leave fragment-bearing chunks unscorable.
+[chunk_mapping.py](src/amsc/chunk_mapping.py) is the single chunk↔unit resolver — an
+offset/provenance/normalized/sequential ladder that reports `unmapped` rather than guessing —
+and both [chunk_quality.py](src/amsc/chunk_quality.py) and
+[chunk_viewer.py](src/amsc/chunk_viewer.py) consume it. `chunk_quality` subtracts a
+`lint(units, [])` parser baseline before comparing arms, because most `structural_qa` findings
+are properties of the parser and identical across arms.
 
 Config ([config.py](src/amsc/config.py)): all models are `extra="forbid"`; `load_config()`
 dispatches on `algorithm.version` to `V1Config`/`V2Config`/`V3Config`/`V4Config`. Each config

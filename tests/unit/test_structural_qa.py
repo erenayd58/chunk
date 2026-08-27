@@ -212,6 +212,94 @@ def test_a_consistent_stream_produces_nothing():
     assert rules_of(lint(units, []).findings, "section_inconsistency") == []
 
 
+# --------------------------------------- section_inconsistency and roles
+
+
+def label(unit_id, order, text, section, **kwargs):
+    """A heading the role pass said does not bear hierarchy."""
+    row = heading(unit_id, order, text, section=section, **kwargs)
+    row["semantic_role"] = "item"
+    row["opens_section"] = False
+    return row
+
+
+def test_a_label_is_not_required_to_be_its_own_section_tail():
+    """The whole point of the role model: an item title opens nothing."""
+    units = [
+        heading("h-1", 1, "5. ODULLER"),
+        label("h-2", 2, "Bir odul", section=("5. ODULLER",)),
+        unit("p-1", 3, "aciklama", section=("5. ODULLER",)),
+    ]
+
+    assert rules_of(lint(units, []).findings, "section_inconsistency") == []
+
+
+def test_a_label_that_moved_the_section_path_is_still_high():
+    """It may not be on the stack, but it may not change the stack either."""
+    units = [
+        heading("h-1", 1, "5. ODULLER"),
+        label("h-2", 2, "Bir odul", section=("BASKA BOLUM",)),
+    ]
+
+    findings = rules_of(lint(units, []).findings, "section_inconsistency")
+
+    assert [f.target_id for f in findings] == ["h-2"]
+    assert findings[0].confidence == HIGH
+
+
+def test_a_body_unit_that_moved_the_path_after_a_label_is_caught():
+    """Previously invisible: the label counted as a heading and excused it."""
+    units = [
+        heading("h-1", 1, "5. ODULLER"),
+        label("h-2", 2, "Bir odul", section=("5. ODULLER",)),
+        unit("p-1", 3, "aciklama", section=("BASKA BOLUM",)),
+    ]
+
+    findings = rules_of(lint(units, []).findings, "section_inconsistency")
+
+    assert [f.target_id for f in findings] == ["p-1"]
+
+
+def test_a_heading_that_does_open_a_section_still_has_to_be_its_own_tail():
+    units = [heading("h-1", 1, "BOLUM B", section=("BOLUM A",))]
+    units[0]["semantic_role"] = "section"
+    units[0]["opens_section"] = True
+
+    findings = rules_of(lint(units, []).findings, "section_inconsistency")
+
+    assert [f.target_id for f in findings] == ["h-1"]
+
+
+def test_a_label_opening_the_corpus_with_a_path_out_of_nowhere_is_caught():
+    """Nothing is open at the first unit, so any path it carries came from nowhere."""
+    units = [label("h-1", 1, "Bir etiket", section=("HAYALET BOLUM",))]
+
+    findings = rules_of(lint(units, []).findings, "section_inconsistency")
+
+    assert [f.target_id for f in findings] == ["h-1"]
+
+
+def test_the_first_unit_of_a_normal_corpus_carries_no_finding():
+    units = [unit("p-1", 1, "kapak metni", section=())]
+
+    assert rules_of(lint(units, []).findings, "section_inconsistency") == []
+
+
+def test_a_corpus_carrying_no_role_decision_is_judged_exactly_as_before():
+    """An older canonical must produce byte-identical findings."""
+    units = [
+        heading("h-1", 1, "BOLUM A"),
+        heading("h-2", 2, "Bir etiket", section=("BOLUM A",)),
+        unit("p-1", 3, "govde", section=("BOLUM A",)),
+    ]
+
+    findings = rules_of(lint(units, []).findings, "section_inconsistency")
+
+    # h-2 carries no role, so it is read as opening a section and is flagged
+    # for not being its own tail -- the pre-role verdict, unchanged.
+    assert [f.target_id for f in findings] == ["h-2"]
+
+
 # ------------------------------------------------------- running_header
 
 

@@ -1,0 +1,52 @@
+benchmark:
+  version: chunk-benchmark-v1
+  canonical_profile: v3-semantic
+  status: holdout_validation_checkpoint
+
+source:
+  units: data/kkb-2022.units.v3.jsonl
+  units_sha256: fe933d9243d228c4d46c9df28cc317e8795a52950685822d5ab68c781ba18651
+  gold_queries: evaluation/holdout-kkb-2022/retrieval-benchmark/canonical-v3/gold-queries-v2.canonical-v3.json
+  document_pdf: data/raw/kkb-faaliyet-raporu-2022.pdf
+  layout_profile: configs/checkpoint-kkb-2022.yaml
+
+arms:
+  markdown:
+    kind: markdown_recursive
+    # Frozen for this benchmark so all three arms share one token budget.
+    # Not a reproduction of any library default. poc_initial_not_optimized.
+    chunk_size_tokens: 700
+    chunk_overlap_tokens: 140
+  hybrid:
+    kind: hybrid_h1
+    respect_semantic_roles: true
+  structure-only:
+    kind: structure_first
+    respect_semantic_roles: true
+
+# No appendix: the frozen holdout v4 chunks are stored in the benchmark's slim
+# five-key corpus format, which carries no heading or section_paths, so a
+# structural comparison against them would measure the storage format.
+
+tokens:
+  min_tokens: 160
+  target_tokens: 700
+  soft_max_tokens: 900
+  hard_max_tokens: 1126
+
+bm25:
+  # Reproduces the production BM25OnlyRetriever exactly.
+  k1: 1.5
+  b: 0.75
+  fold: turkish_diacritics_v1
+
+boundary_embedding:
+  # Read-only reference to the frozen V4 settings; the config is never extended.
+  config: configs/v4.yaml
+
+evaluation:
+  # [1, 3, 5] is required: the reused metric function hardcodes those keys.
+  top_ks: [1, 3, 5]
+  latency_repetitions: 5
+  chunking_repetitions: 5
+  token_counter_encoding: cl100k_base

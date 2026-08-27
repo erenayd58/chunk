@@ -17,7 +17,7 @@ from .checkpoint_layout import (
     load_checkpoint_layout_profile,
 )
 from .io import validate_document_units
-from .models import RawDocumentUnit, SourceSpan, UnitType
+from .models import RawDocumentUnit, SemanticRole, SourceSpan, UnitType
 from .visual_grid import (
     BBox,
     PictureGeometry,
@@ -82,6 +82,14 @@ class AtomicBlock:
     layout_band: int | None = None
     layout_reading_order_index: int | None = None
     reading_order_policy: str | None = None
+    # Largest type size printed inside this block's layout box. Present only
+    # when the extractor was asked to measure prominence.
+    font_size: float | None = None
+    # What this heading is, as opposed to what it looks like. Present only when
+    # the semantic-role pass ran; see :mod:`amsc.semantic_roles`.
+    semantic_role: SemanticRole | None = None
+    opens_section: bool | None = None
+    role_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -241,6 +249,48 @@ def _capture_picture_geometry(
     return geometry
 
 
+def _capture_box_prominence(
+    source_document: Any,
+    logical_pages: Sequence[_LogicalPageSpec],
+    chunks: Sequence[Any],
+) -> dict[tuple[int, int], float]:
+    """Largest type size printed inside every non-picture layout box.
+
+    Runs while the source PDF is still open, keyed by ``(logical page index,
+    layout box index)`` exactly like :func:`_capture_picture_geometry`, and
+    reuses the same line reader. Only the pages that carry a layout box are
+    read.
+    """
+    if len(chunks) != len(logical_pages):
+        return {}
+    sizes: dict[tuple[int, int], float] = {}
+    per_page: dict[int, tuple[VisualTextLine, ...]] = {}
+    for logical_index, (spec, chunk) in enumerate(
+        zip(logical_pages, chunks), start=1
+    ):
+        if not isinstance(chunk, dict):
+            continue
+        for raw_box in chunk.get("page_boxes") or []:
+            if not isinstance(raw_box, dict) or raw_box.get("class") == "picture":
+                continue
+            bbox = raw_box.get("bbox")
+            if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+                continue
+            region = _physical_bbox(spec, _logical_bbox(spec, bbox))
+            if spec.physical_page not in per_page:
+                per_page[spec.physical_page] = _page_text_lines(
+                    source_document[spec.physical_page - 1]
+                )
+            inside = [
+                line.font_size
+                for line in per_page[spec.physical_page]
+                if _box_centre_inside(line.bbox, region)
+            ]
+            if inside:
+                sizes[(logical_index, int(raw_box.get("index", -1)))] = max(inside)
+    return sizes
+
+
 def _box_centre_inside(box: BBox, region: BBox) -> bool:
     x = (box[0] + box[2]) / 2.0
     y = (box[1] + box[3]) / 2.0
@@ -352,12 +402,16 @@ class PyMuPDF4LLMExtractor:
         *,
         layout_profile: CheckpointLayoutProfile | None = None,
         capture_picture_geometry: bool = False,
+        capture_heading_prominence: bool = False,
     ) -> None:
         self.backend_loader = backend_loader
         self.layout_profile = layout_profile
         # Opt-in. Off by default so the frozen research extraction keeps
         # producing byte-identical canonical units.
         self.capture_picture_geometry = capture_picture_geometry
+        # Opt-in for the same reason: measuring type size costs one text read
+        # per page and is only needed when heading levels are recovered.
+        self.capture_heading_prominence = capture_heading_prominence
 
     def extract(
         self,
@@ -442,6 +496,13 @@ class PyMuPDF4LLMExtractor:
                     if self.capture_picture_geometry
                     else {}
                 )
+                box_prominence = (
+                    _capture_box_prominence(
+                        source_document, logical_pages, chunks
+                    )
+                    if self.capture_heading_prominence
+                    else {}
+                )
         except Exception as exc:
             raise ValueError(f"Unable to open input PDF {source}: {exc}") from exc
 
@@ -506,6 +567,7 @@ class PyMuPDF4LLMExtractor:
                         picture_geometry=picture_geometry.get(
                             (logical_index, box_index)
                         ),
+                        font_size=box_prominence.get((logical_index, box_index)),
                     )
                 )
             ordered_boxes: tuple[LayoutBox, ...]
@@ -693,6 +755,9 @@ class MarkdownAtomicUnitParser:
                         if layout_box is not None
                         else None
                     ),
+                    font_size=(
+                        layout_box.font_size if layout_box is not None else None
+                    ),
                 )
             )
         return result
@@ -796,10 +861,16 @@ class SectionHierarchyBuilder:
             if block.unit_type == UnitType.HEADING:
                 if block.heading_level is None:
                     raise AssertionError("Heading block is missing heading_level")
-                active_headings = [
-                    item for item in active_headings if item[0] < block.heading_level
-                ]
-                active_headings.append((block.heading_level, block.text))
+                # Looking like a heading is not the same claim as bearing
+                # hierarchy. Once the role pass has decided, only a heading it
+                # marked ``opens_section`` may touch the stack; a corpus
+                # extracted before that pass existed carries no decision, and
+                # every heading opens a section as it always did.
+                if block.opens_section is not False:
+                    active_headings = [
+                        item for item in active_headings if item[0] < block.heading_level
+                    ]
+                    active_headings.append((block.heading_level, block.text))
             section_path = [text for _, text in active_headings]
             source_data: dict[str, Any] = {
                 "page": block.page,
@@ -856,6 +927,8 @@ class SectionHierarchyBuilder:
                     "text": block.text,
                     "type": block.unit_type,
                     "heading_level": block.heading_level,
+                    "semantic_role": block.semantic_role,
+                    "opens_section": block.opens_section,
                     "section_path": section_path,
                     "source": SourceSpan.model_validate(source_data),
                 }
@@ -875,6 +948,12 @@ class CanonicalUnitWriter:
         for unit in validated:
             row = unit.model_dump(mode="json", exclude_none=False)
             row["source"] = unit.source.model_dump(mode="json", exclude_none=True)
+            # A field that only exists once a pass has produced it is omitted
+            # when it has not, so a corpus extracted without that pass stays
+            # byte-identical to the one the frozen sha was taken from.
+            for optional in ("semantic_role", "opens_section"):
+                if row.get(optional) is None:
+                    row.pop(optional, None)
             rows.append(
                 json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n"
             )
