@@ -317,7 +317,10 @@ def _load_agentic_arm(
     consulted: dict[str, dict] = {}
     for window in diff.get("windows") or []:
         after = _base(window["chosen_after_unit_id"])
-        moved = not window["chosen_equals_greedy"]
+        # Only a cut that survived into the final chunks is a moved
+        # boundary; a provisional cut the rejoin absorbed never reaches a
+        # chunk here (no chunk ends at it), so it cannot be mislabelled.
+        moved = bool(window["final_boundary_moved"])
         reason = None
         if moved:
             for decision in window.get("decisions") or []:
@@ -1283,7 +1286,9 @@ function renderPresDetail(){
     const s = am.summary || {}, bd = am.diff || {};
     armNote = `Agentic Chunker: yapısal adaylar section başına tek çağrıda oylanır; ` +
       `bu koşuda ${bd.decision_windows ?? s.decision_window_count ?? "?"} karar penceresinin ` +
-      `${bd.moved ?? s.changed_from_greedy_count ?? "?"} tanesinde sınır LLM oyu ile taşındı` +
+      `${bd.window_moved ?? s.window_moved_count ?? "?"} tanesinde LLM oyu greedy'den farklı kesim seçti; ` +
+      `final chunk sınırı olarak kalan: ${bd.final_boundary_moved ?? s.final_boundary_moved_count ?? "?"}` +
+      ` (rejoin ile geri birleşen: ${bd.rejoined_after_agentic_cut ?? s.rejoined_after_agentic_cut_count ?? 0})` +
       (am.model ? ` (model: ${am.model})` : "") +
       `. Ayrı, model-bağımlı bir koşudur; kazanan iddiası yoktur.`;
   } else {
@@ -1637,7 +1642,9 @@ function renderBenchmark(){
     out += `<div class="cards">
       <div class="card"><div class="v">${ag.chunks.length}</div><div class="k">Agentic chunk</div></div>
       <div class="card"><div class="v">${bd.decision_windows ?? s.decision_window_count ?? "—"}</div><div class="k">karar penceresi</div></div>
-      <div class="card"><div class="v">${bd.moved ?? s.changed_from_greedy_count ?? "—"}</div><div class="k">LLM ile taşınan sınır</div></div>
+      <div class="card"><div class="v">${bd.window_moved ?? s.window_moved_count ?? "—"}</div><div class="k">pencere düzeyinde farklı seçim</div></div>
+      <div class="card"><div class="v">${bd.final_boundary_moved ?? s.final_boundary_moved_count ?? "—"}</div><div class="k">final chunk sınırı taşınan</div></div>
+      <div class="card"><div class="v">${bd.rejoined_after_agentic_cut ?? s.rejoined_after_agentic_cut_count ?? "—"}</div><div class="k">rejoin ile geri birleşen</div></div>
       <div class="card"><div class="v">${s.provider_call_count ?? "—"}</div><div class="k">provider çağrısı</div></div>
     </div>`;
     if (ag.ret) {

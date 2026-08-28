@@ -91,11 +91,25 @@ def test_difference_points_are_deterministic_and_nonempty(viewer_html, tmp_path)
     assert output.read_text(encoding="utf-8") == viewer_html
 
 
-def test_the_checked_in_viewer_artifact_is_current(viewer_html):
+def test_the_checked_in_viewer_artifact_is_current(tmp_path):
+    """The published viewer must equal a fresh build made from the same
+    inputs it was published with: the agentic arm joins the comparison only
+    if the published file already carries it (publishing the fourth arm is a
+    separate, deliberate step). Hashes are compared, not the multi-megabyte
+    strings -- a failing string diff is what a hang looks like in pytest."""
+    import hashlib
+
     published = ROOT / "artifacts" / "viewer-v2" / "index.html"
     if not published.is_file():
         pytest.skip("artifacts/viewer-v2/index.html has not been built here")
-    assert published.read_text(encoding="utf-8") == viewer_html, (
+    published_text = published.read_text(encoding="utf-8")
+    agentic = agentic_on_disk() if '"agenticMeta"' in published_text else {}
+    output = tmp_path / "fresh.html"
+    build_viewer(BENCHMARKS, output, root=ROOT, agentic=agentic)
+    fresh = output.read_text(encoding="utf-8")
+    assert hashlib.sha256(published_text.encode("utf-8")).hexdigest() == hashlib.sha256(
+        fresh.encode("utf-8")
+    ).hexdigest(), (
         "artifacts/viewer-v2/index.html is stale; rebuild it with "
         "python -m amsc.viewer_v2"
     )

@@ -616,7 +616,9 @@ def make_agentic_tree(root, *, sha, canonical_sha=None, pages=None, with_queries
         tree / "judge" / "summary.json",
         {
             "decision_window_count": 1,
-            "changed_from_greedy_count": 1,
+            "window_moved_count": 1,
+            "final_boundary_moved_count": 1,
+            "rejoined_after_agentic_cut_count": 0,
             "provider_call_count": 1,
             "planned_call_count": 1,
             "candidate_decision_count": 2,
@@ -627,12 +629,22 @@ def make_agentic_tree(root, *, sha, canonical_sha=None, pages=None, with_queries
         tree / "boundary-diff.json",
         {
             "document_id": "doc",
-            "summary": {"decision_windows": 1, "moved": 1, "kept": 0},
+            "summary": {
+                "decision_windows": 1,
+                "window_moved": 1,
+                "final_boundary_moved": 1,
+                "rejoined_after_agentic_cut": 0,
+                "kept_greedy": 0,
+            },
             "windows": [
                 {
                     "section_index": 0,
                     "chosen_after_unit_id": "p-1",
+                    "greedy_after_unit_id": "p-2",
                     "chosen_equals_greedy": False,
+                    "final_cut_present": True,
+                    "rejoined_after_agentic_cut": False,
+                    "final_boundary_moved": True,
                     "fallback": None,
                     "decisions": [
                         {
@@ -720,7 +732,13 @@ def test_agentic_boundary_reasons_links_and_llm_attribution(tmp_path):
     meta = doc["agenticMeta"]
     assert meta["model"] == "test/agentic-model@1"
     assert meta["mode"] == "replay"
-    assert meta["diff"] == {"decision_windows": 1, "moved": 1, "kept": 0}
+    assert meta["diff"] == {
+        "decision_windows": 1,
+        "window_moved": 1,
+        "final_boundary_moved": 1,
+        "rejoined_after_agentic_cut": 0,
+        "kept_greedy": 0,
+    }
 
 
 def test_agentic_query_results_and_retrieval_are_optional(tmp_path):

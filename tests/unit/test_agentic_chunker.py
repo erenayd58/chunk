@@ -141,7 +141,7 @@ def test_an_all_keep_model_changes_nothing():
     run = run_agentic(corpus(), counter=COUNTER, provider=provider, config=CONFIG)
 
     assert texts(run.result.chunks) == texts(structural(corpus()))
-    assert run.diagnostics["changed_from_greedy_count"] == 0
+    assert run.diagnostics["window_moved_count"] == 0
     assert all(w.fallback == "forced_greedy_all_keep" for w in run.result.window_audit)
 
 
@@ -233,7 +233,11 @@ def test_a_split_vote_moves_the_cut_with_a_single_call():
 
     big = [c for c in run.result.chunks if c["heading"] == "BUYUK"]
     assert [c["unit_ids"] for c in big] == [["p-1"], ["p-2", "p-3"], ["p-4"]]
-    assert run.diagnostics["changed_from_greedy_count"] == 1
+    assert run.diagnostics["window_moved_count"] == 1
+    # The moved cut survived into the final chunks, so it counts as a
+    # final boundary move too (the rejoin did not absorb it).
+    assert run.diagnostics["final_boundary_moved_count"] == 1
+    assert run.diagnostics["rejoined_after_agentic_cut_count"] == 0
     # Two decision windows open during the walk, but the section was asked
     # ONCE up front -- this is the batching win over the sequential judge.
     assert run.diagnostics["decision_window_count"] == 2
@@ -245,7 +249,7 @@ def test_among_several_splits_the_latest_wins():
     run = run_agentic(corpus(), counter=COUNTER, provider=provider, config=CONFIG)
 
     assert texts(run.result.chunks) == texts(structural(corpus()))
-    assert run.diagnostics["changed_from_greedy_count"] == 0
+    assert run.diagnostics["window_moved_count"] == 0
 
 
 def test_steering_keeps_the_hard_cap_and_full_coverage():
@@ -253,7 +257,7 @@ def test_steering_keeps_the_hard_cap_and_full_coverage():
     provider = FakeProvider(split_before("p-8"))
     run = run_agentic(units, counter=COUNTER, provider=provider, config=CONFIG)
 
-    assert run.diagnostics["changed_from_greedy_count"] == 1
+    assert run.diagnostics["window_moved_count"] == 1
     assert texts(run.result.chunks) != texts(structural(units))
     assert all(c["token_count"] <= CONFIG.hard_max_tokens for c in run.result.chunks)
     covered = [uid for c in run.result.chunks for uid in c["unit_ids"]]
@@ -356,7 +360,7 @@ def test_a_broken_segment_loses_only_its_own_votes():
 
     assert run.diagnostics["parse_error_call_count"] == 1
     # The SPLIT from the healthy first segment still steers the cut.
-    assert run.diagnostics["changed_from_greedy_count"] == 1
+    assert run.diagnostics["window_moved_count"] == 1
     assert run.result.window_audit[0].chosen_after_unit_id == "p-3"
 
 
@@ -511,7 +515,8 @@ def test_build_artifact_writes_hashes_not_prompts(tmp_path, monkeypatch):
     assert "openrouter.ai" not in whole_tree  # no endpoint in artifacts
 
     diff = json.loads((output / "boundary-diff.json").read_text(encoding="utf-8"))
-    assert diff["summary"]["moved"] == 1
+    assert diff["summary"]["final_boundary_moved"] == 1
+    assert diff["summary"]["window_moved"] == 1
 
     # Replay: same tree rebuilt from the response cache, no provider.
     replay_output = tmp_path / "artifacts" / "agentic" / "doc"
@@ -557,3 +562,108 @@ def test_build_artifact_refuses_frozen_surfaces(tmp_path):
             counter=COUNTER,
             dump_prompts=tmp_path / "out" / "prompts",
         )
+
+
+# --- the rendering invariant and the rejoin ---------------------------------
+
+
+def rejoin_corpus():
+    """A section where an early LLM cut leaves a one-unit remainder that the
+    structural rejoin merges back: pieces of 60/60/20/130 tokens against
+    [50, 150]. Greedy cuts before p-4; a SPLIT before p-3 leaves [p-3] alone,
+    which then rejoins with [p-1, p-2] -- the same unit list greedy produced."""
+    units = [heading("h-2", "BUYUK", 1)]
+    for index, size in enumerate((60, 60, 20, 130), start=1):
+        units.append(
+            unit(f"p-{index}", words(size, f"r{index}v"), order=index + 1, section=("BUYUK",))
+        )
+    return units
+
+
+def test_a_rejoined_provisional_cut_leaves_no_duplicated_heading():
+    units = rejoin_corpus()
+    run = run_agentic(
+        units, counter=COUNTER, provider=FakeProvider(split_before("p-3")), config=CONFIG
+    )
+
+    window = run.result.window_audit[0]
+    assert not window.chosen_equals_greedy
+    assert window.chosen_after_unit_id == "p-2"
+    assert window.greedy_after_unit_id == "p-3"
+    # The provisional decision is kept on record...
+    assert run.diagnostics["window_moved_count"] == 1
+    # ...but the cut did not survive the rejoin, so it is not a final move.
+    assert not window.final_cut_present
+    assert window.rejoined_after_agentic_cut and not window.final_boundary_moved
+    assert run.diagnostics["final_boundary_moved_count"] == 0
+    assert run.diagnostics["rejoined_after_agentic_cut_count"] == 1
+
+    merged = run.result.chunks[0]
+    assert merged["unit_ids"] == ["p-1", "p-2", "p-3"]
+    assert merged["text"].count("BUYUK") == 1  # heading rendered once
+    # Same ordered unit ids as structure-only => same text and token count.
+    assert texts(run.result.chunks) == texts(structural(units))
+
+    # And the deterministic floor still holds on this shape.
+    keep = run_agentic(units, counter=COUNTER, provider=FakeProvider(KEEP_ALL), config=CONFIG)
+    assert texts(keep.result.chunks) == texts(structural(units))
+    assert keep.diagnostics["window_moved_count"] == 0
+
+
+def test_same_final_unit_ids_mean_same_text_and_token_count():
+    # corpus(): the untouched KUCUK chunk matches; rejoin_corpus(): the
+    # rejoined chunk matches; wide_corpus(): every chunk is a new shape.
+    for units, target, min_matched in (
+        (corpus(), "p-2", 1),
+        (wide_corpus(7, 24), "p-8", 0),
+        (rejoin_corpus(), "p-3", 1),
+    ):
+        run = run_agentic(
+            units, counter=COUNTER, provider=FakeProvider(split_before(target)), config=CONFIG
+        )
+        reference = {tuple(c["unit_ids"]): c for c in structural(units)}
+        matched = 0
+        for chunk in run.result.chunks:
+            ref = reference.get(tuple(chunk["unit_ids"]))
+            if ref is not None:
+                matched += 1
+                assert chunk["text"] == ref["text"]
+                assert chunk["token_count"] == ref["token_count"]
+            heading_text = chunk["heading"]
+            if heading_text:
+                assert chunk["text"].count(heading_text) == 1  # never duplicated
+            assert chunk["token_count"] <= CONFIG.hard_max_tokens
+        assert matched >= min_matched, (target, matched)
+        covered = [u for c in run.result.chunks for u in c["unit_ids"]]
+        assert covered == [u for c in structural(units) for u in c["unit_ids"]]
+
+
+def test_window_and_final_move_counts_are_separate_in_the_artifact(tmp_path):
+    units_path = write_units(tmp_path, rejoin_corpus())
+    output = tmp_path / "artifacts" / "rejoin"
+    build_artifact(
+        units_path=units_path,
+        output=output,
+        provider=FakeProvider(split_before("p-3")),
+        config=CONFIG,
+        counter=COUNTER,
+    )
+
+    diff = json.loads((output / "boundary-diff.json").read_text(encoding="utf-8"))
+    assert diff["summary"] == {
+        "decision_windows": 1,
+        "window_moved": 1,
+        "final_boundary_moved": 0,
+        "rejoined_after_agentic_cut": 1,
+        "kept_greedy": 0,
+    }
+    window = diff["windows"][0]
+    assert window["chosen_equals_greedy"] is False
+    assert window["rejoined_after_agentic_cut"] is True
+    assert window["final_boundary_moved"] is False
+    assert window["greedy_after_unit_id"] == "p-3"
+
+    summary = json.loads((output / "judge" / "summary.json").read_text(encoding="utf-8"))
+    assert summary["window_moved_count"] == 1
+    assert summary["final_boundary_moved_count"] == 0
+    assert summary["rejoined_after_agentic_cut_count"] == 1

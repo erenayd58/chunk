@@ -34,6 +34,19 @@ one parallel LLM phase:
    cap assert stays; with no votes, an all-KEEP model, or any failure the
    output is byte-identical to :func:`amsc.structural_chunker.chunk_units`.
 
+**Rendering invariant.** A provisional LLM cut can be undone by the
+structural rejoin step (the undersized remainder is merged back), and the
+frozen chunker renders a rejoined group heading-per-block -- a shape that
+never occurs in the frozen arms on these corpora but did appear here as a
+duplicated heading. So the final text of an agentic chunk is a function of
+its ordered ``unit_ids`` alone: a chunk whose unit list equals a
+Structure-only chunk's carries that chunk's exact ``text`` and
+``token_count``; any other shape is rendered as one block, heading once.
+The audit keeps the provisional decision (``window_moved``) and records
+separately whether the cut survived (``final_boundary_moved``) or was
+absorbed (``rejoined_after_agentic_cut``); ``boundary-diff.json`` counts
+only final chunk boundaries as moved.
+
 **Known coverage limit** (accepted, guarded): ``at_label`` fires on
 ``current >= min_tokens`` without the heading cost while admissibility
 includes it, so an admissible stop sitting immediately before a label piece
@@ -59,7 +72,7 @@ import hashlib
 import json
 import math
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -75,12 +88,12 @@ from .llm_boundary_judge import (
 )
 from .models import RawDocumentUnit
 from .structural_chunker import (
-    RENDER_SEPARATOR,
     Piece,
     Section,
     _render,
     _sections,
 )
+from .structural_chunker import chunk_units as structural_chunk_units
 from .tokenization import TokenCounter
 
 ARM_KIND = "agentic_structure_llm"
@@ -446,6 +459,13 @@ class WindowAudit:
     chosen_equals_greedy: bool
     fallback: str | None
     applied_call_id: str | None
+    greedy_after_unit_id: str = ""
+    # Final-output flags, filled in after the rejoin step: a provisional
+    # LLM cut counts as a moved boundary only if it survives into the final
+    # chunks; one absorbed by the rejoin is kept on record, never counted.
+    final_cut_present: bool = False
+    rejoined_after_agentic_cut: bool = False
+    final_boundary_moved: bool = False
 
 
 def _walk_section(
@@ -563,6 +583,7 @@ def _walk_section(
                                         if chosen != greedy and chosen in votes
                                         else None
                                     ),
+                                    greedy_after_unit_id=pieces[greedy - 1].unit_id,
                                 )
                             )
             cuts.append(chosen)
@@ -645,17 +666,39 @@ def chunk_units_agentic(
         groups.append([block])
         sizes.append(block_size)
 
+    # The rendering invariant: text is a function of the ordered unit ids.
+    # A group whose unit list equals a Structure-only chunk's takes that
+    # chunk's text and token count verbatim (so a provisional LLM cut that
+    # the rejoin absorbed leaves no trace); any other shape is rendered as
+    # one block with its heading once.
+    structural_by_units = {
+        tuple(chunk["unit_ids"]): chunk
+        for chunk in structural_chunk_units(
+            units,
+            counter=counter,
+            min_tokens=config.min_tokens,
+            target_tokens=config.target_tokens,
+            soft_max_tokens=config.soft_max_tokens,
+            hard_max_tokens=config.hard_max_tokens,
+            respect_semantic_roles=config.respect_semantic_roles,
+        )
+    }
+
     document_id = units[0].document_id
     chunks: list[dict[str, Any]] = []
     for index, group in enumerate(groups, start=1):
-        text = RENDER_SEPARATOR.join(
-            _render(heading, pieces) for heading, pieces, _ in group
+        group_pieces = [piece for _, block_pieces, _ in group for piece in block_pieces]
+        reference = structural_by_units.get(
+            tuple(piece.unit_id for piece in group_pieces)
         )
-        tokens = counter.count(text)
+        if reference is not None:
+            text, tokens = reference["text"], reference["token_count"]
+        else:
+            text = _render(group[0][0], group_pieces)
+            tokens = counter.count(text)
         assert tokens <= config.hard_max_tokens, (
             f"chunk {index} exceeds hard cap: {tokens}"
         )
-        group_pieces = [piece for _, block_pieces, _ in group for piece in block_pieces]
         paths: list[list[str]] = []
         for _, _, path in group:
             if path and list(path) not in paths:
@@ -677,7 +720,24 @@ def chunk_units_agentic(
             }
         )
 
-    moved = sum(1 for window in window_sink if not window.chosen_equals_greedy)
+    # Final-output flags: a cut "after X" survived iff some chunk other than
+    # the last one ends with X (raw ids, fragments included).
+    final_cut_after = {
+        chunk["unit_ids"][-1] for chunk in chunks[:-1] if chunk["unit_ids"]
+    }
+    annotated: list[WindowAudit] = []
+    for window in window_sink:
+        moved = not window.chosen_equals_greedy
+        present = window.chosen_after_unit_id in final_cut_after
+        annotated.append(
+            replace(
+                window,
+                final_cut_present=present,
+                rejoined_after_agentic_cut=moved and not present,
+                final_boundary_moved=moved and present,
+            )
+        )
+
     diagnostics = {
         "arm_kind": ARM_KIND,
         "selection_rule": SELECTION_RULE,
@@ -685,13 +745,21 @@ def chunk_units_agentic(
         "oversized_section_count": sum(
             1 for plan_ in plan.section_plans if plan_.oversized
         ),
-        "decision_window_count": len(window_sink),
-        "changed_from_greedy_count": moved,
+        "decision_window_count": len(annotated),
+        "window_moved_count": sum(
+            1 for window in annotated if not window.chosen_equals_greedy
+        ),
+        "final_boundary_moved_count": sum(
+            1 for window in annotated if window.final_boundary_moved
+        ),
+        "rejoined_after_agentic_cut_count": sum(
+            1 for window in annotated if window.rejoined_after_agentic_cut
+        ),
         "tuning_status": config.tuning_status,
     }
     return AgenticChunkResult(
         chunks=chunks,
-        window_audit=tuple(window_sink),
+        window_audit=tuple(annotated),
         diagnostics=diagnostics,
     )
 
@@ -842,6 +910,19 @@ def load_response_cache(path: Path) -> dict[str, str]:
     return cache
 
 
+def _cache_model_id(path: Path) -> str | None:
+    """The single model id the cached responses were produced by, if any."""
+    if not path.is_file():
+        return None
+    ids = {
+        json.loads(line).get("model_id")
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    }
+    ids.discard(None)
+    return ids.pop() if len(ids) == 1 else None
+
+
 def _refuse_output(output: Path) -> None:
     resolved = output.resolve()
     for part in resolved.parts:
@@ -915,7 +996,11 @@ def build_artifact(
                 call.prompt, encoding="utf-8", newline="\n"
             )
 
-    model_id = getattr(provider, "model_id", None)
+    # A replay carries the live run's model provenance forward from the
+    # cache instead of dropping it, and never rewrites the cache it read.
+    model_id = (
+        _cache_model_id(cache_path) if replay else getattr(provider, "model_id", None)
+    )
     mode = "replay" if replay else ("live" if provider is not None else "no_provider")
 
     calls_rows = []
@@ -969,7 +1054,11 @@ def build_artifact(
             "candidate_count": window.candidate_count,
             "decisions": list(window.decisions),
             "chosen_after_unit_id": window.chosen_after_unit_id,
+            "greedy_after_unit_id": window.greedy_after_unit_id,
             "chosen_equals_greedy": window.chosen_equals_greedy,
+            "final_cut_present": window.final_cut_present,
+            "rejoined_after_agentic_cut": window.rejoined_after_agentic_cut,
+            "final_boundary_moved": window.final_boundary_moved,
             "fallback": window.fallback,
             "applied_call_id": window.applied_call_id,
         }
@@ -989,19 +1078,28 @@ def build_artifact(
     _write_jsonl(agentic_dir / "chunks.jsonl", normalized)
     _write_json(agentic_dir / "mapping.json", mapping.as_dict())
     _write_jsonl(output / "judge" / "calls.jsonl", calls_rows)
-    _write_jsonl(cache_path, response_rows)
+    if not replay:
+        _write_jsonl(cache_path, response_rows)
     _write_jsonl(output / "judge" / "audit.jsonl", window_rows)
     _write_json(output / "judge" / "summary.json", run.diagnostics)
 
-    moved_windows = [row for row in window_rows if not row["chosen_equals_greedy"]]
+    window_moved = sum(1 for row in window_rows if not row["chosen_equals_greedy"])
     _write_json(
         output / "boundary-diff.json",
         {
             "document_id": units[0].document_id,
+            # Counts are about FINAL chunk boundaries; the provisional
+            # window-level decision is reported beside them, never as a move.
             "summary": {
                 "decision_windows": len(window_rows),
-                "moved": len(moved_windows),
-                "kept": len(window_rows) - len(moved_windows),
+                "window_moved": window_moved,
+                "final_boundary_moved": sum(
+                    1 for row in window_rows if row["final_boundary_moved"]
+                ),
+                "rejoined_after_agentic_cut": sum(
+                    1 for row in window_rows if row["rejoined_after_agentic_cut"]
+                ),
+                "kept_greedy": len(window_rows) - window_moved,
             },
             "windows": window_rows,
         },
