@@ -69,8 +69,20 @@ def label_heading(unit_id, text, order, role=SemanticRole.ITEM):
         ("**30**", False),
         ("**==> picture [335 x 87] intentionally omitted <==**", False),
         ("**" + words(13, "w") + "**", False),
-        ("Kiralamalar (devamı)", False),
         ("**Bold start** and a plain tail", False),
+        # Three shapes, not one. Emphasis was the original rule; capitals and
+        # title case were added after blind labelling found chunks ending on
+        # unemphasised printed titles -- "Kiralamalar (devamı)" among them,
+        # which this table used to assert was *not* a label.
+        ("Kiralamalar (devamı)", True),
+        ("_Genel Müdür Yardımcısı_", True),
+        ("ÜRÜN DİZAYN VE YÖNETİMİ BİRİMİ", True),
+        ("Ar-Ge Merkezi Yazılım Geliştirme Birimi", True),
+        # ... and the guards that keep those two rules narrow.
+        ("5.880.692 FİNDEKS BİREYSEL ÜYE", False),  # digits: a statistic panel
+        ("HİZMETİ", False),  # one word: a split heading fragment
+        ("Bu cümle başlık değildir", False),  # not title-cased
+        ("Şirket bu tutarı gider olarak muhasebeleştirmektedir.", False),
     ],
 )
 def test_a_paragraph_is_label_like_on_shape_alone(text, expected):

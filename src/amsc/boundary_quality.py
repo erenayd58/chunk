@@ -91,9 +91,16 @@ def strip_emphasis(text: str) -> str:
 
 
 def is_emphasis_wrapped(text: str) -> bool:
-    """A single line whose whole content sits inside bold(-italic) markers."""
+    """A single line whose whole content sits inside emphasis markers.
+
+    Italic counts, not only bold. Requiring ``**`` was a real gap: this
+    corpus sets executive titles, project names and standard subtitles in
+    italics alone (``_Genel Mudur Yardimcisi_``, ``_Maliyet Yontemi (UMS 7)_``
+    -- 10 units on KKB 2024, 17 on KKB 2022, every one of them a title), and a
+    chunk ending on one strands it from the text it names.
+    """
     stripped = text.strip()
-    if "\n" in stripped or "**" not in stripped:
+    if len(stripped.splitlines()) > 1:
         return False
     return _EMPHASIS_WRAPPED.match(stripped) is not None
 
@@ -117,7 +124,7 @@ def is_label_like(unit: RawDocumentUnit, *, max_words: int = 12) -> bool:
     if unit.type != UnitType.PARAGRAPH:
         return False
     text = unit.text.strip()
-    if is_caps_label(text, max_words=max_words):
+    if is_caps_label(text, max_words=max_words) or is_title_case_label(text, max_words=max_words):
         return True
     if _PLACEHOLDER.match(text) or not is_emphasis_wrapped(text):
         return False
@@ -127,6 +134,54 @@ def is_label_like(unit: RawDocumentUnit, *, max_words: int = 12) -> bool:
     if len(inner.split()) > max_words:
         return False
     return any(character.isalpha() for character in inner)
+
+
+#: Turkish function words that stay lower-case inside a title. Not a lexicon
+#: of the domain -- a closed grammatical class, the same for any document.
+_TITLE_FUNCTION_WORDS = frozenset(
+    {"ve", "ile", "veya", "de", "da", "ya", "ki", "icin", "için", "olan", "bir"}
+)
+
+
+def is_title_case_label(text: str, *, max_words: int = 12) -> bool:
+    """A short title-cased line with no sentence end: a printed label.
+
+    The third and last of the label shapes, after emphasis and capitals.
+    Turkish prose does not capitalise ordinary words, so a short line whose
+    every content word starts upper-case and which does not end a sentence is
+    a title, a person's role, or a salutation -- ``Yonetim Kurulu Uyesi``,
+    ``Ar-Ge Merkezi Yazilim Gelistirme Birimi``, ``Kiralamalar (devami)``.
+    Ending a chunk on one strands it from what it names, which is the last
+    defect class blind labelling still found after the other two rules.
+
+    Guards, all measured on both corpora: two to twelve words, at least two
+    content words, no digits (statistic captions are data), and not all
+    capitals (:func:`is_caps_label` owns those). What it still catches that is
+    not a title is the occasional caption fragment or signature line -- and a
+    chunk should not end on those either.
+    """
+    stripped = text.strip()
+    if len(stripped.splitlines()) > 1 or _PLACEHOLDER.match(stripped):
+        return False
+    inner = strip_emphasis(stripped).rstrip(":;").strip()
+    if not inner or inner.endswith(_SENTENCE_END):
+        return False
+    words = inner.split()
+    if not 2 <= len(words) <= max_words:
+        return False
+    if any(character.isdigit() for character in inner):
+        return False
+    letters = [character for character in inner if character.isalpha()]
+    if not letters or all(character.isupper() for character in letters):
+        return False
+    content = [
+        word
+        for word in words
+        if len(word) >= 3 and word.lower().strip(",;:") not in _TITLE_FUNCTION_WORDS
+    ]
+    if len(content) < 2:
+        return False
+    return all(word[0].isupper() for word in content if word[0].isalpha())
 
 
 def is_lead_in(unit: RawDocumentUnit) -> bool:

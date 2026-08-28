@@ -478,6 +478,7 @@ def chunk_units(
     counter: TokenCounter,
     config: DeepConfig = DeepConfig(),
     votes: Mapping[str, BoundaryVote] | None = None,
+    cut_override: Mapping[int, Sequence[int]] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Chunk ``units`` under the quality contract; return rows and an audit.
 
@@ -486,6 +487,7 @@ def chunk_units(
     smell vector is component-wise no larger.
     """
     votes = dict(votes or {})
+    overrides = {int(key): tuple(value) for key, value in (cut_override or {}).items()}
     quality = config.quality()
     sections = _sections(units, counter, config.hard_max_tokens, config.respect_semantic_roles)
     units_by_id = {unit.unit_id: unit for unit in units}
@@ -581,6 +583,11 @@ def chunk_units(
                     chosen, groups, verdict = std_cuts, std_groups, bq.VERDICT_TIE
             else:
                 groups = blocks
+        if index in overrides and overrides[index] != chosen:
+            chosen = overrides[index]
+            groups = std_groups if chosen == std_cuts else _section_blocks(section, chosen)
+            verdict = bq.VERDICT_TIE
+            reverted = "verifier"
         plans.append(
             SectionPlan(
                 index=index,
@@ -641,7 +648,7 @@ def chunk_units(
         ),
         "revert_reasons": {
             reason: sum(1 for plan in plans if plan.reverted == reason)
-            for reason in ("smell_vector", "hard_cap", "conservative_pass")
+            for reason in ("smell_vector", "hard_cap", "conservative_pass", "verifier")
         },
         "size_trade_count": len(set(size_trades)),
         "declined_vote_gain_count": len(set(declined_vote_gains)),
@@ -651,6 +658,8 @@ def chunk_units(
             verdict: sum(1 for plan in plans if plan.verdict == verdict)
             for verdict in (bq.VERDICT_BETTER, bq.VERDICT_TIE, bq.VERDICT_WORSE)
         },
+        "cuts_by_section": {plan.index: list(plan.chosen_cuts) for plan in plans},
+        "standard_cuts_by_section": {plan.index: list(plan.standard_cuts) for plan in plans},
         "sections": [plan.as_dict() for plan in plans if plan.moved or plan.reverted],
     }
     return rows, audit

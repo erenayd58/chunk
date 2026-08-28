@@ -31,9 +31,11 @@ from typing import Any, Mapping, Sequence
 from . import boundary_quality as bq
 from . import deep_analysis as da
 from . import deep_proposer as dp
+from . import deep_verifier as dv
 from .agentic_chunker import CallOutcome, load_response_cache
 from .io import load_jsonl_units
 from .llm_boundary_judge import OpenAICompatibleJudgeProvider
+from .structural_chunker import _sections
 from .structural_chunker import chunk_units as structural_chunk_units
 from .tokenization import TiktokenTokenCounter
 
@@ -75,6 +77,9 @@ def run(
     provider: Any | None = None,
     cache: Mapping[str, str] | None = None,
     use_llm: bool = True,
+    verify: bool = False,
+    verifier_provider: Any | None = None,
+    verifier_cache: Mapping[str, str] | None = None,
     concurrency: int = 8,
 ) -> dict[str, Any]:
     refuse_output(output)
@@ -107,6 +112,96 @@ def run(
     rows, audit = da.chunk_units(units, counter=counter, config=config, votes=votes)
     select_seconds = time.perf_counter() - started
 
+    verifier_summary: dict[str, Any] | None = None
+    verify_seconds = 0.0
+    if verify and votes:
+        # The deterministic partition is the baseline every proposal is judged
+        # against, and the fallback for every group the verifier does not keep.
+        _base_rows, base_audit = da.chunk_units(units, counter=counter, config=config)
+        sections = _sections(
+            units, counter, config.hard_max_tokens, config.respect_semantic_roles
+        )
+        base_cuts = {int(k): tuple(v) for k, v in base_audit["cuts_by_section"].items()}
+        proposed_cuts = {int(k): tuple(v) for k, v in audit["cuts_by_section"].items()}
+        groups: list[dv.ChangeGroup] = []
+        for index, section in enumerate(sections):
+            groups.extend(
+                dv.change_groups(
+                    base_cuts.get(index, ()),
+                    proposed_cuts.get(index, ()),
+                    len(section.pieces),
+                    section_index=index,
+                    heading=section.heading,
+                )
+            )
+        checks = dv.plan_comparisons(sections, groups, config=config)
+        started = time.perf_counter()
+        check_outcomes = dv.collect(
+            checks,
+            provider=verifier_provider,
+            cache=verifier_cache,
+            concurrency=concurrency,
+        )
+        verify_seconds = time.perf_counter() - started
+        verdicts = dv.decide(groups, checks, check_outcomes)
+        accepted = {verdict.group_key: verdict.accepted for verdict in verdicts}
+        override = {
+            index: dv.merge_cuts(
+                base_cuts.get(index, ()),
+                proposed_cuts.get(index, ()),
+                [group for group in groups if group.section_index == index],
+                accepted,
+            )
+            for index in {group.section_index for group in groups}
+        }
+        started = time.perf_counter()
+        rows, audit = da.chunk_units(
+            units, counter=counter, config=config, votes=votes, cut_override=override
+        )
+        select_seconds += time.perf_counter() - started
+        verifier_summary = dv.summarise(verdicts)
+        _write_jsonl(
+            output / "verifier" / "calls.jsonl",
+            [
+                {
+                    "call_id": plan.call_id,
+                    "group_key": plan.group_key,
+                    "section_index": plan.section_index,
+                    "first": plan.first,
+                    "prompt_sha256": plan.prompt_sha256,
+                    "prompt_chars": plan.prompt_chars,
+                }
+                for plan in checks
+            ],
+        )
+        _write_jsonl(
+            output / "verifier" / "responses.jsonl",
+            [
+                {
+                    "prompt_sha256": plan.prompt_sha256,
+                    "call_id": plan.call_id,
+                    "model_id": getattr(verifier_provider, "model_id", None),
+                    "status": outcome.status,
+                    "response": outcome.response,
+                }
+                for plan, outcome in zip(checks, check_outcomes)
+                if outcome.response is not None
+            ],
+        )
+        _write_jsonl(
+            output / "verifier" / "verdicts.jsonl",
+            [
+                {
+                    "group_key": verdict.group_key,
+                    "section_index": verdict.section_index,
+                    "accepted": verdict.accepted,
+                    "reason": verdict.reason,
+                    "votes": list(verdict.votes),
+                }
+                for verdict in verdicts
+            ],
+        )
+
     report = bq.compare(units, standard, rows, counter=counter, config=config.quality())
     smells = lambda totals: sum(totals[key] for key in bq.SMELL_TYPES)  # noqa: E731
 
@@ -137,8 +232,11 @@ def run(
             )
         },
         "proposer": dp.summarise(proposer_audit) if use_llm else None,
+        "verifier": verifier_summary,
+        "verifier_model_id": getattr(verifier_provider, "model_id", None),
         "timing_seconds": {
             "llm_calls": round(call_seconds, 3),
+            "verifier_calls": round(verify_seconds, 3),
             "selection": round(select_seconds, 3),
         },
         "claim_discipline": {
@@ -207,6 +305,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--model", help=f"live model id (reference: {REFERENCE_MODEL})")
     parser.add_argument("--endpoint", default=DEFAULT_ENDPOINT)
     parser.add_argument("--api-key-env", default="OPENROUTER_API_KEY")
+    parser.add_argument("--verify", action="store_true", help="second pass over every changed group")
+    parser.add_argument("--verifier-model", help="model for the verifier (defaults to --model)")
+    parser.add_argument("--verifier-replay", type=Path, help="a previous run's verifier/ directory")
     parser.add_argument("--concurrency", type=int, default=8)
     parser.add_argument("--min-tokens", type=int, default=160)
     parser.add_argument("--target-tokens", type=int, default=700)
@@ -237,6 +338,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.model, endpoint=args.endpoint, api_key_env=args.api_key_env
         )
 
+    verifier_cache: dict[str, str] = {}
+    if args.verifier_replay:
+        responses = args.verifier_replay / "responses.jsonl"
+        verifier_cache = load_response_cache(
+            responses if responses.is_file() else args.verifier_replay
+        )
+    verifier_provider = None
+    if args.verify and (args.verifier_model or args.model):
+        verifier_provider = OpenAICompatibleJudgeProvider(
+            args.verifier_model or args.model,
+            endpoint=args.endpoint,
+            api_key_env=args.api_key_env,
+        )
+
     summary = run(
         args.input,
         args.output,
@@ -250,6 +365,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         provider=provider,
         cache=cache,
         use_llm=not args.no_llm,
+        verify=args.verify,
+        verifier_provider=verifier_provider,
+        verifier_cache=verifier_cache,
         concurrency=args.concurrency,
     )
     print(json.dumps({k: v for k, v in summary.items() if k != "totals"}, ensure_ascii=False))
