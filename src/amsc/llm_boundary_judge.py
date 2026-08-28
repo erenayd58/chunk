@@ -15,8 +15,17 @@ the model. The LLM is consulted **only at a plain budget cut where more than
 one admissible position exists**, and its whole vocabulary is ``SPLIT`` /
 ``KEEP`` per candidate boundary. It never chats with a user, never generates
 an answer, never retrieves, never touches the vector index, and never
-assembles generation context. One decision, at ingest, on a bounded local
-excerpt.
+assembles generation context. One decision window, at ingest, on a bounded
+local excerpt.
+
+**One provider call per decision window** (the v2 batching): all admissible
+candidates of one planning step are marked ``[CANDIDATE Cn]`` inside a single
+prompt -- shared context shown once, never repeated per candidate -- and the
+model answers a JSON array with one ``SPLIT``/``KEEP`` per candidate. The
+model is never offered the final selection (no ``selected_candidate``); the
+choice among its per-candidate verdicts stays a client-side deterministic
+rule. On KKB 2024 this turns 232 per-candidate calls into 49 window calls
+without moving a single boundary decision rule.
 
 Determinism and fallback:
 
@@ -24,14 +33,17 @@ Determinism and fallback:
   model, and a label-seam cut never does either;
 * among candidates the model marked SPLIT, the **latest** wins (the cut that
   fills closest to the target -- greedy's own preference), so several SPLITs
-  cannot make the result depend on call order;
+  cannot make the result depend on answer order;
 * all-KEEP still cuts, at the greedy position, because the budget forces a
   cut -- the audit records ``forced_greedy_all_keep``;
 * an unparseable or failing model response abandons the judge **for that
-  step** and falls back to the deterministic structure cut, recorded as
-  ``parse_error`` / ``provider_error``. Free-text reasoning is never an input
-  to the algorithm: only the parsed ``decision`` and ``reason_code`` fields
-  survive, and only ``decision`` steers anything.
+  whole window** and falls back to the deterministic structure cut, recorded
+  as ``parse_error`` / ``provider_error``. The parser is strict about
+  everything that steers: a missing, duplicate, or unknown ``candidate_id``
+  or an invalid ``decision`` refuses the entire window -- a half-parsed
+  answer never mixes with structural defaults. Free-text reasoning is never
+  an input to the algorithm: only the parsed ``decision`` and ``reason_code``
+  fields survive, and only ``decision`` steers anything.
 
 The splitting walk is ``structural_chunker.chunk_units`` step for step -- the
 same seamed ceiling, the same label-seam cuts, the same greedy budget cuts --
@@ -90,6 +102,9 @@ REASON_CODES = (
 
 #: Character budget per excerpt side sent to the model. Local context only.
 EXCERPT_CHARS = 700
+
+#: Marks elided text inside a long piece excerpt.
+ELISION = "[...]"
 
 _UNIT_KIND = {"h": "heading", "p": "paragraph", "l": "list", "t": "table", "v": "visual"}
 
@@ -168,64 +183,147 @@ def _unit_kind(unit_id: str) -> str:
     return _UNIT_KIND.get(unit_id.split("-", 1)[0], "unknown")
 
 
-def _excerpt(pieces: Sequence[Piece], *, tail: bool) -> str:
-    """A bounded excerpt of the content just before or after a boundary."""
-    text = pieces[-1].text if tail else pieces[0].text
-    if len(text) <= EXCERPT_CHARS:
+def _span_excerpt(text: str, *, head: bool, tail: bool) -> str:
+    """A bounded view of one piece inside a window prompt.
+
+    ``head`` keeps the opening (it is the context after a preceding
+    candidate), ``tail`` keeps the ending (context before a following one);
+    a middle piece keeps both, with the middle of its text elided.
+    """
+    budget = EXCERPT_CHARS * (int(head) + int(tail))
+    if len(text) <= budget:
         return text
-    return text[-EXCERPT_CHARS:] if tail else text[:EXCERPT_CHARS]
+    if head and tail:
+        return f"{text[:EXCERPT_CHARS]}\n{ELISION}\n{text[-EXCERPT_CHARS:]}"
+    return text[:EXCERPT_CHARS] if head else text[-EXCERPT_CHARS:]
 
 
-def build_prompt(
+def candidate_labels(count: int) -> list[str]:
+    """``C1`` .. ``Cn`` in candidate (document) order."""
+    return [f"C{ordinal}" for ordinal in range(1, count + 1)]
+
+
+def build_window_prompt(
     *,
     heading: str | None,
     section_path: Sequence[str],
-    before: Sequence[Piece],
-    after: Sequence[Piece],
+    pieces: Sequence[Piece],
+    start: int,
+    admissible: Sequence[int],
 ) -> str:
-    """The one prompt shape the judge sends. Deterministic, local, bounded."""
-    left, right = before[-1], after[0]
-    return (
-        "You judge ONE candidate chunk boundary inside one section of a "
-        "document that is being split because it exceeds a size budget.\n"
-        "Answer with a single JSON object and nothing else:\n"
-        '{"decision": "SPLIT" | "KEEP", "reason_code": "TOPIC_SHIFT" | '
-        '"CONTINUATION" | "LIST_CONTINUATION" | "TABLE_CONTINUATION" | '
-        '"NEW_SUBTOPIC" | "OTHER"}\n'
-        "SPLIT means: a reader would accept a chunk boundary here.\n"
-        "KEEP means: the two sides belong together; prefer cutting elsewhere.\n"
-        f"Section heading: {heading or '(none)'}\n"
-        f"Section path: {' > '.join(section_path) or '(none)'}\n"
-        f"Content before the candidate boundary "
-        f"[{_unit_kind(left.unit_id)} {left.unit_id}]:\n"
-        f"{_excerpt(before, tail=True)}\n"
-        f"Content after the candidate boundary "
-        f"[{_unit_kind(right.unit_id)} {right.unit_id}]:\n"
-        f"{_excerpt(after, tail=False)}\n"
-    )
+    """The one prompt per decision window. Deterministic, local, bounded.
 
-
-_JSON_OBJECT = re.compile(r"\{.*?\}", re.S)
-
-
-def parse_decision(raw: str) -> tuple[str, str] | None:
-    """``(decision, reason_code)`` from a model answer, or None to fall back.
-
-    Strict on the field that matters: an unknown decision refuses; an unknown
-    or missing reason_code becomes ``OTHER`` because it never steers anything.
+    Every admissible cut appears once as a ``[CANDIDATE Cn | cut before ...]``
+    marker between the two pieces it would separate; each piece's text is
+    shown once (excerpted), never repeated per candidate, so the model
+    compares all candidates in one shared context. The final selection is
+    deliberately not on offer -- the model judges each candidate on its own.
     """
-    match = _JSON_OBJECT.search(raw or "")
-    if not match:
+    labels = dict(zip(admissible, candidate_labels(len(admissible))))
+    lo, hi = min(admissible), max(admissible)
+    lines = [
+        "You judge candidate chunk boundaries inside one section of a "
+        "document that is being split because it exceeds a size budget.",
+        f"The text below contains {len(admissible)} candidate boundaries, "
+        "marked [CANDIDATE Cn | cut before ...] in document order.",
+        "For EVERY candidate, decide SPLIT or KEEP. Do not pick a best "
+        "candidate; judge each boundary on its own.",
+        "Answer with a single JSON array and nothing else, one object per "
+        "candidate, for example:",
+        '[{"candidate_id": "C1", "decision": "SPLIT", '
+        '"reason_code": "TOPIC_SHIFT"}, '
+        '{"candidate_id": "C2", "decision": "KEEP", '
+        '"reason_code": "CONTINUATION"}]',
+        '"decision" must be "SPLIT" or "KEEP". "reason_code" must be one '
+        "of: " + ", ".join(REASON_CODES) + ".",
+        "SPLIT means: a reader would accept a chunk boundary here.",
+        "KEEP means: the two sides belong together; prefer cutting elsewhere.",
+        f"Section heading: {heading or '(none)'}",
+        f"Section path: {' > '.join(section_path) or '(none)'}",
+    ]
+    if lo - 1 > start:
+        lines.append(
+            f"(The chunk under construction already holds {lo - 1 - start} "
+            "earlier unit(s) of this section, not shown.)"
+        )
+    lines.append(f"Text (excerpts; {ELISION} marks elided text):")
+    for position in range(lo - 1, hi + 1):
+        piece = pieces[position]
+        kind = _unit_kind(piece.unit_id)
+        if position in labels:
+            lines.append(
+                f"[CANDIDATE {labels[position]} | cut before "
+                f"{kind} {piece.unit_id}]"
+            )
+        lines.append(f"[{kind} {piece.unit_id}]")
+        lines.append(_span_excerpt(piece.text, head=position >= lo, tail=position < hi))
+    return "\n".join(lines) + "\n"
+
+
+_CODE_FENCE = re.compile(r"```[a-zA-Z0-9_-]*")
+
+
+def _payload_rows(raw: str) -> list[Any] | None:
+    """The JSON array in a model answer, tolerating fences and one wrapper.
+
+    Accepted shapes: a bare array; an object whose ``decisions`` key holds
+    the array; either of those inside a markdown code fence or surrounding
+    prose. Nothing is ever completed by guesswork -- if no candidate slice
+    parses as JSON, the answer is refused.
+    """
+    text = _CODE_FENCE.sub("", raw or "").strip()
+    candidates = [text]
+    array_start, array_end = text.find("["), text.rfind("]")
+    if 0 <= array_start < array_end:
+        candidates.append(text[array_start : array_end + 1])
+    object_start, object_end = text.find("{"), text.rfind("}")
+    if 0 <= object_start < object_end:
+        candidates.append(text[object_start : object_end + 1])
+    for candidate in candidates:
+        try:
+            loaded = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(loaded, dict):
+            loaded = loaded.get("decisions")
+        if isinstance(loaded, list):
+            return loaded
+    return None
+
+
+def parse_window_decisions(
+    raw: str, expected_candidate_ids: Sequence[str]
+) -> dict[str, tuple[str, str]] | None:
+    """Per-candidate ``(decision, reason_code)`` by id, or None to fall back.
+
+    Strict on everything that steers: every expected candidate exactly once,
+    no unknown or duplicate ids, decisions strictly SPLIT/KEEP. Any deviation
+    refuses the WHOLE window so a half-parsed answer never mixes with
+    structural defaults. Only ``reason_code`` is lenient (unknown becomes
+    ``OTHER``) because it never steers anything.
+    """
+    rows = _payload_rows(raw)
+    if rows is None:
         return None
-    try:
-        payload = json.loads(match.group(0))
-    except json.JSONDecodeError:
+    expected = set(expected_candidate_ids)
+    decisions: dict[str, tuple[str, str]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            return None
+        candidate_id = str(row.get("candidate_id", "")).strip()
+        if candidate_id not in expected or candidate_id in decisions:
+            return None
+        decision = str(row.get("decision", "")).strip().upper()
+        if decision not in (DECISION_SPLIT, DECISION_KEEP):
+            return None
+        reason = str(row.get("reason_code", "")).strip().upper()
+        decisions[candidate_id] = (
+            decision,
+            reason if reason in REASON_CODES else "OTHER",
+        )
+    if set(decisions) != expected:
         return None
-    decision = str(payload.get("decision", "")).strip().upper()
-    if decision not in (DECISION_SPLIT, DECISION_KEEP):
-        return None
-    reason = str(payload.get("reason_code", "")).strip().upper()
-    return decision, reason if reason in REASON_CODES else "OTHER"
+    return decisions
 
 
 def _judge_step(
@@ -237,40 +335,42 @@ def _judge_step(
     greedy: int,
     step: int,
 ) -> tuple[int, BoundaryAudit, dict[str, int]]:
-    """Ask the model about every admissible cut of one planning step."""
+    """One decision window: one provider call, one decision per candidate."""
     counts = {"calls": 0, "split": 0, "keep": 0, "fallback": 0}
+    labels = candidate_labels(len(admissible))
+    prompt = build_window_prompt(
+        heading=section.heading,
+        section_path=section.section_path,
+        pieces=pieces,
+        start=start,
+        admissible=admissible,
+    )
     decisions: list[CandidateDecision] = []
     fallback: str | None = None
-    for stop in admissible:
-        prompt = build_prompt(
-            heading=section.heading,
-            section_path=section.section_path,
-            before=pieces[start:stop],
-            after=pieces[stop:],
-        )
-        try:
-            counts["calls"] += 1
-            raw = judge.complete(prompt)
-        except Exception:
-            fallback = "provider_error"
-            break
-        parsed = parse_decision(raw)
+    parsed: dict[str, tuple[str, str]] | None = None
+    try:
+        counts["calls"] += 1
+        raw = judge.complete(prompt)
+    except Exception:
+        fallback = "provider_error"
+    else:
+        parsed = parse_window_decisions(raw, labels)
         if parsed is None:
             fallback = "parse_error"
-            break
-        decision, reason = parsed
-        counts["split" if decision == DECISION_SPLIT else "keep"] += 1
-        decisions.append(
-            CandidateDecision(
-                cut_after_unit_id=pieces[stop - 1].unit_id,
-                cut_before_unit_id=pieces[stop].unit_id,
-                decision=decision,
-                reason_code=reason,
-            )
-        )
 
     chosen = greedy
-    if fallback is None:
+    if fallback is None and parsed is not None:
+        for label, stop in zip(labels, admissible):
+            decision, reason = parsed[label]
+            counts["split" if decision == DECISION_SPLIT else "keep"] += 1
+            decisions.append(
+                CandidateDecision(
+                    cut_after_unit_id=pieces[stop - 1].unit_id,
+                    cut_before_unit_id=pieces[stop].unit_id,
+                    decision=decision,
+                    reason_code=reason,
+                )
+            )
         approved = [
             stop
             for stop, verdict in zip(admissible, decisions)
@@ -309,7 +409,9 @@ def chunk_units_with_judge(
     The splitting walk reproduces ``structural_chunker.chunk_units`` exactly
     (seamed ceiling, label-seam cuts, greedy budget cuts). The judge's single
     injection point is a plain budget cut with two or more admissible
-    positions; everywhere else the structural decision stands untouched.
+    positions -- one provider call for that whole window, one structured
+    decision per candidate; everywhere else the structural decision stands
+    untouched.
     """
     sections = _sections(
         units, counter, config.hard_max_tokens, config.respect_semantic_roles
@@ -456,8 +558,15 @@ def chunk_units_with_judge(
             "mode": "deep_analysis" if judge is not None else "standard",
             "llm_boundary_judge": judge is not None,
             "section_count": len(sections),
+            # decision_window_count / provider_call_count /
+            # candidate_decision_count are the batching-era names; the
+            # consulted_boundary_count and llm_call_count spellings stay
+            # because chat_rag's ingest report reads them.
             "consulted_boundary_count": consulted,
+            "decision_window_count": consulted,
             "llm_call_count": calls,
+            "provider_call_count": calls,
+            "candidate_decision_count": split_votes + keep_votes,
             "split_votes": split_votes,
             "keep_votes": keep_votes,
             "fallback_count": fallbacks,

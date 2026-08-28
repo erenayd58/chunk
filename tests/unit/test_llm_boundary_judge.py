@@ -2,18 +2,22 @@
 
 The load-bearing claims: with no judge (or an all-KEEP judge, or a broken
 judge) the output is byte-identical to the structural chunker; the model is
-consulted only at plain budget cuts with a real choice; label seams stay
-structural; nothing free-text ever steers the algorithm; and no API key can
-reach a prompt or an audit row.
+consulted only at plain budget cuts with a real choice, and a whole decision
+window costs exactly ONE provider call however many candidates it holds; the
+model answers per candidate and never selects the final cut; nothing
+free-text ever steers the algorithm; and no API key can reach a prompt or an
+audit row.
 """
 
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
 from amsc.llm_boundary_judge import (
+    ELISION,
     JUDGE_ADAPTER_STATUS,
     JudgeConfig,
     OpenAICompatibleJudgeProvider,
@@ -21,7 +25,7 @@ from amsc.llm_boundary_judge import (
     audit_rows,
     chunk_units_with_judge,
     chunk_with_product_mode,
-    parse_decision,
+    parse_window_decisions,
 )
 from amsc.models import RawDocumentUnit, UnitType
 from amsc.structural_chunker import chunk_units as structural_chunk_units
@@ -51,6 +55,21 @@ def corpus():
     return units
 
 
+def wide_corpus(piece_words: int, piece_count: int):
+    """One oversized section of equal pieces -- windows with many candidates."""
+    units = [heading("h-2", "BUYUK", 1)]
+    for index in range(1, piece_count + 1):
+        units.append(
+            unit(
+                f"p-{index}",
+                words(piece_words, f"q{index}v"),
+                order=index + 1,
+                section=("BUYUK",),
+            )
+        )
+    return units
+
+
 def structural(units, *, respect=False):
     return structural_chunk_units(
         units,
@@ -64,7 +83,7 @@ def structural(units, *, respect=False):
 
 
 class FakeJudge:
-    """Scripted judge: decides from the candidate's after-unit id."""
+    """Scripted judge: a static answer, or a callable over the prompt."""
 
     model_id = "test:fake-judge@1"
 
@@ -77,17 +96,41 @@ class FakeJudge:
         return self.answer(prompt) if callable(self.answer) else self.answer
 
 
-KEEP_ALL = '{"decision": "KEEP", "reason_code": "CONTINUATION"}'
-SPLIT_ALL = '{"decision": "SPLIT", "reason_code": "TOPIC_SHIFT"}'
+CANDIDATE_MARKER = re.compile(r"\[CANDIDATE (C\d+) \| cut before \w+ ([\w#-]+)\]")
 
 
-def split_before(unit_id):
+def scripted(decide):
+    """A well-formed judge: one decision per candidate marker in the prompt."""
+
     def answer(prompt):
-        if f"after the candidate boundary [paragraph {unit_id}]" in prompt:
-            return SPLIT_ALL
-        return KEEP_ALL
+        rows = []
+        for candidate_id, unit_id in CANDIDATE_MARKER.findall(prompt):
+            decision = decide(candidate_id, unit_id)
+            rows.append(
+                {
+                    "candidate_id": candidate_id,
+                    "decision": decision,
+                    "reason_code": "TOPIC_SHIFT"
+                    if decision == "SPLIT"
+                    else "CONTINUATION",
+                }
+            )
+        return json.dumps(rows)
 
     return answer
+
+
+KEEP_ALL = scripted(lambda candidate_id, unit_id: "KEEP")
+SPLIT_ALL = scripted(lambda candidate_id, unit_id: "SPLIT")
+
+
+def split_before(target_unit_id):
+    """SPLIT exactly the candidate that would cut before ``target_unit_id``."""
+    return scripted(
+        lambda candidate_id, unit_id: "SPLIT"
+        if unit_id == target_unit_id
+        else "KEEP"
+    )
 
 
 # --- fallback skeleton: byte-identical to structure-only --------------------
@@ -133,6 +176,23 @@ def test_a_raising_provider_falls_back_to_the_structural_cut():
     assert all(entry.fallback == "provider_error" for entry in result.audit)
 
 
+def test_a_malformed_candidate_list_refuses_the_whole_window():
+    """Missing, duplicate, or unknown candidate ids never half-apply."""
+    row = {"candidate_id": "C1", "decision": "SPLIT", "reason_code": "OTHER"}
+    for broken in (
+        json.dumps([row]),  # missing C2
+        json.dumps([row, row]),  # duplicate C1
+        json.dumps([row, {**row, "candidate_id": "C9"}]),  # unknown id
+        json.dumps([row, "SPLIT"]),  # non-object entry
+    ):
+        result = chunk_units_with_judge(
+            corpus(), counter=COUNTER, judge=FakeJudge(broken), config=CONFIG
+        )
+        assert result.chunks == structural(corpus())
+        assert all(entry.fallback == "parse_error" for entry in result.audit)
+        assert all(entry.decisions == () for entry in result.audit)
+
+
 # --- when the model is consulted --------------------------------------------
 
 
@@ -140,12 +200,84 @@ def test_the_judge_is_consulted_only_at_ambiguous_budget_cuts():
     judge = FakeJudge(KEEP_ALL)
     chunk_units_with_judge(corpus(), counter=COUNTER, judge=judge, config=CONFIG)
 
-    # One planning step (after the greedy cut the remainder fits the
-    # target), offering exactly two admissible cuts.
-    assert len(judge.prompts) == 2
+    # One decision window (after the greedy cut the remainder fits the
+    # target), offering two admissible cuts -- and exactly ONE provider call.
+    assert len(judge.prompts) == 1
+    prompt = judge.prompts[0]
+    assert "[CANDIDATE C1 | cut before paragraph p-2]" in prompt
+    assert "[CANDIDATE C2 | cut before paragraph p-3]" in prompt
     # The small section's text never reaches the model.
-    assert all(SMALL not in prompt for prompt in judge.prompts)
-    assert all("BUYUK" in prompt for prompt in judge.prompts)
+    assert SMALL not in prompt
+    assert "BUYUK" in prompt
+
+
+def test_one_window_with_five_candidates_is_one_provider_call():
+    # Pieces of 20 tokens against [50, 150]: the first overflow offers the
+    # cuts after pieces 3..7 -- five candidates, one window, one call.
+    units = wide_corpus(20, 9)
+    judge = FakeJudge(KEEP_ALL)
+    result = chunk_units_with_judge(units, counter=COUNTER, judge=judge, config=CONFIG)
+
+    assert len(judge.prompts) == 1
+    assert result.audit[0].candidate_count == 5
+    for ordinal in range(1, 6):
+        assert f"[CANDIDATE C{ordinal} | cut before " in judge.prompts[0]
+    assert result.diagnostics["provider_call_count"] == 1
+    assert result.diagnostics["candidate_decision_count"] == 5
+    assert result.chunks == structural(units)
+
+
+def test_a_fifteen_candidate_window_parses_steers_and_keeps_the_hard_cap():
+    # Pieces of 7 tokens against [50, 150]: cuts after pieces 7..21 are all
+    # admissible -- the real corpus maximum of 15 candidates in one window.
+    units = wide_corpus(7, 24)
+    judge = FakeJudge(split_before("p-8"))
+    result = chunk_units_with_judge(units, counter=COUNTER, judge=judge, config=CONFIG)
+
+    assert len(judge.prompts) == 1
+    assert result.audit[0].candidate_count == 15
+    assert result.diagnostics["candidate_decision_count"] == 15
+    assert result.diagnostics["split_votes"] == 1
+    # The single SPLIT (earliest candidate) moves the cut away from greedy...
+    assert result.diagnostics["changed_from_greedy_count"] == 1
+    assert result.chunks != structural(units)
+    # ...while the hard budget and full unit coverage both hold.
+    assert all(
+        chunk["token_count"] <= CONFIG.hard_max_tokens for chunk in result.chunks
+    )
+    covered = [
+        unit_id for chunk in result.chunks for unit_id in chunk["unit_ids"]
+    ]
+    assert covered == [u.unit_id for u in units if not u.unit_id.startswith("h-")]
+
+
+def test_the_window_prompt_shares_context_and_stays_bounded():
+    """Long pieces are excerpted once each, never repeated per candidate."""
+    long_words = lambda count, prefix: " ".join(
+        f"{prefix}{'x' * 30}{index}" for index in range(count)
+    )
+    units = [heading("h-2", "BUYUK", 1)]
+    for index in range(1, 4):
+        units.append(
+            unit(
+                f"p-{index}",
+                long_words(60, f"p{index}"),
+                order=index + 1,
+                section=("BUYUK",),
+            )
+        )
+    judge = FakeJudge(KEEP_ALL)
+    chunk_units_with_judge(units, counter=COUNTER, judge=judge, config=CONFIG)
+
+    assert len(judge.prompts) == 1
+    prompt = judge.prompts[0]
+    assert ELISION in prompt  # the middle of a long shared piece is elided
+    raw_chars = sum(len(u.text) for u in units)
+    assert raw_chars > 6000
+    assert len(prompt) < 6000
+    # Each piece's text appears once; candidates share it instead of
+    # repeating it.
+    assert prompt.count("[paragraph p-2]") == 1
 
 
 def test_a_label_seam_is_structures_own_cut_and_never_consults_the_model():
@@ -188,6 +320,9 @@ def test_a_split_vote_moves_the_cut_to_the_approved_candidate():
     big = [chunk for chunk in result.chunks if chunk["heading"] == "BUYUK"]
     assert [chunk["unit_ids"] for chunk in big] == [["p-1"], ["p-2", "p-3"], ["p-4"]]
     assert result.diagnostics["changed_from_greedy_count"] == 1
+    # The moved cut opens a second window over the remainder: two windows,
+    # two calls -- still one call per window.
+    assert len(judge.prompts) == 2
     # Greedy would have taken [p-1, p-2] -- pinned against the real baseline.
     greedy_big = [c for c in structural(corpus()) if c["heading"] == "BUYUK"]
     assert greedy_big[0]["unit_ids"] == ["p-1", "p-2"]
@@ -201,27 +336,50 @@ def test_among_several_splits_the_latest_wins():
     assert result.chunks == structural(corpus())
     assert result.diagnostics["changed_from_greedy_count"] == 0
     assert result.diagnostics["split_votes"] == 2
+    assert len(judge.prompts) == 1
 
 
 # --- the parser -------------------------------------------------------------
 
 
-def test_parse_decision_contract():
-    assert parse_decision('{"decision": "SPLIT", "reason_code": "TOPIC_SHIFT"}') == (
-        "SPLIT",
-        "TOPIC_SHIFT",
+def test_parse_window_decisions_contract():
+    expected = ["C1", "C2"]
+    valid = (
+        '[{"candidate_id": "C1", "decision": "split", "reason_code": "harika"},'
+        ' {"candidate_id": "C2", "decision": "KEEP",'
+        ' "reason_code": "continuation"}]'
     )
-    assert parse_decision('Cevap: {"decision": "keep", "reason_code": "continuation"} olur') == (
-        "KEEP",
-        "CONTINUATION",
+    # Decisions are case-insensitive; an unknown reason becomes OTHER because
+    # it never steers anything.
+    assert parse_window_decisions(valid, expected) == {
+        "C1": ("SPLIT", "OTHER"),
+        "C2": ("KEEP", "CONTINUATION"),
+    }
+    # Provider variations that stay safely parseable: markdown fences, an
+    # object wrapper, surrounding prose.
+    assert parse_window_decisions(f"```json\n{valid}\n```", expected) is not None
+    assert (
+        parse_window_decisions('{"decisions": ' + valid + "}", expected) is not None
     )
-    assert parse_decision('{"decision": "SPLIT", "reason_code": "harika"}') == (
-        "SPLIT",
-        "OTHER",
-    )
-    assert parse_decision('{"decision": "MAYBE"}') is None
-    assert parse_decision("düz metin, json yok") is None
-    assert parse_decision("") is None
+    assert parse_window_decisions(f"Cevap: {valid} olur", expected) is not None
+    # Everything that steers is strict: the whole window refuses.
+    c1 = '{"candidate_id": "C1", "decision": "SPLIT"}'
+    assert parse_window_decisions(f"[{c1}]", expected) is None  # missing C2
+    assert parse_window_decisions(f"[{c1}, {c1}]", expected) is None  # duplicate
+    assert (
+        parse_window_decisions(
+            f'[{c1}, {{"candidate_id": "C9", "decision": "KEEP"}}]', expected
+        )
+        is None
+    )  # unknown id
+    assert (
+        parse_window_decisions(
+            f'[{c1}, {{"candidate_id": "C2", "decision": "MAYBE"}}]', expected
+        )
+        is None
+    )  # invalid decision
+    assert parse_window_decisions("düz metin, json yok", expected) is None
+    assert parse_window_decisions("", expected) is None
 
 
 # --- product mode -----------------------------------------------------------
@@ -245,7 +403,7 @@ def test_deep_analysis_without_a_judge_is_an_error():
         )
 
 
-# --- audit ------------------------------------------------------------------
+# --- audit and diagnostics ---------------------------------------------------
 
 
 def test_the_audit_is_structured_and_serialisable():
@@ -255,6 +413,7 @@ def test_the_audit_is_structured_and_serialisable():
     rows = audit_rows(result)
     payload = json.dumps(rows, ensure_ascii=False)
     assert rows[0]["model_id"] == "test:fake-judge@1"
+    assert rows[0]["candidate_count"] == len(rows[0]["decisions"]) == 2
     assert rows[0]["decisions"][0]["decision"] in ("SPLIT", "KEEP")
     assert rows[0]["decisions"][0]["reason_code"] in (
         "TOPIC_SHIFT",
@@ -272,6 +431,44 @@ def test_the_audit_is_structured_and_serialisable():
     }
     assert set(rows[0]) == allowed
     assert "elbette" not in payload
+
+
+def test_diagnostics_count_windows_calls_and_candidate_decisions():
+    judge = FakeJudge(KEEP_ALL)
+    result = chunk_units_with_judge(corpus(), counter=COUNTER, judge=judge, config=CONFIG)
+
+    diagnostics = result.diagnostics
+    assert diagnostics["decision_window_count"] == 1
+    assert diagnostics["provider_call_count"] == 1 == len(judge.prompts)
+    assert diagnostics["candidate_decision_count"] == 2
+    # The v1 spellings stay aliased for downstream readers (chat_rag).
+    assert diagnostics["consulted_boundary_count"] == diagnostics["decision_window_count"]
+    assert diagnostics["llm_call_count"] == diagnostics["provider_call_count"]
+    assert (
+        diagnostics["split_votes"] + diagnostics["keep_votes"]
+        == diagnostics["candidate_decision_count"]
+    )
+
+
+def test_the_judged_walk_is_deterministic():
+    def run():
+        result = chunk_units_with_judge(
+            corpus(),
+            counter=COUNTER,
+            judge=FakeJudge(split_before("p-2")),
+            config=CONFIG,
+        )
+        return json.dumps(
+            {
+                "chunks": result.chunks,
+                "audit": audit_rows(result),
+                "diagnostics": result.diagnostics,
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+
+    assert run() == run()
 
 
 # --- the adapter and the key ------------------------------------------------
