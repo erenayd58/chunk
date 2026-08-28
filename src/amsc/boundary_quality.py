@@ -117,6 +117,8 @@ def is_label_like(unit: RawDocumentUnit, *, max_words: int = 12) -> bool:
     if unit.type != UnitType.PARAGRAPH:
         return False
     text = unit.text.strip()
+    if is_caps_label(text, max_words=max_words):
+        return True
     if _PLACEHOLDER.match(text) or not is_emphasis_wrapped(text):
         return False
     inner = strip_emphasis(text).rstrip(":").strip()
@@ -128,10 +130,50 @@ def is_label_like(unit: RawDocumentUnit, *, max_words: int = 12) -> bool:
 
 
 def is_lead_in(unit: RawDocumentUnit) -> bool:
-    """A non-heading unit that ends with a colon introduces what follows."""
+    """A non-heading unit whose last character opens what follows.
+
+    A colon is the obvious case. A **semicolon** is the same shape in Turkish
+    corporate prose -- ``31 Aralik 2024 tarihi itibariyla;`` before a member
+    list, ``rapor kapsaminda;`` before a bullet run -- and leaving it out was
+    a real gap: both chunkers cut there, and a human labeller called the
+    result unacceptable. 23 units on KKB 2024 and 27 on KKB 2022 end this
+    way, and on inspection every one of them introduces an enumeration.
+    """
     if unit.type == UnitType.HEADING:
         return False
-    return strip_emphasis(unit.text).endswith(":")
+    return strip_emphasis(unit.text).rstrip().endswith((":", ";"))
+
+
+def is_caps_label(text: str, *, max_words: int = 12) -> bool:
+    """A short all-capitals line with no sentence end: a printed unit title.
+
+    Turkish corporate reports set birim and section titles in capitals
+    without emphasis markers, so :func:`is_emphasis_wrapped` never sees them
+    and a chunk can end on one -- which is how both a deterministic and a
+    model-guided partition stranded ``URUN DIZAYN VE YONETIMI BIRIMI`` from
+    the paragraph it titles.
+
+    Two guards keep it narrow, and both were chosen against the holdout
+    corpus rather than this one: **no digits** (statistic panels such as
+    ``5.880.692 FINDEKS BIREYSEL UYE`` are data, not titles) and **at least
+    two words** (a one-word fragment is usually a split heading). What
+    remains that is not a title is all-capitals proper names inside member
+    lists -- a recorded limitation whose only effect is to move a cut one
+    row along a list of company names.
+    """
+    stripped = text.strip()
+    if len(stripped.splitlines()) > 1 or _PLACEHOLDER.match(stripped):
+        return False
+    inner = strip_emphasis(stripped).rstrip(":;").strip()
+    if not inner or inner.endswith(_SENTENCE_END):
+        return False
+    words = inner.split()
+    if not 2 <= len(words) <= max_words:
+        return False
+    if any(character.isdigit() for character in inner):
+        return False
+    letters = [character for character in inner if character.isalpha()]
+    return bool(letters) and all(character.isupper() for character in letters)
 
 
 def continues_previous(unit: RawDocumentUnit) -> bool:

@@ -20,13 +20,15 @@ partitions the contract already accepts.
 
 The cost vector, compared component by component:
 
-    ( smells, forbidden_cuts, -strength, below_min, above_soft_max,
+    ( smells, forbidden_cuts, below_min, above_soft_max, strength_penalty,
       cuts_differing_from_standard, size_deviation )
 
 `smells` are exactly the deterministic types the evaluator counts, so the
-optimiser and the metric cannot drift apart. `forbidden_cuts` and `strength`
-are the *only* channels a model can reach, they sit below the smell term, and
-they are absent unless votes are supplied -- which is what makes the guarantee
+optimiser and the metric cannot drift apart. `forbidden_cuts` and
+`strength_penalty` are the *only* channels a model can reach; the preference
+term sits below every defect *and* every size counter, so a model chooses
+among partitions the contract already rates equally rather than reshaping the
+document, and both are absent unless votes are supplied -- which is what makes the guarantee
 mechanical: **with no votes the output is a pure function of the canonical, and
 no partition can ever leave a section structurally worse than Standard.**
 
@@ -66,12 +68,19 @@ TUNING_STATUS = "poc_initial_not_optimized"
 COST_KEYS: tuple[str, ...] = (
     "smells",
     "forbidden",
-    "neg_strength",
     "below_min",
     "above_soft_max",
+    "strength_penalty",
     "cut_diff",
     "size_deviation",
 )
+
+#: A cut the model rates below this costs; above it, it pays. Centring the
+#: term matters more than its value: an uncentred ``-strength`` grows with the
+#: number of cuts, so maximising it always prefers cutting more -- the same
+#: degenerate objective as "the latest SPLIT wins", and it produced 494 chunks
+#: against Standard's 424 the first time this ran.
+NEUTRAL_STRENGTH = 2
 
 ROLE_COMPLETE = "complete"
 ROLE_INTRODUCES_NEXT = "introduces_next"
@@ -286,7 +295,7 @@ class _SectionSolver:
         below = 1 if size < self.config.min_tokens else 0
         above = 1 if size > self.config.soft_max_tokens else 0
         deviation = abs(size - self.config.target_tokens)
-        return (0, 0, 0, below, above, 0, deviation)
+        return (0, 0, below, above, 0, 0, deviation)
 
     def cut_cost(self, index: int) -> Cost:
         """Cost of cutting between ``pieces[index - 1]`` and ``pieces[index]``."""
@@ -311,11 +320,13 @@ class _SectionSolver:
             smells += 1
         vote = self.votes.get(left_piece.unit_id)
         forbidden = 1 if vote is not None and vote.forbidden else 0
-        strength = vote.strength if vote is not None and not vote.forbidden else 0
+        penalty = 0
+        if vote is not None and not vote.forbidden:
+            penalty = (NEUTRAL_STRENGTH - vote.strength) * self.config.strength_scale
         diff = -1 if index in self.standard_cuts else 1
         if self.conservative and smells and index not in self.standard_cuts:
             return _INFEASIBLE
-        return (smells, forbidden, -strength * self.config.strength_scale, 0, 0, diff, 0)
+        return (smells, forbidden, 0, 0, penalty, diff, 0)
 
     def solve(self) -> tuple[tuple[int, ...], Cost]:
         n = len(self.pieces)
@@ -348,6 +359,14 @@ class _SectionSolver:
                 cuts.append(start)
             position = start
         return tuple(sorted(cuts)), best[n]
+
+    def forbidden_at(self, cuts: Sequence[int]) -> int:
+        """How many of these cuts a vote marked forbidden."""
+        total = 0
+        for index in cuts:
+            vote = self.votes.get(self.pieces[index - 1].unit_id)
+            total += int(vote is not None and vote.forbidden)
+        return total
 
     def cost_of(self, cuts: Sequence[int]) -> Cost:
         bounds = [0, *cuts, len(self.pieces)]
@@ -475,6 +494,7 @@ def chunk_units(
 
     plans: list[SectionPlan] = []
     size_trades: list[int] = []
+    declined_vote_gains: list[int] = []
     assembled: list[Assembled] = []
     for index, section in enumerate(sections):
         std_groups = standard_groups(section, counter=counter, config=config)
@@ -515,6 +535,18 @@ def chunk_units(
             ).vector
             over = any(block.token_count > config.hard_max_tokens for block in view.blocks)
             verdict, traded = bq.compare_tiered(std_vector, vector)
+            if (
+                verdict == bq.VERDICT_WORSE
+                and not over
+                and bq.compare_smells(std_vector, vector) != bq.VERDICT_WORSE
+                and solver.forbidden_at(cuts) < solver.forbidden_at(std_cuts)
+            ):
+                # The model's own defect signal fell -- a boundary it called
+                # forbidden is gone -- but a size counter grew without a
+                # deterministic gain to pay for it. Declined on purpose: the
+                # guarantee is worth more than the headroom, and a verifier
+                # that can confirm the semantic gain is what would unlock it.
+                declined_vote_gains.append(index)
             if traded:
                 size_trades.append(index)
             return blocks, verdict, over
@@ -612,6 +644,7 @@ def chunk_units(
             for reason in ("smell_vector", "hard_cap", "conservative_pass")
         },
         "size_trade_count": len(set(size_trades)),
+        "declined_vote_gain_count": len(set(declined_vote_gains)),
         "vote_count": len(votes),
         "forbidden_vote_count": sum(1 for vote in votes.values() if vote.forbidden),
         "verdicts": {
