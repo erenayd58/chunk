@@ -21,6 +21,18 @@ BENCHMARKS = {
     "kkb-2024": ROOT / "artifacts" / "chunk-benchmark-v5" / "kkb-2024",
     "kkb-2022": ROOT / "artifacts" / "chunk-benchmark-v5" / "kkb-2022",
 }
+AGENTIC_TREES = {
+    "kkb-2024": ROOT / "artifacts" / "agentic-chunker" / "kkb-2024",
+}
+
+
+def agentic_on_disk():
+    """The optional fourth arm joins the build exactly when its tree exists."""
+    return {
+        doc: tree
+        for doc, tree in AGENTIC_TREES.items()
+        if (tree / "manifest.json").is_file()
+    }
 
 
 @pytest.fixture(scope="module")
@@ -29,7 +41,7 @@ def viewer_html(tmp_path_factory):
         if not (tree / "benchmark-summary.json").is_file():
             pytest.skip(f"{tree} has not been generated in this working tree")
     output = tmp_path_factory.mktemp("viewer-v2") / "index.html"
-    build_viewer(BENCHMARKS, output, root=ROOT)
+    build_viewer(BENCHMARKS, output, root=ROOT, agentic=agentic_on_disk())
     return output.read_text(encoding="utf-8")
 
 
@@ -75,7 +87,7 @@ def test_difference_points_are_deterministic_and_nonempty(viewer_html, tmp_path)
             assert len(set(point["s"].values())) > 1
 
     output = tmp_path / "again.html"
-    build_viewer(BENCHMARKS, output, root=ROOT)
+    build_viewer(BENCHMARKS, output, root=ROOT, agentic=agentic_on_disk())
     assert output.read_text(encoding="utf-8") == viewer_html
 
 

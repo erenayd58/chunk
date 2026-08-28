@@ -232,3 +232,14 @@ def test_derive_tree_refuses_to_write_into_the_benchmark_tree(tmp_path):
 def test_derive_tree_refuses_evaluation(tmp_path):
     with pytest.raises(ValueError, match="evaluation"):
         derive_tree(tmp_path / "bench", tmp_path / "evaluation" / "relations")
+
+
+def test_agentic_budget_cuts_state_their_position_is_not_recorded():
+    """The agentic arm's cut may be greedy or an LLM SPLIT vote; the chunk
+    rows do not record which, so the relation must not claim greedy."""
+    links = derive_continuations(section_run(), kind="agentic_structure_llm")
+    assert links, "the fixture must produce links"
+    assert all(
+        l["cut_position"] == "not_recorded_greedy_or_arbitrated" for l in links
+    )
+    assert all(l["relation_type"] == TOKEN_BUDGET_CONTINUATION for l in links)

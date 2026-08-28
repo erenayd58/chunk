@@ -142,8 +142,13 @@ def derive_continuations(
                 },
                 "arm_kind": kind,
                 "cut_position": (
+                    # A budget cut in these arms may be greedy OR chosen by
+                    # the arbitration (hybrid: embedding argmax; agentic: an
+                    # LLM SPLIT vote); the chunk rows do not record which, so
+                    # the relation refuses to claim "greedy".
                     "not_recorded_greedy_or_arbitrated"
-                    if kind == "hybrid_h1" and reason == "budget_split"
+                    if kind in ("hybrid_h1", "agentic_structure_llm")
+                    and reason == "budget_split"
                     else "greedy"
                 ),
                 **({"document_id": document_id} if document_id else {}),

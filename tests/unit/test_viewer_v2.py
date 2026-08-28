@@ -563,3 +563,204 @@ def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     assert "OPENROUTER" not in html_text and "api_key" not in html_text
     # The expansion simulation is labelled as such and never re-ranks.
     assert "benchmark sonucunu değiştirmez" in html_text
+
+
+# --- the optional agentic arm ------------------------------------------------
+
+
+def make_agentic_tree(root, *, sha, canonical_sha=None, pages=None, with_queries=False):
+    """A minimal amsc.agentic_chunker tree beside the benchmark fixture."""
+    tree = root / "agentic-tree"
+    _write_json(
+        tree / "resolved-config.json",
+        {
+            "arm_kind": "agentic_structure_llm",
+            "selection_rule": "latest_effective_split_else_greedy",
+            "pages": pages,
+            "mode": "replay",
+        },
+    )
+    _write_json(
+        tree / "manifest.json",
+        {
+            "canonical_sha256": canonical_sha or sha,
+            "mode": "replay",
+            "model_id": "test/agentic-model@1",
+        },
+    )
+    chunks = [
+        _chunk("doc:a-chunk-0001", ["p-1"], 15, [1]),
+        _chunk("doc:a-chunk-0002", ["p-2"], 20, [1]),
+        _chunk("doc:a-chunk-0003", ["h-2", "p-3", "t-1"], 45, [2]),
+    ]
+    _write_jsonl(tree / "agentic" / "chunks.jsonl", chunks)
+    _write_json(
+        tree / "agentic" / "mapping.json",
+        {
+            "chunks": [
+                _segments("doc:a-chunk-0001", [("p-1", 0, len(P1), "provenance")]),
+                _segments("doc:a-chunk-0002", [("p-2", 0, len(P2), "provenance")]),
+                _segments(
+                    "doc:a-chunk-0003",
+                    [
+                        ("h-2", 0, len("Ara Etiket"), "provenance"),
+                        ("p-3", 0, len(P3), "provenance"),
+                        ("t-1", 0, len(T1), "provenance"),
+                    ],
+                ),
+            ],
+            "health": {},
+        },
+    )
+    _write_json(
+        tree / "judge" / "summary.json",
+        {
+            "decision_window_count": 1,
+            "changed_from_greedy_count": 1,
+            "provider_call_count": 1,
+            "planned_call_count": 1,
+            "candidate_decision_count": 2,
+        },
+    )
+    _write_jsonl(tree / "judge" / "audit.jsonl", [])
+    _write_json(
+        tree / "boundary-diff.json",
+        {
+            "document_id": "doc",
+            "summary": {"decision_windows": 1, "moved": 1, "kept": 0},
+            "windows": [
+                {
+                    "section_index": 0,
+                    "chosen_after_unit_id": "p-1",
+                    "chosen_equals_greedy": False,
+                    "fallback": None,
+                    "decisions": [
+                        {
+                            "cut_after_unit_id": "p-1",
+                            "cut_before_unit_id": "p-2",
+                            "decision_raw": "SPLIT",
+                            "reason_code": "TOPIC_SHIFT",
+                            "effective": "SPLIT",
+                            "call_id": "call-0000-00",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    if with_queries:
+        _write_jsonl(
+            tree / "agentic" / "query-results.jsonl",
+            [
+                {
+                    "query_id": "q1",
+                    "question": "soru",
+                    "source_evidence_coverage": 1.0,
+                    "first_relevant_rank": 1,
+                    "results": [_result(1, "doc:a-chunk-0003", ["p-3"], [2])],
+                },
+                {
+                    "query_id": "q2",
+                    "question": "soru",
+                    "source_evidence_coverage": 1.0,
+                    "first_relevant_rank": 2,
+                    "results": [
+                        _result(1, "doc:a-chunk-0002", [], [1]),
+                        _result(2, "doc:a-chunk-0001", ["p-1"], [1]),
+                    ],
+                },
+            ],
+        )
+        _write_json(tree / "agentic" / "retrieval.json", _retrieval("agentic", 0.5, 0.75, 3))
+    return tree
+
+
+def build_with_agentic(tmp_path, **agentic_kwargs):
+    tree = make_tree(tmp_path)
+    sha = hashlib.sha256(
+        (tmp_path / "data" / "doc.units.v3.jsonl").read_bytes()
+    ).hexdigest()
+    agentic = make_agentic_tree(tmp_path, sha=sha, **agentic_kwargs)
+    output = tmp_path / "out4" / "index.html"
+    build_viewer({"doc": tree}, output, root=tmp_path, agentic={"doc": agentic})
+    return output.read_text(encoding="utf-8")
+
+
+def test_the_agentic_arm_is_additive_and_optional(tmp_path):
+    plain = embedded(build(tmp_path))
+    enriched = embedded(build_with_agentic(tmp_path))
+
+    assert "agentic" not in plain["docs"]["doc"]["arms"]
+    assert "agenticMeta" not in plain["docs"]["doc"]
+    # The frozen three-arm surfaces are untouched by the fourth arm.
+    assert plain["armOrder"] == enriched["armOrder"]
+    assert enriched["armOrder"] == ["markdown", "hybrid", "structure-only"]
+    assert plain["docs"]["doc"]["diffs"] == enriched["docs"]["doc"]["diffs"]
+
+    arm = enriched["docs"]["doc"]["arms"]["agentic"]
+    assert arm["kind"] == "agentic_structure_llm"
+    assert [c["id"] for c in arm["chunks"]] == [
+        "doc:a-chunk-0001", "doc:a-chunk-0002", "doc:a-chunk-0003",
+    ]
+
+
+def test_agentic_boundary_reasons_links_and_llm_attribution(tmp_path):
+    data = embedded(build_with_agentic(tmp_path))
+    doc = data["docs"]["doc"]
+    chunks = doc["arms"]["agentic"]["chunks"]
+
+    assert [c["rs"] for c in chunks] == ["doc_start", "budget_split", "label_split"]
+    assert chunks[1]["rt"] == "TOKEN_BUDGET_CONTINUATION"
+    assert chunks[2]["rt"] == "SECTION_LABEL_CONTINUATION"
+    # The audit records attribution, so the viewer may show it -- unlike
+    # hybrid, whose benchmark records none.
+    assert chunks[1]["llm"] == {"m": 1, "rc": "TOPIC_SHIFT", "fb": None}
+    assert "llm" not in chunks[0] and "llm" not in chunks[2]
+
+    meta = doc["agenticMeta"]
+    assert meta["model"] == "test/agentic-model@1"
+    assert meta["mode"] == "replay"
+    assert meta["diff"] == {"decision_windows": 1, "moved": 1, "kept": 0}
+
+
+def test_agentic_query_results_and_retrieval_are_optional(tmp_path):
+    bare = embedded(build_with_agentic(tmp_path))["docs"]["doc"]["arms"]["agentic"]
+    assert bare["q"] == {}
+    assert bare["ret"] is None
+
+    rich = embedded(build_with_agentic(tmp_path, with_queries=True))
+    arm = rich["docs"]["doc"]["arms"]["agentic"]
+    assert arm["q"]["q1"]["f"] == 1
+    assert arm["ret"]["hit_at_5"] == 0.5
+
+
+def test_the_agentic_arm_speaks_product_language_in_a_separated_panel(tmp_path):
+    html_text = build_with_agentic(tmp_path)
+    assert "Agentic Chunker" in html_text
+    assert "Structure + LLM · ayrı koşu" in html_text
+    assert "kazanan ilan edilmez" in html_text
+    assert "LLM oyu ile taşındı" in html_text
+    # The frozen dashboard's own tables never gain the arm; the panel is
+    # separate and the three-arm difference definition stays in the footer.
+    assert "Agentic Chunker — ayrı koşu" in html_text
+    assert "üç yöntemin uyuşmadığı noktalar" in html_text
+
+
+def test_a_mismatched_sliced_or_orphan_agentic_tree_is_refused(tmp_path):
+    tree = make_tree(tmp_path)
+    sha = hashlib.sha256(
+        (tmp_path / "data" / "doc.units.v3.jsonl").read_bytes()
+    ).hexdigest()
+    output = tmp_path / "refused.html"
+
+    bad = make_agentic_tree(tmp_path, sha=sha, canonical_sha="0" * 64)
+    with pytest.raises(ValueError, match="different canonical"):
+        build_viewer({"doc": tree}, output, root=tmp_path, agentic={"doc": bad})
+
+    sliced = make_agentic_tree(tmp_path, sha=sha, pages=[68, 75])
+    with pytest.raises(ValueError, match="page-sliced"):
+        build_viewer({"doc": tree}, output, root=tmp_path, agentic={"doc": sliced})
+
+    ok = make_agentic_tree(tmp_path, sha=sha)
+    with pytest.raises(ValueError, match="unknown documents"):
+        build_viewer({"doc": tree}, output, root=tmp_path, agentic={"other": ok})

@@ -231,7 +231,160 @@ def _boundary_reason(
     return "budget_split"
 
 
-def load_corpus(benchmark_dir: Path, root: Path) -> dict:
+def _load_agentic_arm(
+    agentic_dir: Path, expected_sha: str, units_by_id: Mapping[str, dict]
+) -> tuple[dict, dict]:
+    """The optional fourth arm, read from an ``amsc.agentic_chunker`` tree.
+
+    Reduced contract: chunks + mapping + judge summary + boundary-diff are
+    required; retrieval / query-results / structural quality / timing are
+    optional (they exist only after ``amsc.agentic_benchmark`` has run).
+    The tree must pin the same canonical as the benchmark tree, and a
+    page-sliced smoke tree is refused rather than shown beside
+    full-document arms.
+    """
+    agentic_dir = Path(agentic_dir)
+    resolved = _load_json(agentic_dir / "resolved-config.json")
+    manifest = _load_json(agentic_dir / "manifest.json")
+    if resolved.get("pages"):
+        raise ValueError(
+            f"{agentic_dir} is a page-sliced smoke tree; the viewer refuses "
+            "to show it beside full-document arms"
+        )
+    if manifest.get("canonical_sha256") != expected_sha:
+        raise ValueError(
+            f"{agentic_dir} was built from a different canonical corpus than "
+            "the benchmark tree; the viewer refuses to pair them"
+        )
+    chunks_raw = _load_jsonl(agentic_dir / "agentic" / "chunks.jsonl")
+    mapping = _load_json(agentic_dir / "agentic" / "mapping.json")
+    summary = _load_json(agentic_dir / "judge" / "summary.json")
+    diff = _load_json(agentic_dir / "boundary-diff.json")
+
+    chunk_index = {chunk["chunk_id"]: i for i, chunk in enumerate(chunks_raw)}
+    segments: dict[str, list] = {}
+    for row in mapping["chunks"]:
+        target = chunk_index.get(row["chunk_id"])
+        if target is None:
+            continue
+        for seg in row["segments"]:
+            segments.setdefault(seg["unit_id"], []).append(
+                [target, seg["unit_start"], seg["unit_end"], seg["method"]]
+            )
+    for rows in segments.values():
+        rows.sort(key=lambda r: (r[0], r[1]))
+
+    kind = "agentic_structure_llm"
+    chunks = [
+        {
+            "id": chunk["chunk_id"],
+            "num": _chunk_number(chunk["chunk_id"]),
+            "n": chunk["token_count"],
+            "pg": chunk.get("pages") or [],
+            "hd": chunk.get("heading"),
+            "hh": html.escape(heading_plain(chunk["heading"]), quote=False)
+            if chunk.get("heading")
+            else None,
+            "sp": chunk.get("section_paths") or [],
+            "sd": _clean_path((chunk.get("section_paths") or [[]])[0]),
+            "st": chunk.get("split_strategies") or [],
+            "u": chunk["unit_ids"],
+        }
+        for chunk in chunks_raw
+    ]
+    for index, chunk in enumerate(chunks):
+        chunk["rs"] = _boundary_reason(kind, chunks, index, units_by_id, segments)
+
+    links = derive_continuations(chunks_raw, kind=kind)
+    budget_links = [
+        link for link in links
+        if link["relation_type"] == "TOKEN_BUDGET_CONTINUATION"
+    ]
+    groups = continuation_groups(len(chunks_raw), budget_links)
+    forward = {link["from_index"]: link["to_index"] for link in links}
+    backward = {link["to_index"]: link["from_index"] for link in links}
+    relation_in = {link["to_index"]: link["relation_type"] for link in links}
+    for index, chunk in enumerate(chunks):
+        chunk["cp"] = backward.get(index)
+        chunk["cn"] = forward.get(index)
+        chunk["g"] = groups[index]
+        chunk["rt"] = relation_in.get(index)
+
+    # LLM boundary attribution -- recorded in the audit, so the viewer may
+    # show it (unlike hybrid, whose benchmark records no attribution). The
+    # window's boundary is the cut after ``chosen_after_unit_id``; the chunk
+    # that STARTS at that boundary carries the flag.
+    consulted: dict[str, dict] = {}
+    for window in diff.get("windows") or []:
+        after = _base(window["chosen_after_unit_id"])
+        moved = not window["chosen_equals_greedy"]
+        reason = None
+        if moved:
+            for decision in window.get("decisions") or []:
+                if (
+                    _base(decision.get("cut_after_unit_id", "")) == after
+                    and decision.get("effective") == "SPLIT"
+                ):
+                    reason = decision.get("reason_code")
+                    break
+        consulted[after] = {
+            "m": 1 if moved else 0,
+            "rc": reason,
+            "fb": window.get("fallback"),
+        }
+    for index in range(1, len(chunks)):
+        previous = chunks[index - 1]
+        if not previous["u"]:
+            continue
+        flag = consulted.get(_base(previous["u"][-1]))
+        if flag is not None:
+            chunks[index]["llm"] = flag
+
+    queries: dict[str, dict] = {}
+    query_path = agentic_dir / "agentic" / "query-results.jsonl"
+    if query_path.is_file():
+        for row in _load_jsonl(query_path):
+            queries[row["query_id"]] = {
+                "f": row.get("first_relevant_rank"),
+                "cov": row.get("source_evidence_coverage"),
+                "res": [
+                    {
+                        "r": result["rank"],
+                        "c": chunk_index.get(result["chunk_id"]),
+                        "m": result.get("matched_evidence_unit_ids") or [],
+                        "pg": result.get("pages") or [],
+                        "tk": result.get("token_count"),
+                    }
+                    for result in row.get("results") or []
+                ],
+            }
+
+    def _optional_json(path: Path) -> Any:
+        return _load_json(path) if path.is_file() else None
+
+    arm = {
+        "kind": kind,
+        "chunks": chunks,
+        "m": _membership(chunks_raw),
+        "seg": segments,
+        "q": queries,
+        "ret": _optional_json(agentic_dir / "agentic" / "retrieval.json"),
+        "sq": _optional_json(agentic_dir / "agentic" / "structural_quality.json"),
+        "tim": _optional_json(agentic_dir / "agentic" / "timing.json"),
+        "health": mapping.get("health") or {},
+    }
+    meta = {
+        "mode": manifest.get("mode"),
+        "model": manifest.get("model_id"),
+        "summary": summary,
+        "diff": diff.get("summary") or {},
+    }
+    return arm, meta
+
+
+def load_corpus(
+    benchmark_dir: Path, root: Path, agentic_dir: Path | None = None
+) -> dict:
     """Read one benchmark tree plus its pinned canonical into viewer data."""
     benchmark_dir = Path(benchmark_dir)
     for name in REQUIRED_TREE_FILES:
@@ -385,7 +538,7 @@ def load_corpus(benchmark_dir: Path, root: Path) -> dict:
 
     diffs = _difference_points(units, arms)
 
-    return {
+    result = {
         "label": DOC_LABELS.get(benchmark_dir.name, benchmark_dir.name),
         "units": units,
         "arms": arms,
@@ -407,6 +560,17 @@ def load_corpus(benchmark_dir: Path, root: Path) -> dict:
             "queryCount": summary.get("query_count") or len(gold),
         },
     }
+    if agentic_dir is not None:
+        # The fourth arm rides in ``arms`` so every arm-indexed renderer works
+        # unchanged, but it never enters ARM_ORDER: the frozen dashboard
+        # tables and the three-arm difference definition stay untouched, and
+        # a build without an agentic tree is byte-identical to today's.
+        agentic_arm, agentic_meta = _load_agentic_arm(
+            Path(agentic_dir), digest, units_by_id
+        )
+        result["arms"]["agentic"] = agentic_arm
+        result["agenticMeta"] = agentic_meta
+    return result
 
 
 def _difference_points(units: Sequence[dict], arms: Mapping[str, dict]) -> list[dict]:
@@ -445,17 +609,36 @@ def _difference_points(units: Sequence[dict], arms: Mapping[str, dict]) -> list[
 
 
 def build_viewer(
-    benchmarks: Mapping[str, Path], output: Path, root: Path = Path(".")
+    benchmarks: Mapping[str, Path],
+    output: Path,
+    root: Path = Path("."),
+    agentic: Mapping[str, Path] | None = None,
 ) -> Path:
-    """Build the single-file viewer for the given benchmark trees."""
+    """Build the single-file viewer for the given benchmark trees.
+
+    ``agentic`` optionally maps a document id to an ``amsc.agentic_chunker``
+    tree; that document gains the fourth arm. Without it the output is
+    byte-identical to a three-arm build.
+    """
     if not benchmarks:
         raise ValueError("at least one benchmark tree is required")
+    agentic = dict(agentic or {})
+    unknown = sorted(set(agentic) - set(benchmarks))
+    if unknown:
+        raise ValueError(
+            f"agentic trees given for unknown documents: {unknown}; every "
+            "agentic tree needs its benchmark tree"
+        )
     output = Path(output)
     if "evaluation" in output.parts:
         raise ValueError("refusing to write the viewer into evaluation/ (frozen)")
 
     docs = {
-        doc: load_corpus(Path(directory), Path(root))
+        doc: load_corpus(
+            Path(directory),
+            Path(root),
+            agentic_dir=agentic.get(doc),
+        )
         for doc, directory in sorted(benchmarks.items())
     }
     data = {
@@ -490,6 +673,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="document id and its benchmark output tree, e.g. "
         "kkb-2024=artifacts/chunk-benchmark-v5/kkb-2024 (repeatable)",
     )
+    parser.add_argument(
+        "--agentic",
+        action="append",
+        default=[],
+        metavar="DOC=DIR",
+        help="optional agentic-chunker tree for a document, e.g. "
+        "kkb-2024=artifacts/agentic-chunker/kkb-2024 (repeatable)",
+    )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--root", type=Path, default=Path("."))
     args = parser.parse_args(argv)
@@ -500,8 +691,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not directory:
             parser.error(f"--benchmark expects DOC=DIR, got {spec!r}")
         benchmarks[doc] = Path(directory)
+    agentic: dict[str, Path] = {}
+    for spec in args.agentic:
+        doc, _, directory = spec.partition("=")
+        if not directory:
+            parser.error(f"--agentic expects DOC=DIR, got {spec!r}")
+        agentic[doc] = Path(directory)
 
-    destination = build_viewer(benchmarks, args.output, root=args.root)
+    destination = build_viewer(
+        benchmarks, args.output, root=args.root, agentic=agentic
+    )
     print(json.dumps({"output": str(destination), "documents": sorted(benchmarks)}))
     return 0
 
@@ -607,7 +806,7 @@ main{max-width:1720px;margin:0 auto;padding:22px}
   font-family:Georgia,serif;font-size:14.5px;max-height:210px;overflow:auto}
 .evbox .evlabel{font-family:"Segoe UI",system-ui,sans-serif;font-size:12px;color:var(--warn);
   font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
-.qcols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.qcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
 .qcol{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
 .qcol .armname{font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 11px;font-size:13px;font-weight:600}
@@ -769,9 +968,16 @@ const CONT_LABELS = {
 const MODE_NAMES = {
   "structure-only": {top:"Standard", sub:"Structure-only · hızlı ve deterministic"},
   "hybrid":         {top:"Hybrid", sub:"embedding-assisted · araştırma kolu"},
-  "markdown":       {top:"Markdown", sub:"baseline"}
+  "markdown":       {top:"Markdown", sub:"baseline"},
+  "agentic":        {top:"Agentic Chunker", sub:"Structure + LLM · ayrı koşu"}
 };
 const MODE_ARM_ORDER = ["structure-only", "hybrid", "markdown"];
+// The fourth arm exists only for documents whose build carried an
+// agentic-chunker tree; the frozen three-arm order above never changes.
+const armLabel = a => ARM_LABEL[a] || (MODE_NAMES[a] && MODE_NAMES[a].top) || a;
+const hasAgentic = () => Boolean(D().arms.agentic);
+const armsList = () => hasAgentic() ? ARMS.concat(["agentic"]) : ARMS;
+const presArms = () => hasAgentic() ? MODE_ARM_ORDER.concat(["agentic"]) : MODE_ARM_ORDER;
 
 const MODE_HINTS = {
   "structure-only": "Standard — Structure-only: hızlı ve deterministic. Ürünün " +
@@ -783,7 +989,12 @@ const MODE_HINTS = {
     "bütçeyi aşan bir bölümde kural birden fazla geçerli kesim adayı " +
     "bıraktığında, kesim yeri semantik benzerlikle seçilir (H1 arbitration). " +
     "Bir güven/belirsizlik dedektörü değildir.",
-  "markdown": null
+  "markdown": null,
+  "agentic": "Agentic Chunker — Structure + LLM: yapısal kural aday sınırları " +
+    "belirler, generative model her adaya SPLIT/KEEP oyu verir; son seçim, " +
+    "fallback ve token limitleri deterministic kuralda kalır. Ayrı ve " +
+    "model-bağımlı bir koşudur; frozen üç kolun benchmark karşılaştırmasına " +
+    "dahil değildir, kazanan ilan edilmez."
 };
 
 const state = {
@@ -838,7 +1049,9 @@ function initBar(){
     .map(([id, doc]) => `<option value="${id}">${esc(doc.label)}</option>`).join("");
   docsel.value = state.doc;
   docsel.onchange = () => { state.doc = docsel.value; state.page = null;
-    state.query = null; state.selChunk = null; state.selUnit = null; state.diffIdx = -1; render(); };
+    state.query = null; state.selChunk = null; state.selUnit = null; state.diffIdx = -1;
+    if (!D().arms[state.arm]) state.arm = ARMS[2] || ARMS[0];
+    render(); };
 
   $("modetabs").querySelectorAll("button").forEach(b => {
     b.onclick = () => { state.mode = b.dataset.mode; render(); };
@@ -874,13 +1087,13 @@ function stepDiff(delta){
 function renderArmSeg(){
   const seg = $("armseg");
   if (state.mode === "presentation") {
-    seg.innerHTML = MODE_ARM_ORDER.map(a => {
-      const naming = MODE_NAMES[a];
+    seg.innerHTML = presArms().map(a => {
+      const naming = MODE_NAMES[a] || {top: armLabel(a), sub: ""};
       return `<button data-arm="${a}">${esc(naming.top)}<small>${esc(naming.sub)}</small></button>`;
     }).join("");
   } else {
-    seg.innerHTML = ARMS.map(a =>
-      `<button data-arm="${a}">${esc(ARM_LABEL[a])}</button>`).join("");
+    seg.innerHTML = armsList().map(a =>
+      `<button data-arm="${a}">${esc(armLabel(a))}</button>`).join("");
   }
   seg.querySelectorAll("button").forEach(b => {
     b.onclick = () => { state.arm = b.dataset.arm; state.selChunk = null; render(); };
@@ -956,7 +1169,7 @@ function renderPresentation(){
 
   let htmlOut = `<div class="docpage"><div class="pagehead">` +
     `<span>${esc(D().label)} — sayfa ${state.page}</span>` +
-    `<span>${esc(ARM_LABEL[arm])}</span></div>`;
+    `<span>${esc(armLabel(arm))}</span></div>`;
   let tint = 0;
   for (let k = 0; k < units.length; k++) {
     const u = units[k];
@@ -1065,6 +1278,14 @@ function renderPresDetail(){
   } else if (state.arm === "markdown") {
     armNote = `Markdown kolu bölüm yapısına bakmaz: ${diag.chunk_size_tokens ?? 700} token hedefi, ` +
       `${diag.chunk_overlap_tokens ?? 140} token örtüşme.`;
+  } else if (state.arm === "agentic") {
+    const am = D().agenticMeta || {};
+    const s = am.summary || {}, bd = am.diff || {};
+    armNote = `Agentic Chunker: yapısal adaylar section başına tek çağrıda oylanır; ` +
+      `bu koşuda ${bd.decision_windows ?? s.decision_window_count ?? "?"} karar penceresinin ` +
+      `${bd.moved ?? s.changed_from_greedy_count ?? "?"} tanesinde sınır LLM oyu ile taşındı` +
+      (am.model ? ` (model: ${am.model})` : "") +
+      `. Ayrı, model-bağımlı bir koşudur; kazanan iddiası yoktur.`;
   } else {
     armNote = "Structure-only kolu her bölümü kendi başlığı altında tutar; yalnız hedef bütçeyi aşan bölümler bölünür.";
   }
@@ -1105,6 +1326,9 @@ function renderPresDetail(){
       <dt>İlişki</dt><dd>${inType ? esc(inType) : (outType ? esc(outType) + " (sonrakiyle)" : "<span class='empty'>—</span>")}</dd>
       <dt>Aynı bölüm</dt><dd>${hasLink ? "evet" : "—"}</dd>
       <dt>Sınır nedeni</dt><dd>${esc(reason.label)}</dd>
+      ${chunk.llm ? `<dt>LLM kararı</dt><dd>${chunk.llm.m
+        ? "sınır LLM oyu ile taşındı" + (chunk.llm.rc ? " (" + esc(chunk.llm.rc) + ")" : "")
+        : "pencere değerlendirildi; açgözlü kesim korundu"}</dd>` : ""}
       <dt>Expansion adayı</dt><dd>${esc(expLine)}</dd>
     </dl>
     <div class="reason-sent"><b>${esc(reason.label)}.</b> ${esc(reason.sent || "")}</div>
@@ -1156,9 +1380,13 @@ function renderedChunk(chunkIdx, arm, evidence){
 function renderQuery(){
   const gold = D().gold;
   const sel = $("querysel");
+  // The agentic column appears only when its tree carries query results
+  // (after amsc.agentic_benchmark); the frozen three columns never move.
+  const qArms = ARMS.concat(
+    hasAgentic() && Object.keys(D().arms.agentic.q).length ? ["agentic"] : []);
   if (state.query === null || !gold.some(g => g.id === state.query)) state.query = gold[0] && gold[0].id;
   sel.innerHTML = gold.map(g => {
-    const worst = Math.max(...ARMS.map(a => {
+    const worst = Math.max(...qArms.map(a => {
       const f = (D().arms[a].q[g.id] || {}).f;
       return f === null || f === undefined ? 9 : f;
     }));
@@ -1182,9 +1410,9 @@ function renderQuery(){
     <div class="evbox"><div class="evlabel">Gold kanıt (${g.ev.length} unit)</div>${evHtml}</div>
   </div>`;
 
-  $("querycols").innerHTML = ARMS.map(arm => {
+  $("querycols").innerHTML = qArms.map(arm => {
     const qres = D().arms[arm].q[g.id];
-    if (!qres) return `<div class="qcol"><div class="armname">${esc(ARM_LABEL[arm])}</div><div class="covline">sonuç yok</div></div>`;
+    if (!qres) return `<div class="qcol"><div class="armname">${esc(armLabel(arm))}</div><div class="covline">sonuç yok</div></div>`;
     const st = statusOf(qres.f);
     const relevant = qres.res.find(r => r.r === qres.f && r.m.length);
     let body = "";
@@ -1202,7 +1430,7 @@ function renderQuery(){
         `<span>s.${r.pg.join(",")}</span><span>${r.tk} tok</span>${matched}</div>`;
     }).join("");
     return `<div class="qcol">
-      <div class="armname">${esc(ARM_LABEL[arm])} <span class="status ${st.cls}">${st.glyph} ${st.text}</span></div>
+      <div class="armname">${esc(armLabel(arm))} <span class="status ${st.cls}">${st.glyph} ${st.text}</span></div>
       <div class="covline">kanıt kapsaması: ${qres.cov === null || qres.cov === undefined ? "—" : (qres.cov * 100).toFixed(0) + "%"}</div>
       ${body}
       <details class="top5"><summary>Top-5 listesi</summary>${rows}</details>
@@ -1394,6 +1622,31 @@ function renderBenchmark(){
     out += benchTable("Retrieval — ikincil set", ARMS.map(a => ({
       arm: ARM_LABEL[a], values: sec.metrics[a] || {}
     })), retCols) + "</details>";
+  }
+
+  // The agentic arm never enters the frozen tables above: it is a separate,
+  // model-dependent run and is shown in its own clearly-labelled panel.
+  const ag = arms.agentic;
+  if (ag) {
+    const am = doc.agenticMeta || {};
+    const s = am.summary || {}, bd = am.diff || {};
+    out += `<h2>Agentic Chunker — ayrı koşu</h2>`;
+    out += `<div class="guard">Model-bağımlı sonuç (yalnız replay-deterministic); ` +
+      `frozen üç kolun karşılaştırmasına dahil değildir ve kazanan ilan edilmez. ` +
+      `Model: ${esc(am.model || "—")} · mod: ${esc(am.mode || "—")}.</div>`;
+    out += `<div class="cards">
+      <div class="card"><div class="v">${ag.chunks.length}</div><div class="k">Agentic chunk</div></div>
+      <div class="card"><div class="v">${bd.decision_windows ?? s.decision_window_count ?? "—"}</div><div class="k">karar penceresi</div></div>
+      <div class="card"><div class="v">${bd.moved ?? s.changed_from_greedy_count ?? "—"}</div><div class="k">LLM ile taşınan sınır</div></div>
+      <div class="card"><div class="v">${s.provider_call_count ?? "—"}</div><div class="k">provider çağrısı</div></div>
+    </div>`;
+    if (ag.ret) {
+      out += benchTable("Retrieval — Agentic (ayrı koşu, aynı gold + BM25 ayarları)",
+        [{arm: armLabel("agentic"), values: ag.ret}], retCols);
+      out += `<div class="legend">Bu tablo tek satırdır ve frozen üçlü tablodaki "en iyi" işaretlerine katılmaz; yan yana okuma yaparken model bağımlılığı ve tek koşu olduğu unutulmamalıdır.</div>`;
+    } else {
+      out += `<div class="legend">Bu ağaçta agentic retrieval değerlendirmesi yok — amsc.agentic_benchmark henüz koşulmamış.</div>`;
+    }
   }
 
   $("view-benchmark").innerHTML = out;
