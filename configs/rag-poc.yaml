@@ -1,0 +1,36 @@
+# RAG chat configuration for the Viewer v2 product server (amsc.viewer_server).
+#
+# Providers are configuration, not architecture: any OpenAI-compatible
+# gateway works for embeddings and answers, and a local sentence-transformers
+# model can replace the embedding endpoint. No secret lives here -- each
+# provider names the environment variable it reads the key from at request
+# time. Every numeric knob is a PoC starting value (poc_initial_not_optimized).
+
+embedding:
+  provider: openai_compatible          # openai_compatible | sentence_transformers
+  model: qwen/qwen3-embedding-8b       # self-hostable reference: Qwen/Qwen3-Embedding-8B
+  endpoint: https://openrouter.ai/api/v1/embeddings
+  api_key_env: OPENROUTER_API_KEY
+  batch_size: 32
+  concurrency: 6                       # independent batches in flight during a cold index build
+  cache_dir: .cache/rag-embeddings     # one vector per exact text, per model
+
+answer:
+  model: qwen/qwen3-30b-a3b-instruct-2507
+  endpoint: https://openrouter.ai/api/v1/chat/completions
+  api_key_env: OPENROUTER_API_KEY
+  temperature: 0.0
+  max_tokens: 900
+
+retrieval:
+  top_k: 5
+  candidate_pool: 50
+  rrf_k: 60
+  dense_weight: 1.0
+  bm25_weight: 1.0
+  bm25: {k1: 1.5, b: 0.75, fold: turkish_diacritics_v1}
+
+context:
+  max_context_tokens: 3200             # generation context budget (cl100k tokens of chunk text)
+  max_sources: 8                       # hits considered for expansion
+  expansion: {enabled: true, max_total_tokens: 1126}   # same-section continuation neighbours
