@@ -62,7 +62,7 @@ with sync_playwright() as p:
     page.locator("#prespage .chunkpill").first.click()
     page.wait_for_timeout(300)
     detail = page.locator("#presdetail").inner_text()
-    check("Chunk" in detail and "Deep Analysis kararı" in detail, "detail panel lacks the Deep decision sentence")
+    check("Parça" in detail and "Deep Analysis kararı" in detail, "detail panel lacks the Deep decision sentence")
     # compare mode
     page.locator("#cmpchk").check()
     page.wait_for_timeout(400)
@@ -122,7 +122,7 @@ with sync_playwright() as p:
     check(page.locator("#dbglist .dbgunit").count() > 0, "debug unit list empty")
     page.locator("#dbglist .dbgunit").first.click()
     page.wait_for_timeout(200)
-    check("Unit inspector" in page.locator("#inspector").inner_text(), "inspector not populated")
+    check("Birim incelemesi" in page.locator("#inspector").inner_text(), "inspector not populated")
     page.locator("#secpanel details > summary").click()
     page.wait_for_timeout(200)
     check(page.locator("#secpanel .sectable tr").count() > 1, "section decision table empty")
@@ -149,7 +149,11 @@ with sync_playwright() as p:
     page.wait_for_timeout(800)
     page.locator("#modetabs button[data-mode='presentation']").click()
     page.wait_for_timeout(500)
-    check(page.locator("#methods .method.absent").count() == 2, "deep-only doc should show 2 absent methods")
+    # A method this document has no run for is one line under the row, not two
+    # greyed cards: the absence is stated once, where it costs no attention.
+    check(page.locator("#methods .method").count() == 2, "deep-only doc should show only the 2 methods it has")
+    note = page.locator("#methodnote").inner_text()
+    check("Markdown" in note and "Hybrid" in note, f"the two absent methods are not named: {note!r}")
     check(page.locator("#results .results").count() == 1, "results strip missing on the holdout doc")
     page.screenshot(path=str(outdir / "11-arcelik-sunum.png"), full_page=False)
     page.locator("#modetabs button[data-mode='benchmark']").click()

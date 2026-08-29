@@ -546,11 +546,11 @@ def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     html_text = build(tmp_path)
     assert 'id="contchk"' in html_text
     assert "Devam zinciri" in html_text
-    assert "local expansion" in html_text, "the technical name stays, as the toggle's tooltip"
+    assert "o zinciri sayfada gösterir" in html_text, "the toggle must explain itself"
     assert "TOKEN_BUDGET_CONTINUATION" in html_text
     # Presentation-mode product naming for the chunking mode switch.
     assert "Standard" in html_text and "Structure-only" in html_text
-    assert "hızlı ve deterministic" in html_text
+    assert "hızlı · deterministik" in html_text
     # The embedding-assisted hybrid is framed as a research arm, and the
     # product's LLM mode is described without being a measured arm.
     assert "araştırma kolu" in html_text
@@ -570,7 +570,7 @@ def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     assert "belirsiz yapısal sınırları" not in html_text
     assert "OPENROUTER" not in html_text and "api_key" not in html_text
     # The expansion simulation is labelled as such and never re-ranks.
-    assert "benchmark sonucunu değiştirmez" in html_text
+    assert "ölçüm sonuçlarını değiştirmez" in html_text
 
 
 # --- the optional agentic arm ------------------------------------------------
@@ -763,13 +763,13 @@ def test_agentic_query_results_and_retrieval_are_optional(tmp_path):
 def test_the_agentic_arm_speaks_product_language_in_a_separated_panel(tmp_path):
     html_text = build_with_agentic(tmp_path)
     assert "Agentic Chunker" in html_text
-    assert "Structure + LLM · ayrı koşu" in html_text
+    assert "ayrı koşu" in html_text
     assert "kazanan ilan edilmez" in html_text
-    assert "LLM oyu ile taşındı" in html_text
+    assert "sınır model oyuyla taşındı" in html_text
     # The frozen dashboard's own tables never gain the arm; the panel is
-    # separate and the three-arm difference definition stays in the footer.
+    # separate and the difference definition rides the badge that marks one.
     assert "Agentic Chunker — ayrı koşu" in html_text
-    assert "üç yöntemin uyuşmadığı noktalar" in html_text
+    assert "yöntemlerin farklı karar verdiği" in html_text
 
 
 def test_a_mismatched_sliced_or_orphan_agentic_tree_is_refused(tmp_path):

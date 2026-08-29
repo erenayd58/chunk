@@ -39,6 +39,25 @@ py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v2/index.html --config 
 `index.html` dosya olarak açıldığında Sunum / Debug / Benchmark / gold sorgular çalışır;
 Sorgu sekmesi sunucu yoksa bunu açıkça söyler ve komutu gösterir.
 
+## Hangi analiz gerçekten çalıştı?
+
+Deep Analysis koşusunun **beş** durumu vardır (`amsc.deep_pipeline`: `ok`, `deterministic`,
+`fallback_no_provider`, `fallback_provider_error`, `degraded`) ve `calls.total` *denenen*
+çağrıyı sayar — hepsi başarısız olsa bile. Viewer bunları tek bir yerde,
+`analysisState()` içinde, okuyucunun ayırt etmesi gereken altı duruma indirger:
+
+| Durum | Rozet | Ekranda ne der |
+|---|---|---|
+| model çalıştı | *(ek rozet yok)* | maliyet ve çağrı sayısı gösterilir |
+| kısmi model | `kısmi model` | uyarı: bazı çağrılar yanıtsız kaldı |
+| Standard yükleme | `kural tabanlı` | model kullanılmadı; kazanç kural katmanından |
+| modele gerek olmadı | `modele gerek olmadı` | Deep çalıştı, kararsız sınır çıkmadı |
+| sağlayıcıya ulaşılamadı | `modelsiz tamamlandı` | uyarı: istendi ama ulaşılamadı |
+| sağlayıcı yanıt vermedi | `model yanıt vermedi` | uyarı: çağrılar yanıtsız |
+
+Yöntem kartı, hüküm cümlesi, maliyet kartı, güvence cümleleri ve Benchmark özeti bu tek
+fonksiyonu okur — bu yüzden hiçbir ekran çalışmamış bir modeli faturalandıramaz.
+
 ## RAG Console bağlantısı (çalışma alanı şeridi)
 
 `--console-url` (ya da `AMSC_CONSOLE_URL`; varsayılan `http://127.0.0.1:5005`) verildiğinde
