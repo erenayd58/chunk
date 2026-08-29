@@ -31,12 +31,46 @@ py -3.11 -m amsc.viewer_v2 `
   --output artifacts/viewer-v2/index.html
 
 # 4. Canlı sohbet için sunucu (anahtar yalnız bu süreçte, env'den)
-py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v2/index.html --config configs/rag-poc.yaml --warm
+py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v2/index.html --config configs/rag-poc.yaml --warm `
+  --console-url http://127.0.0.1:5005
 # → http://127.0.0.1:8765/
 ```
 
 `index.html` dosya olarak açıldığında Sunum / Debug / Benchmark / gold sorgular çalışır;
 Sorgu sekmesi sunucu yoksa bunu açıkça söyler ve komutu gösterir.
+
+## RAG Console bağlantısı (çalışma alanı şeridi)
+
+`--console-url` (ya da `AMSC_CONSOLE_URL`; varsayılan `http://127.0.0.1:5005`) verildiğinde
+sunucu `GET /api/workspace` uç noktasını açar ve bunu chat_rag'in
+`GET /api/demo/workspace` çıktısından okur: güncel bilgi tabanları, içlerindeki dokümanlar,
+parça sayıları. Sayfa kendi origin'ine sorar — tarayıcı ikinci bir adrese hiç gitmez, CORS
+gerekmez, konsolun adresi HTML'e gömülmez. Konsol kapalıysa şerit "bağlanılamadı" der ve
+sayfanın geri kalanı etkilenmez; dosya olarak açılan `index.html`'de şerit hiç görünmez.
+Viewer bu durumu **yansıtır, saklamaz**: konsolda açılan bir bilgi tabanı bir sonraki
+yenilemede (buton, ya da sekmeye geri dönüldüğünde) listede belirir.
+
+## Canlı çalışma alanı dokümanları
+
+Konsola yüklenen bir doküman yalnız listede görünmez; Viewer'da **gerçekten incelenir**.
+Paketlemeyi konsol yapar (`chat_rag/components/viewer/analysis.py`): kendi ingest'inin
+canonical unit'lerini ve — Deep Analysis yüklemesinde — koşunun kendisini `deep_run.write_tree`
+ile yazar, `deep_arm.package` ile Viewer kolu haline getirir, `viewer_v2.load_corpus` ile
+sayfanın payload'ını üretir. **İkinci bir parse ve ikinci bir LLM çağrısı yoktur**; Standard
+modda yüklenmiş bir dokümanda karşılaştırmanın Deep tarafını `use_llm=False` deterministik
+sözleşme üretir (sıfır çağrı, sıfır maliyet) ve durum böyle etiketlenir.
+
+Bu tarafta iki uç nokta bunu taşır:
+
+    GET  /api/live-document?doc=<id>   payload'ı konsoldan alır (sayfa kendi origin'ine sorar)
+    POST /api/live-prepare  {doc}      konsola "bu dokümanın analizini hazırla" der
+
+Sayfa payload'ı `DATA.docs` içine **canlı** işaretiyle katar: doküman seçicide ayrı bir
+`optgroup` altında durur, Sunum ve Debug tam çalışır, Benchmark'ta kendi "Bu dokümanda kalite"
+bölümünü alır. Frozen benchmark tabloları, üç kol karşılaştırması ve dokümanlar arası tablo
+bu dokümanlar için **hiç render edilmez**: gold sorgu setleri olmadığı için Hit@k/MRR
+üretilmez ve uydurulmaz. Sorgu sekmesi de dokümanın RAG Console'da sorgulandığını söyler —
+canlı doküman viewer sunucusunun demo korpusunda indeksli değildir.
 
 ## Sağlayıcılar ve gizli anahtarlar
 

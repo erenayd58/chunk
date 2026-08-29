@@ -22,16 +22,18 @@ TEMPLATE = r"""<!DOCTYPE html>
   --font:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",sans-serif;
   --serif:Georgia,"Times New Roman",serif;
   --mono:Consolas,"Cascadia Mono",Menlo,monospace;
+  --barh:64px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--paper);color:var(--ink);font:15px/1.55 var(--font)}
+html{scroll-padding-top:calc(var(--barh) + 14px)}
+html,body{background:var(--paper);color:var(--ink);font:16px/1.6 var(--font)}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-select,textarea,input[type=text]{font:inherit;color:inherit;padding:5px 9px;border:1px solid var(--line-strong);border-radius:7px;background:#fff}
+select,textarea,input[type=text]{font:inherit;color:inherit;padding:6px 10px;border:1px solid var(--line-strong);border-radius:7px;background:#fff}
 a{color:var(--accent)}
 .hidden{display:none!important}
 .muted{color:var(--muted)}
-.mono{font-family:var(--mono);font-size:12.5px}
+.mono{font-family:var(--mono);font-size:13px}
 .nowrap{white-space:nowrap}
 
 /* ---- top bar ---- */
@@ -39,59 +41,59 @@ a{color:var(--accent)}
   padding:10px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .brand{font-weight:650;letter-spacing:.2px;display:flex;align-items:baseline;gap:8px}
 .brand small{color:var(--muted);font-weight:400}
-.brand .tag{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+.brand .tag{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
   color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 8px}
 .tabs{display:flex;gap:3px;background:#efeee8;border-radius:10px;padding:3px}
 .tabs button{padding:6px 16px;border-radius:8px;color:var(--muted);font-weight:500}
 .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.tabs button small{display:block;font-size:10.5px;font-weight:400;line-height:1.1;opacity:.75}
+.tabs button small{display:block;font-size:11.5px;font-weight:400;line-height:1.1;opacity:.75}
 .seg{display:flex;gap:3px;background:#efeee8;border-radius:10px;padding:3px;flex-wrap:wrap}
 .seg button{padding:5px 12px;border-radius:8px;color:var(--muted)}
 .seg button.on{background:var(--accent);color:#fff}
 .seg button.on.deep{background:var(--deep)}
-.seg button small{display:block;font-size:10.5px;font-weight:400;line-height:1.1;opacity:.8}
+.seg button small{display:block;font-size:11.5px;font-weight:400;line-height:1.1;opacity:.8}
 .bar-right{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .filterseg button.on{background:#3d3f43;color:#fff}
 .diffnav button{border:1px solid var(--line-strong);border-radius:7px;padding:4px 10px;background:#fff}
 .diffnav button:disabled{opacity:.4;cursor:default}
-.diffcount{color:var(--muted);font-size:13px}
-.conttoggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
-.modehint{font-size:12.5px;color:var(--muted);width:100%;padding-left:2px}
+.diffcount{color:var(--muted);font-size:13.5px}
+.conttoggle{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);cursor:pointer}
+.modehint{font-size:13.5px;color:var(--muted);width:100%;padding-left:2px}
 main{max-width:1760px;margin:0 auto;padding:20px 22px 40px}
 
 /* ---- shared cards ---- */
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
 .cards{display:flex;gap:12px;flex-wrap:wrap}
 .stat{min-width:140px}
-.stat .v{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.15}
-.stat .v small{font-size:13px;font-weight:500;color:var(--muted);margin-left:4px}
-.stat .k{color:var(--muted);font-size:12.5px;margin-top:2px}
+.stat .v{font-size:26px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .v small{font-size:14px;font-weight:500;color:var(--muted);margin-left:4px}
+.stat .k{color:var(--muted);font-size:13.5px;margin-top:4px;line-height:1.35}
 .stat.deep .v{color:var(--deep)}
 .stat.good .v{color:var(--good)}
-.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 11px;font-size:13px;font-weight:600;white-space:nowrap}
 .pill.ok{background:var(--good-soft);color:var(--good)}
 .pill.mid{background:var(--warn-soft);color:var(--warn)}
 .pill.miss{background:var(--bad-soft);color:var(--bad)}
 .pill.deep{background:var(--deep-soft);color:var(--deep)}
 .pill.std{background:var(--accent-soft);color:var(--accent)}
 .pill.grey{background:#efeee8;color:#4b5259}
-.chip{font:12px/1.5 var(--mono);background:#f0efe9;border-radius:5px;padding:1px 7px}
+.chip{font:12.5px/1.5 var(--mono);background:#f0efe9;border-radius:5px;padding:1px 7px}
 .chip.role{background:#e8e2f6}
 .chip.opens{background:#dcefe2}
 .chip.noopen{background:#f6e3e0}
 .chip.big{background:var(--bad-soft);color:var(--bad)}
 .chip.pf{background:var(--warn-soft);color:var(--warn)}
-.note{color:var(--muted);font-size:13px;max-width:960px}
+.note{color:var(--muted);font-size:14px;line-height:1.55;max-width:1040px}
 .guard{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 16px;
-  border-radius:0 8px 8px 0;font-size:13.5px;margin:12px 0 4px;max-width:960px}
+  border-radius:0 8px 8px 0;font-size:14.5px;line-height:1.55;margin:12px 0 4px;max-width:1040px}
 .guard.deep{border-left-color:var(--deep);background:var(--deep-soft)}
-h2.sec{margin:26px 0 10px;font-size:18px;font-weight:650}
-h3.sub{margin:16px 0 8px;font-size:15px;font-weight:650}
+h2.sec{margin:30px 0 10px;font-size:20px;font-weight:650;letter-spacing:-.1px}
+h3.sub{margin:18px 0 8px;font-size:16.5px;font-weight:650}
 details.adv{margin-top:10px}
-details.adv summary{cursor:pointer;color:var(--accent);font-size:13px}
+details.adv summary{cursor:pointer;color:var(--accent);font-size:14px}
 details.adv pre{white-space:pre-wrap;font:12px var(--mono);background:#f6f5f0;border-radius:8px;padding:10px;margin-top:8px;max-height:320px;overflow:auto}
-table.t{border-collapse:collapse;background:var(--panel);font-variant-numeric:tabular-nums;font-size:13.5px}
-table.t th,table.t td{border:1px solid var(--line);padding:6px 12px;text-align:right}
+table.t{border-collapse:collapse;background:var(--panel);font-variant-numeric:tabular-nums;font-size:14.5px}
+table.t th,table.t td{border:1px solid var(--line);padding:9px 14px;text-align:right}
 table.t th:first-child,table.t td:first-child{text-align:left}
 table.t th{background:#f4f3ee;font-weight:600}
 table.t td.best{font-weight:700;color:var(--accent)}
@@ -102,7 +104,7 @@ table.t td.deepcol{background:#faf7ff}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.deep{background:var(--deep);border-color:var(--deep);color:#fff}
 .btn:disabled{opacity:.5;cursor:default}
-.btn.small{padding:3px 10px;font-size:12.5px}
+.btn.small{padding:4px 11px;font-size:13px}
 .linkbtn{color:var(--accent);text-decoration:underline;padding:0}
 
 /* ---- Sunum: methods + results ---- */
@@ -112,50 +114,45 @@ table.t td.deepcol{background:#faf7ff}
 .method:hover{box-shadow:0 2px 10px rgba(0,0,0,.06)}
 .method.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .method.on.deepm{border-color:var(--deep);box-shadow:0 0 0 2px var(--deep-soft)}
-.method .name{font-weight:650;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.method .desc{color:#3f4750;font-size:13px;margin-top:6px;line-height:1.45}
-.method .facts{color:var(--muted);font-size:12px;margin-top:8px;display:flex;gap:10px;flex-wrap:wrap}
+.method .name{font-weight:650;font-size:16.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.method .desc{color:#3f4750;font-size:14.5px;margin-top:7px;line-height:1.5}
+.method .facts{color:var(--muted);font-size:13px;margin-top:8px;display:flex;gap:10px;flex-wrap:wrap}
 .method.absent{opacity:.55;cursor:default}
 .results{background:linear-gradient(135deg,#f4f0ff 0%,#fff 60%);border:1px solid #e3dcf5;border-radius:12px;padding:14px 18px;margin-bottom:16px}
 .results .title{font-weight:650;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .results .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.results .item .v{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.results .item .v{font-size:23px;font-weight:650;font-variant-numeric:tabular-nums}
 .results .item .v .arrow{color:var(--muted);font-weight:400;margin:0 5px}
 .results .item .v .to{color:var(--deep)}
-.results .item .k{font-size:12px;color:var(--muted)}
-.smellbars{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px 18px;margin-top:10px;font-size:12.5px}
-.smellbar{display:grid;grid-template-columns:150px 1fr 60px;gap:8px;align-items:center}
-.smellbar .bar{height:8px;background:#ece8f8;border-radius:4px;position:relative;overflow:hidden}
-.smellbar .bar i{position:absolute;left:0;top:0;bottom:0;background:#cdbff0;border-radius:4px}
-.smellbar .bar b{position:absolute;left:0;top:0;bottom:0;background:var(--deep);border-radius:4px}
-.smellbar .n{font-variant-numeric:tabular-nums;text-align:right}
+.results .item .k{font-size:13px;color:var(--muted);line-height:1.35}
 
 /* ---- Sunum: reader ---- */
 .pres-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px}
-.readerbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.readerbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:14px;color:var(--muted)}
 .readerbar select{padding:3px 8px}
 .docpage{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:34px 42px;
-  font-family:var(--serif);font-size:16px}
-.docpage .pagehead{font-family:var(--font);color:var(--muted);font-size:13px;margin-bottom:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.chunkline{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-family:var(--font);flex-wrap:wrap}
+  font-family:var(--serif);font-size:17px}
+.docpage .pagehead{font-family:var(--font);color:var(--muted);font-size:13.5px;margin-bottom:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.chunkline{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-family:var(--font);flex-wrap:wrap;
+  scroll-margin-top:calc(var(--barh) + 14px)}
 .chunkline .rule{flex:1;border-top:3px solid var(--accent);opacity:.5;min-width:30px}
 .chunkline.tech .rule{border-top:2px dashed #c9a24b;opacity:.75}
-.chunkline .kind{font-size:11.5px;font-weight:700;letter-spacing:.6px;color:var(--accent);text-transform:uppercase;white-space:nowrap}
+.chunkline .kind{font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--accent);text-transform:uppercase;white-space:nowrap}
 .chunkline.tech .kind{color:#8a5a09}
 .chunkpill{background:var(--accent-soft);color:var(--accent);border:1px solid #c8d8f2;border-radius:999px;
-  padding:3px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+  padding:3px 13px;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
 .chunkline.tech .chunkpill{background:#fdf6e7;color:#8a5a09;border-color:#ecd9ab}
 .chunkpill .why{font-weight:400;color:#41537a}
 .chunkline.tech .chunkpill .why{color:#8a6a2f}
 .chunkpill.sel{box-shadow:0 0 0 3px #f2d9a4}
-.decpill{border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+.decpill{border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600;white-space:nowrap;border:1px solid transparent}
 .decpill.kept{background:#eef1f5;color:#4b5259;border-color:#dfe3e8}
 .decpill.det{background:var(--good-soft);color:var(--good);border-color:#c6e6cf}
 .decpill.llm{background:var(--deep-soft);color:var(--deep);border-color:#d8cbf3}
 .decpill.rev{background:var(--warn-soft);color:var(--warn);border-color:#f2d9a4}
 .decpill.ceil{background:var(--bad-soft);color:var(--bad);border-color:#f2c8c2}
 .decpill.std{background:#fdf6e7;color:#8a5a09;border-color:#ecd9ab}
-.u{padding:2px 10px;border-left:3px solid transparent;border-radius:4px}
+.u{padding:2px 10px;border-left:3px solid transparent;border-radius:4px;scroll-margin-top:calc(var(--barh) + 14px)}
 .u.tintA{background:var(--tintA)}
 .u.tintB{background:var(--tintB)}
 .u.contedge{border-left:3px solid #e4c988}
@@ -164,32 +161,32 @@ table.t td.deepcol{background:#faf7ff}
 .u.selchunk{outline:2px solid var(--accent);outline-offset:-2px}
 .u h1,.u h2,.u h3,.u h4,.u h5,.u h6{font-family:var(--font);line-height:1.3;margin:14px 0 6px}
 .u h1{font-size:24px}.u h2{font-size:21px}.u h3{font-size:18px}
-.u h4{font-size:16px}.u h5{font-size:15px}.u h6{font-size:14px;color:#3c4046}
+.u h4{font-size:17px}.u h5{font-size:16px}.u h6{font-size:15px;color:#3c4046}
 .u p{margin:7px 0}
 .u ul{margin:7px 0 7px 22px}
 .u li{margin:3px 0}
 .tblwrap{overflow-x:auto;margin:10px 0}
-.tblwrap table{border-collapse:collapse;font-size:13.5px;font-family:var(--font)}
+.tblwrap table{border-collapse:collapse;font-size:14px;font-family:var(--font)}
 .tblwrap th,.tblwrap td{border:1px solid var(--line);padding:4px 9px;text-align:left}
 .tblwrap th{background:#f4f3ee}
-.diffbadge{background:#fdecc8;color:var(--warn);border:1px solid #f2d9a4;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.diffbadge{background:#fdecc8;color:var(--warn);border:1px solid #f2d9a4;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
 .diffbadge .glyphs{font-weight:400;margin-left:6px}
 /* compare grid */
-.cmp{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px 28px;font-family:var(--serif);font-size:15.5px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px 28px;font-family:var(--serif);font-size:16px}
 .cmp .colhead{font-family:var(--font);font-weight:650;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cmp .cell{min-width:0;padding:2px 0}
 .cmp .cell .chunkline{margin:12px 0 6px}
-.cmp .cell .chunkpill{font-size:12px;padding:2px 10px}
+.cmp .cell .chunkpill{font-size:12.5px;padding:2px 10px}
 .sidecard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
-  position:sticky;top:74px;max-height:calc(100vh - 96px);overflow:auto}
-.sidecard h3{font-size:15px;margin-bottom:10px}
-.sidecard .kv{display:grid;grid-template-columns:100px 1fr;gap:5px 10px;font-size:13.5px}
+  position:sticky;top:calc(var(--barh) + 10px);max-height:calc(100vh - var(--barh) - 32px);overflow:auto}
+.sidecard h3{font-size:16px;margin-bottom:10px}
+.sidecard .kv{display:grid;grid-template-columns:106px 1fr;gap:6px 10px;font-size:14px}
 .sidecard .kv dt{color:var(--muted)}
-.sidecard .empty{color:var(--muted);font-size:13.5px}
-.reason-sent{margin-top:12px;padding:10px 12px;background:#f6f5f0;border-radius:8px;font-size:13.5px}
+.sidecard .empty{color:var(--muted);font-size:14px}
+.reason-sent{margin-top:12px;padding:10px 12px;background:#f6f5f0;border-radius:8px;font-size:14px}
 .reason-sent.deep{background:var(--deep-soft)}
-.arminfo{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:12.5px;color:var(--muted)}
-.detail-links button{color:var(--accent);text-decoration:underline;padding:0;font-size:13px}
+.arminfo{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:13px;color:var(--muted)}
+.detail-links button{color:var(--accent);text-decoration:underline;padding:0;font-size:13.5px}
 
 /* ---- Sorgu ---- */
 .subtabs{display:flex;gap:4px;margin-bottom:14px}
@@ -197,89 +194,90 @@ table.t td.deepcol{background:#faf7ff}
 .subtabs button.on{background:#3d3f43;border-color:#3d3f43;color:#fff}
 .chatwrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px}
 .chatbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
-.chatbox textarea{width:100%;min-height:76px;resize:vertical;font-size:15px}
+.chatbox textarea{width:100%;min-height:82px;resize:vertical;font-size:15.5px}
 .chatctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
-.chatctl label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
-.offline{border:1px dashed var(--line-strong);border-radius:12px;padding:14px 18px;color:var(--muted);font-size:13.5px;background:#fcfbf8;margin-bottom:14px}
-.offline code{font-family:var(--mono);font-size:12.5px;background:#f0efe9;padding:1px 6px;border-radius:4px}
+.chatctl label{font-size:13.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.offline{border:1px dashed var(--line-strong);border-radius:12px;padding:14px 18px;color:var(--muted);font-size:14px;background:#fcfbf8;margin-bottom:14px}
+.offline code{font-family:var(--mono);font-size:13px;background:#f0efe9;padding:1px 6px;border-radius:4px}
 .suggest{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.suggest button{border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-size:12.5px;background:#fff;color:#3f4750;text-align:left}
+.suggest button{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13.5px;background:#fff;color:#3f4750;text-align:left}
 .turn{margin-top:18px}
-.turn .q{font-weight:650;font-size:16px;margin-bottom:8px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.turn .q{font-weight:650;font-size:17px;margin-bottom:8px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 .turn .q .who{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
 .answer{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
-.answer .txt{font-size:15.5px;line-height:1.6;white-space:pre-wrap}
-.answer .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.answer .txt{font-size:16px;line-height:1.65;white-space:pre-wrap}
+.answer .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--muted)}
 .cite{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:0 6px;font-size:12px;font-weight:700;margin:0 1px;vertical-align:baseline;font-family:var(--font)}
 .cite:hover{background:var(--accent);color:#fff}
 .sources{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:12px}
-.src{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:13px;position:relative}
+.src{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer;font-size:13.5px;position:relative}
 .src:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .src.used{border-color:#9db7e6;background:#fbfcff}
 .src.hl{outline:2px solid var(--warn)}
 .src .lab{font-weight:700;color:var(--accent);font-size:12px;margin-right:6px}
 .src .hd{font-weight:600;margin:3px 0}
-.src .path{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.src .facts{color:var(--muted);font-size:12px;margin-top:5px;display:flex;gap:8px;flex-wrap:wrap}
+.src .path{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src .facts{color:var(--muted);font-size:12.5px;margin-top:5px;display:flex;gap:8px;flex-wrap:wrap}
 .src .usedmark{position:absolute;right:10px;top:8px;color:var(--good);font-weight:700;font-size:12px}
 .cmpcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
 .cmpcol{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
 .cmpcol .armname{font-weight:650;display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-.cmpcol .txt{font-size:14px;line-height:1.55;white-space:pre-wrap;max-height:260px;overflow:auto;border-left:3px solid var(--line);padding-left:10px}
-.cmpcol .srcs{margin-top:10px;font-size:12.5px}
+.cmpcol .txt{font-size:14.5px;line-height:1.6;white-space:pre-wrap;max-height:260px;overflow:auto;border-left:3px solid var(--line);padding-left:10px}
+.cmpcol .srcs{margin-top:10px;font-size:13px}
 .cmpcol .srcs div{padding:4px 0;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;cursor:pointer}
-.chatside h3{font-size:14px;margin-bottom:8px}
-.chatside .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 8px;font-size:12.5px}
+.chatside h3{font-size:15px;margin-bottom:8px}
+.chatside .kv{display:grid;grid-template-columns:112px 1fr;gap:5px 8px;font-size:13px}
 .chatside .kv dt{color:var(--muted)}
 .qhead{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin-bottom:16px}
-.qhead .qq{font-size:18px;font-weight:600;margin-bottom:6px}
+.qhead .qq{font-size:19px;font-weight:600;margin-bottom:6px}
 .qhead .qa{color:#374151;margin-bottom:10px}
-.qhead .qmeta{color:var(--muted);font-size:13px;margin-bottom:10px}
-.evbox{border-left:3px solid var(--warn);background:#fdf9ef;padding:10px 14px;border-radius:0 8px 8px 0;font-family:var(--serif);font-size:14.5px;max-height:210px;overflow:auto}
-.evbox .evlabel{font-family:var(--font);font-size:12px;color:var(--warn);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
+.qhead .qmeta{color:var(--muted);font-size:13.5px;margin-bottom:10px}
+.evbox{border-left:3px solid var(--warn);background:#fdf9ef;padding:10px 14px;border-radius:0 8px 8px 0;font-family:var(--serif);font-size:15px;max-height:230px;overflow:auto}
+.evbox .evlabel{font-family:var(--font);font-size:12.5px;color:var(--warn);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
 .qcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
 .qcol{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
 .qcol .armname{font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.qcol .covline{color:var(--muted);font-size:12.5px;margin-bottom:10px}
-.rchunk{border:1px solid var(--line);border-radius:9px;padding:12px;font-family:var(--serif);font-size:14px;max-height:330px;overflow:auto}
+.qcol .covline{color:var(--muted);font-size:13px;margin-bottom:10px}
+.rchunk{border:1px solid var(--line);border-radius:9px;padding:13px;font-family:var(--serif);font-size:14.5px;max-height:330px;overflow:auto}
 .rchunk mark{background:var(--mark);padding:0 2px;border-radius:2px}
-.rchunk .rhead{font-family:var(--font);font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.rchunk .rhead{font-family:var(--font);font-size:13px;color:var(--muted);margin-bottom:8px}
 .rchunk .piece{margin:6px 0}
 .top5{margin-top:12px}
-.top5 summary{cursor:pointer;color:var(--accent);font-size:13.5px}
-.top5 .row{display:flex;gap:8px;align-items:baseline;padding:6px 4px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.top5 summary{cursor:pointer;color:var(--accent);font-size:14px}
+.top5 .row{display:flex;gap:8px;align-items:baseline;padding:6px 4px;border-bottom:1px solid var(--line);font-size:13.5px;flex-wrap:wrap}
 .top5 .row .rk{font-weight:600;min-width:44px}
 .top5 .row .mt{color:var(--good)}
-.qlink{margin-top:10px;font-size:13px}
+.qlink{margin-top:10px;font-size:13.5px}
 .qlink button{color:var(--accent);text-decoration:underline;padding:0}
 
 /* ---- Debug ---- */
 .dbg{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:20px}
-.dbgbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:13px}
+.dbgbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:13.5px}
 .dbgbar input[type=text]{min-width:220px}
-.dbgunit{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;cursor:pointer}
+.dbgunit{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;cursor:pointer;
+  scroll-margin-top:calc(var(--barh) + 14px)}
 .dbgunit.sel{outline:2px solid var(--accent)}
 .dbgunit .head{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
-.dbgunit .path{font-size:12px;color:var(--muted);margin-bottom:6px;font-family:var(--mono);word-break:break-all}
-.dbgunit .txt{font-size:13px;color:#374151;white-space:pre-wrap;max-height:80px;overflow:hidden}
-.dbgtable{width:100%;border-collapse:collapse;font:12px var(--mono);margin-top:8px}
+.dbgunit .path{font-size:12.5px;color:var(--muted);margin-bottom:6px;font-family:var(--mono);word-break:break-all}
+.dbgunit .txt{font-size:13.5px;color:#374151;white-space:pre-wrap;max-height:80px;overflow:hidden}
+.dbgtable{width:100%;border-collapse:collapse;font:12.5px var(--mono);margin-top:8px}
 .dbgtable th,.dbgtable td{border:1px solid var(--line);padding:2px 7px;text-align:left}
 .dbgtable th{background:#f4f3ee;font-family:var(--font)}
 .inspector{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;
-  position:sticky;top:74px;max-height:calc(100vh - 96px);overflow:auto;font-size:13px}
+  position:sticky;top:calc(var(--barh) + 10px);max-height:calc(100vh - var(--barh) - 32px);overflow:auto;font-size:13.5px}
 .inspector pre{white-space:pre-wrap;font:12.5px var(--mono);background:#f6f5f0;border-radius:8px;padding:10px;margin-top:8px;max-height:260px;overflow:auto}
 .trail{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
-.trail .row{display:grid;grid-template-columns:110px 1fr;gap:4px 8px;font-size:12.5px;margin-bottom:4px}
+.trail .row{display:grid;grid-template-columns:112px 1fr;gap:5px 8px;font-size:13px;margin-bottom:5px}
 .trail .row dt{color:var(--muted)}
-.trail .grp{background:#f8f7f3;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:12.5px}
+.trail .grp{background:#f8f7f3;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:13px}
 .trail .grp .ids{font-family:var(--mono);font-size:11.5px;color:var(--muted);word-break:break-all}
 .secpanel{margin-top:22px}
-.sectable{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel)}
-.sectable th,.sectable td{border:1px solid var(--line);padding:5px 9px;text-align:left;vertical-align:top}
-.sectable th{background:#f4f3ee;position:sticky;top:64px}
-.sectable tr.clk{cursor:pointer}
+.sectable{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--panel)}
+.sectable th,.sectable td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top}
+.sectable th{background:#f4f3ee;position:sticky;top:var(--barh);z-index:1}
+.sectable tr.clk{cursor:pointer;scroll-margin-top:calc(var(--barh) + 52px)}
 .sectable tr.clk:hover{background:#fbfaf6}
-.stpill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:600}
+.stpill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600}
 .stpill.standard_kept{background:#eef1f5;color:#4b5259}
 .stpill.deterministic_improved{background:var(--good-soft);color:var(--good)}
 .stpill.llm_accepted{background:var(--deep-soft);color:var(--deep)}
@@ -287,32 +285,139 @@ table.t td.deepcol{background:#faf7ff}
 .stpill.contract_reverted{background:var(--bad-soft);color:var(--bad)}
 
 /* ---- Benchmark ---- */
-.bench h2{margin:26px 0 10px;font-size:18px}
-.legend{color:var(--muted);font-size:12.5px;margin-top:6px}
+.bench h2{margin:28px 0 10px;font-size:19px;font-weight:650}
+.legend{color:var(--muted);font-size:13.5px;line-height:1.55;margin-top:8px;max-width:1040px}
 .pairlists{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
-.pairlists .pl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px}
+.pairlists .pl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 16px;font-size:13.5px;line-height:1.7}
 .pairlists .pl b{font-weight:600}
-.qidchip{font-family:var(--mono);background:#f0efe9;border-radius:4px;padding:0 6px;font-size:12px;cursor:pointer}
+.qidchip{font-family:var(--mono);background:#f0efe9;border-radius:4px;padding:1px 7px;font-size:12.5px;cursor:pointer}
 details.secgold{margin-top:14px}
 details.secgold summary{cursor:pointer;color:var(--accent)}
-.interp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-size:14px;max-width:960px;margin-top:12px}
+.interp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;font-size:15px;line-height:1.6;max-width:1040px;margin-top:12px}
 .interp b{font-weight:650}
+
+/* ---- explainer layer: the plain-language skin over the technical numbers ---- */
+.sechead{margin:32px 0 10px;max-width:1040px}
+.sechead:first-child{margin-top:0}
+.sechead h2{font-size:20px;font-weight:650;letter-spacing:-.1px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sechead .lead{color:var(--muted);font-size:14px;line-height:1.55;margin-top:5px}
+.sechead .step{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent);font-size:12.5px;font-weight:700;flex:0 0 auto}
+.help{color:var(--muted);font-size:13.5px;line-height:1.5;margin-top:5px}
+.info{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:999px;
+  border:1px solid var(--line-strong);color:var(--muted);font-size:10.5px;font-weight:700;cursor:help;
+  vertical-align:2px;margin-left:5px;font-family:var(--font);user-select:none}
+.info:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.techname{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* KPI row: the top layer of every summary */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(212px,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 17px;min-width:0}
+.kpi .lab{font-size:13.5px;font-weight:600;color:#3f4750;display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.kpi .v{font-size:27px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:7px;
+  display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.kpi .v .from{color:var(--muted);font-weight:600}
+.kpi .v .arrow{color:var(--muted);font-size:18px;font-weight:400}
+.kpi .v .to{color:var(--deep)}
+.kpi .v .unit{font-size:14px;font-weight:500;color:var(--muted)}
+.kpi .sub{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.4}
+.kpi .delta{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12.5px;font-weight:650;margin-top:8px}
+.kpi .delta.good{background:var(--good-soft);color:var(--good)}
+.kpi .delta.flat{background:#eef1f5;color:#4b5259}
+.kpi .delta.warn{background:var(--warn-soft);color:var(--warn)}
+.kpi.hero{background:linear-gradient(150deg,var(--deep-soft) 0%,var(--panel) 62%);border-color:#ded4f4}
+
+/* three-column "what it does / what it adds / what you get" story */
+.story{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:12px}
+.story .col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+.story .col.std{border-top:3px solid var(--accent)}
+.story .col.deep{border-top:3px solid var(--deep)}
+.story .col.impact{border-top:3px solid var(--good)}
+.story .col h4{font-size:14.5px;font-weight:650;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.story .col ul{margin:0 0 0 18px}
+.story .col li{font-size:14px;line-height:1.5;margin:5px 0;color:#3f4750}
+.story .col p{font-size:14px;line-height:1.55;color:#3f4750}
+
+/* "when is it worth it" decision box */
+.decide{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px}
+.decide .box{border:1px solid var(--line);border-radius:12px;padding:14px 17px;background:var(--panel)}
+.decide .box.yes{border-left:4px solid var(--good)}
+.decide .box.no{border-left:4px solid var(--line-strong)}
+.decide .box.cost{border-left:4px solid var(--warn)}
+.decide .box h4{font-size:14.5px;font-weight:650;margin-bottom:7px}
+.decide .box ul{margin:0 0 0 18px}
+.decide .box li{font-size:14px;line-height:1.5;margin:4px 0;color:#3f4750}
+
+/* improvement bars, plain-language labels */
+.fixlist{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 18px 14px;margin-top:12px}
+.fixrow{display:grid;grid-template-columns:minmax(220px,1.25fr) minmax(120px,2fr) 108px;gap:14px;align-items:center;
+  padding:11px 0;border-bottom:1px solid var(--line)}
+.fixrow:last-child{border-bottom:none}
+.fixrow .name{font-size:14px;font-weight:600;min-width:0}
+.fixrow .name .sub{display:block;font-weight:400;font-size:12.5px;color:var(--muted);line-height:1.4;margin-top:2px}
+.fixrow .bar{height:10px;background:#efedf7;border-radius:5px;position:relative;overflow:hidden}
+.fixrow .bar i{position:absolute;left:0;top:0;bottom:0;background:#cdbff0;border-radius:5px}
+.fixrow .bar b{position:absolute;left:0;top:0;bottom:0;background:var(--deep);border-radius:5px}
+.fixrow .n{text-align:right;font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap}
+.fixrow .n .to{color:var(--deep);font-weight:650}
+.fixrow .n .gone{color:var(--good);font-weight:650}
+.barkey{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:10px 0 2px}
+.barkey span{display:inline-flex;align-items:center;gap:6px}
+.barkey i{width:12px;height:9px;border-radius:3px;display:inline-block}
+
+/* glossary */
+.gloss{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 18px 12px;margin-top:10px}
+.gloss dl{display:grid;grid-template-columns:minmax(190px,270px) 1fr;gap:0 20px}
+.gloss dt{font-size:14px;font-weight:600;padding:10px 0 0;border-top:1px solid var(--line)}
+.gloss dt:first-of-type,.gloss dd:first-of-type{border-top:none}
+.gloss dd{font-size:13.5px;color:#3f4750;line-height:1.5;padding:10px 0;border-top:1px solid var(--line)}
+.gloss dt .techname{display:block;font-weight:400;margin-top:2px}
+details.deep-detail{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0 18px}
+details.deep-detail>summary{cursor:pointer;color:var(--accent);font-size:14px;font-weight:600;padding:13px 0;list-style-position:outside}
+details.deep-detail[open]>summary{border-bottom:1px solid var(--line);margin-bottom:6px}
+details.deep-detail .inner{padding-bottom:16px}
+details.deep-detail .inner>h2:first-child,details.deep-detail .inner>.sechead:first-child{margin-top:14px}
+
+/* ---- workspace: the live RAG console state ---- */
+.wsbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:10px 16px;margin-bottom:16px;font-size:13.5px}
+.wsbar .dot{width:9px;height:9px;border-radius:999px;background:var(--muted);flex:0 0 auto}
+.wsbar.live .dot{background:var(--good)}
+.wsbar.down .dot{background:var(--bad)}
+.wsbar .who{font-weight:650;font-size:14px}
+.wsbar .sum{color:var(--muted)}
+.wsbar .spacer{margin-left:auto}
+.wspanel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 18px 16px;margin:-8px 0 16px}
+.wsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px;align-items:start}
+.wskb details>summary{cursor:pointer;color:var(--accent);font-size:13px;margin-top:8px}
+.wskb{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fcfbf8;min-width:0}
+.wskb .kbname{font-weight:650;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wskb .kbmeta{color:var(--muted);font-size:12.5px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.wskb .docs{margin-top:9px;display:flex;flex-direction:column;gap:6px}
+.wsdoc{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
+.wsdoc .dname{font-weight:600;overflow-wrap:anywhere}
+.wsdoc .dmeta{color:var(--muted);font-size:12.5px}
+.wskb .none{color:var(--muted);font-size:13px;margin-top:8px}
 
 /* ---- modal ---- */
 .modal{position:fixed;inset:0;background:rgba(20,22,26,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal .box{background:var(--panel);border-radius:14px;max-width:980px;width:100%;max-height:88vh;overflow:auto;padding:22px 26px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
 .modal .box .mhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
-.modal .box .mhead h3{font-size:16px}
-.modal .box .mbody{font-family:var(--serif);font-size:15px;line-height:1.55}
+.modal .box .mhead h3{font-size:17px}
+.modal .box .mbody{font-family:var(--serif);font-size:16px;line-height:1.6}
 .modal .box .mbody p{margin:8px 0}
 .modal .box .mbody ul{margin:8px 0 8px 22px}
-.modal .box .mfacts{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:10px}
-footer{color:var(--muted);font-size:12px;padding:26px 22px;text-align:center}
+.modal .box .mfacts{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:10px}
+footer{color:var(--muted);font-size:12.5px;padding:26px 22px;text-align:center}
 
 @media (max-width:1100px){
   .pres-layout,.dbg,.chatwrap{grid-template-columns:1fr}
   .sidecard,.inspector{position:static;max-height:none}
   .docpage{padding:22px 20px}
+  .fixrow{grid-template-columns:1fr;gap:6px}
+  .fixrow .n{text-align:left}
+  .gloss dl{grid-template-columns:1fr}
+  .gloss dd{border-top:none;padding-top:2px}
 }
 @media (max-width:760px){
   .cmp{grid-template-columns:1fr}
@@ -352,6 +457,8 @@ footer{color:var(--muted);font-size:12px;padding:26px 22px;text-align:center}
   <div class="modehint hidden" id="modehint"></div>
 </div>
 <main>
+  <div id="wsbar" class="wsbar hidden"></div>
+  <div id="wspanel" class="wspanel hidden"></div>
   <div id="view-presentation" data-mode="presentation">
     <div id="methods" class="methods"></div>
     <div id="results"></div>
@@ -431,23 +538,45 @@ const CONT_LABELS = {
   md_overlap:   "Önceki chunk'ın devamı — boyut sınırı (kuyruk örtüşme olarak taşındı)",
   md_heading:   "Önceki chunk'ın devamı — başlık sınırında kesildi"
 };
-const SMELL_TEXT = {
-  orphan_label: "yetim başlık/etiket",
-  lead_in_cut: "lead-in devamından ayrılmıştı",
-  continuation_cut: "devam cümlesi/dipnot ayrılmıştı",
-  run_split_when_fits: "sığan liste bölünmüştü",
-  fragment_cut: "unit içi zorunlu kesim",
-  table_split: "tablo içi zorunlu kesim",
-  below_min: "min altı parça",
-  above_soft_max: "soft-max üstü parça"
+// Every structural defect the contract counts, in the words a reader who has
+// never seen the pipeline would use. The technical key stays visible next to
+// the label wherever the number is audited, so nothing is renamed away.
+const SMELL_INFO = {
+  orphan_label:        {label:"Başlık içerikten koptu",           help:"Bir başlık, anlattığı metinden ayrı bir parçaya düştü. Arama başlığı bulur ama içeriği getirmez."},
+  lead_in_cut:         {label:"Giriş cümlesi devamından ayrıldı", help:"“Aşağıdaki tabloda…” gibi bir giriş cümlesi, tarif ettiği içerikten koptu."},
+  continuation_cut:    {label:"Devam cümlesi / dipnot koptu",     help:"Bir cümlenin devamı ya da dipnotu ayrı parçaya düştü; cevap yarım kalabilir."},
+  run_split_when_fits: {label:"Liste gereksiz yere bölündü",      help:"Tek parçaya sığabilecek bir liste ikiye ayrıldı; maddelerin bir kısmı cevaba gelmez."},
+  table_split:         {label:"Tablo ortadan bölündü",            help:"Bir tablo iki parçaya ayrıldı; satırlar kendi başlık satırından koptu."},
+  fragment_cut:        {label:"Paragraf ortasından kesildi",      help:"Kesim bir paragrafın ya da bloğun ortasından geçti."},
+  below_min:           {label:"Çok kısa parça",                   help:"Tek başına anlam taşımayacak kadar kısa chunk (160 token altı)."},
+  above_soft_max:      {label:"Çok uzun parça",                   help:"Hedeflenen boyutun üstünde kalan chunk (900 token üstü); modele fazladan bağlam gider."}
 };
+const SMELL_TEXT = Object.fromEntries(Object.entries(SMELL_INFO).map(([k, v]) => [k, v.label]));
+const SMELL_HELP = Object.fromEntries(Object.entries(SMELL_INFO).map(([k, v]) => [k, v.help]));
 const SMELL_FIXED = {
-  orphan_label: "yetim başlık önlendi",
-  lead_in_cut: "lead-in devamıyla kaldı",
+  orphan_label: "başlık içeriğiyle birlikte kaldı",
+  lead_in_cut: "giriş cümlesi devamıyla kaldı",
   continuation_cut: "devam cümlesi ayrılmadı",
   run_split_when_fits: "liste bütün kaldı",
-  fragment_cut: "unit içi kesim azaldı",
-  table_split: "tablo içi kesim azaldı"
+  fragment_cut: "paragraf ortası kesim azaldı",
+  table_split: "tablo ortası kesim azaldı"
+};
+// Metric names the page shows, each with the sentence that answers "bu sayı ne
+// anlatıyor?". Rendered as a label + hover note, and collected into the
+// glossary at the bottom of the Benchmark tab.
+const TERMS = {
+  smell:        {label:"Yapısal kalite problemi", tech:"boundary smell", help:"Chunk sınırının yanlış yerden geçtiği durumların sayısı: kopmuş başlık, bölünmüş liste, ortadan ikiye ayrılmış tablo. Deterministik olarak sayılır, tahmin değildir. Ne kadar düşükse o kadar iyi."},
+  regression:   {label:"Kötüleşen bölüm", tech:"tiered regression", help:"Deep Analysis'ten sonra herhangi bir problem türünde Standard'dan daha kötü hale gelen bölüm sayısı. Sözleşme gereği 0 olmak zorundadır."},
+  sizetrade:    {label:"Boyut takası", tech:"strict regression", help:"Kalite problemi kesin azalırken parça boyutunun hedefin dışına taştığı bölüm sayısı. Bilinçli bir takastır, hata değildir."},
+  ceiling:      {label:"Kaçınılmaz kesim", tech:"temsil tavanı / ceiling boundary", help:"Tek bir tablonun ya da paragrafın kendisi bütçeden büyük olduğu için hiçbir bölümleme yönteminin kaçınamayacağı kesim. Kalan problemlerin bu kısmı düzeltilebilir değildir."},
+  hit:          {label:"Doğru parçayı bulma oranı", tech:"Hit@1 / Hit@3 / Hit@5", help:"Gold soruların yüzde kaçında doğru cevabı içeren chunk ilk 1 / 3 / 5 sonuç arasında geldi. 1'e ne kadar yakınsa o kadar iyi."},
+  mrr:          {label:"Sıralama kalitesi", tech:"MRR", help:"Doğru chunk'ın sonuç listesindeki sırasının tersinin ortalaması. Doğru sonuç ne kadar üste çıkarsa o kadar yüksektir."},
+  coverage:     {label:"Kanıt kapsama", tech:"evidence coverage", help:"Cevabın dayandığı kanıt metninin, getirilen chunk'lar tarafından ne kadarının kapsandığı."},
+  goldset:      {label:"Gold sorgu seti", tech:"gold set", help:"Cevabı ve kanıt metni elle doğrulanmış soru listesi. Ölçüm bunun üzerinden yapılır; sorusu olmayan doküman için retrieval sayısı uydurulmaz."},
+  holdout:      {label:"Hiç ayar görmemiş doküman", tech:"holdout", help:"Eşiklerin ve kuralların ayarlanmasında kullanılmamış doküman. Sonuçların o dokümana özel ayarla şişirilmediğini gösterir."},
+  llmrole:      {label:"LLM'in rolü", tech:"proposer + verifier", help:"LLM her sınıra karışmaz: yalnız kuralın kararsız kaldığı yerlerde öneri verir, her öneri iki farklı sırada ayrıca doğrulanır, doğrulanmayan öneri geri alınır."},
+  chunk:        {label:"Parça (chunk)", tech:"chunk", help:"Dokümanın aramaya ve cevaba giren en küçük birimi. Sınırların doğru yerden geçmesi, cevabın bütün olup olmamasını belirler."},
+  frozen:       {label:"Dondurulmuş karşılaştırma", tech:"frozen benchmark v5", help:"Bir kez koşulmuş ve bir daha değiştirilmemiş referans ölçüm. Metodolojik dayanak olarak durur; yeni koşularla güncellenmez."}
 };
 const SECTION_STATUS = {
   standard_kept: "Yapısal sınır korundu",
@@ -471,7 +600,8 @@ const METHOD_DESC = {
   markdown: "Metni Markdown düzenine ve sabit token boyutuna göre böler (700 token hedef, 140 token örtüşme). Başlık/bölüm mantığına bakmaz; hızlı bir taban çizgisidir.",
   hybrid: "Bölüm yapısını takip eder; bütçeyi aşan bölümlerde kesim yerini embedding benzerliğiyle seçer (H1 arbitration). Araştırma koludur, ürün modu değildir; bir güven/belirsizlik dedektörü değildir.",
   "structure-only": "Başlık, bölüm ve etiket yapısını deterministic olarak takip eder: her bölüm kendi başlığı altında kalır, yalnız bütçeyi aşan bölümler bölünür. Hızlı, tekrarlanabilir, LLM'siz — ürünün Standard modu.",
-  agentic: "Standard'ın üstüne bir kalite sözleşmesi koyar: yetim başlık, ayrılmış lead-in, bölünmüş liste gibi kötü sınırları deterministic kurallarla düzeltir; gerçekten belirsiz sınırlarda LLM'e danışır ve her öneriyi iki sırada doğrulatır. Hiçbir koku türünde Standard'dan kötü olamaz — ürünün Deep Analysis modu, ek gecikme ve maliyetle."
+  agentic: "Standard'ın üstüne bir kalite sözleşmesi koyar: yetim başlık, ayrılmış lead-in, bölünmüş liste gibi kötü sınırları deterministic kurallarla düzeltir; gerçekten belirsiz sınırlarda LLM'e danışır ve her öneriyi iki sırada doğrulatır. Hiçbir problem türünde Standard'dan kötü olamaz — ürünün Deep Analysis modu, ek gecikme ve maliyetle.",
+  agentic_rules: "Bu dokümanda yalnız kalite sözleşmesinin deterministic katmanı çalıştı: yetim başlık, ayrılmış lead-in ve bölünmüş liste gibi kötü sınırlar kurallarla düzeltildi, hiçbir model çağrısı yapılmadı. Sonuç tekrarlanabilir ve ücretsizdir; model katmanı için dokümanı RAG Console'da Deep Analysis seçeneğiyle yükleyin."
 };
 const MODE_HINTS = {
   "structure-only": "Standard — Structure-only: hızlı ve deterministic. Ürünün Deep Analysis modu (Agentic Chunker) " +
@@ -484,11 +614,28 @@ const MODE_HINTS = {
     "belirsiz sınırlarda öneri verir, çift sıralı verifier her öneriyi doğrular; final bölümleme deterministik sözleşmeden geçer. " +
     "Model-bağımlı bir koşudur; kazanan ilan edilmez."
 };
+// One sentence per method, answering "bu benim için ne demek?" -- the product
+// layer over METHOD_DESC, which keeps the mechanism.
+const METHOD_IMPACT = {
+  markdown: "Hızlıdır, ama başlığı içeriğinden, tabloyu satırlarından ayırabilir; cevap yarım gelebilir.",
+  hybrid: "Araştırma için tutulur; üründe seçilecek bir mod değildir.",
+  "structure-only": "Her bölüm kendi başlığı altında kalır. Anahtar teslim hız: ek maliyet yok, ek gecikme yok.",
+  agentic: "Standard'ın kaçırdığı kopmuş başlık, bölünmüş liste ve ikiye ayrılmış tabloları toplar; cevaplar daha bütün gelir. Karşılığı: ingest'te bir kerelik ek süre ve küçük bir LLM maliyeti."
+};
+const RULES_ONLY_HINT = "Agentic Chunker — Deep Analysis (kural tabanlı koşu): bu dokümanda model kullanılmadı. " +
+  "Yapısal yürüyüş aynı; kötü sınırları yalnız deterministic kalite kuralları taşıdı ve final bölümleme aynı sözleşmeden geçti. " +
+  "Sonuç tekrarlanabilir ve maliyetsizdir; LLM katmanının ekleyeceği kazanç bu koşuda yer almaz.";
 const LEGACY_HINT = "Agentic Chunker — Structure + LLM: yapısal kural aday sınırları belirler, generative model her adaya SPLIT/KEEP oyu verir; " +
   "son seçim, fallback ve token limitleri deterministic kuralda kalır. Ayrı ve model-bağımlı bir koşudur; frozen üç kolun benchmark " +
   "karşılaştırmasına dahil değildir, kazanan ilan edilmez.";
 
-const DOC_ORDER = (DATA.docOrder || Object.keys(DATA.docs)).filter(id => DATA.docs[id]);
+// Two kinds of document share this page and must never be mixed. The frozen
+// corpus is the published benchmark set: fixed, gold-backed, comparable. A
+// live document comes from the RAG console's own ingest -- real analysis, but
+// no gold queries and no place in the frozen tables.
+const FROZEN_ORDER = (DATA.docOrder || Object.keys(DATA.docs)).filter(id => DATA.docs[id]);
+const DOC_ORDER = FROZEN_ORDER.slice();
+const LIVE_LOADED = new Set();
 const state = {
   doc: DOC_ORDER[0],
   mode: "presentation",
@@ -518,22 +665,67 @@ const docArms = () => PRODUCT_ARMS.filter(hasArm);
 const isDeepArm = a => a === "agentic" && D().arms.agentic && D().arms.agentic.kind === "deep_analysis";
 const isLegacyAgentic = () => D().arms.agentic && D().arms.agentic.kind === "agentic_structure_llm";
 const deepMeta = () => D().meta.deep || null;
+// Whether a model actually ran on this document. A live document ingested in
+// Standard mode gets the *deterministic* quality contract as its Deep side --
+// free, repeatable, and never to be presented as a model-backed run.
+const deepUsedLlm = () => Boolean(deepMeta() && deepMeta().calls && deepMeta().calls.total > 0);
 const armLabel = a => ARM_LABEL[a] || (MODE_NAMES[a] && MODE_NAMES[a].top) || a;
 const modeName = a => (MODE_NAMES[a] || {top: armLabel(a), sub: ""});
 
-function unitById(id){ return D()._byId[id]; }
-function indexDocs(){
-  for (const doc of Object.values(DATA.docs)) {
-    doc._byId = {};
-    doc.units.forEach(u => { doc._byId[u.i] = u; });
-    doc._diffKey = new Set(doc.diffs.map(d => d.a + "|" + d.b));
-    for (const arm of Object.values(doc.arms)) {
-      arm._idx = {};
-      arm.chunks.forEach((c, i) => { arm._idx[c.id] = i; });
-    }
-  }
+/* -------- the explainer layer -------- */
+// A hoverable "?" carrying one sentence of plain-language help. Titles are the
+// one tooltip every browser already renders and no library is needed for.
+const info = help => help ? `<span class="info" title="${esc(help)}" aria-label="${esc(help)}">?</span>` : "";
+// A metric name in product language, with its technical name kept beside it
+// wherever the number is being audited rather than merely summarised.
+function term(key, opts){
+  const t = TERMS[key];
+  if (!t) return esc(key);
+  const showTech = opts && opts.tech;
+  return `${esc(t.label)}${showTech ? ` <span class="techname">${esc(t.tech)}</span>` : ""}${info(t.help)}`;
 }
+function sectionHead(step, title, lead){
+  return `<div class="sechead"><h2>${step ? `<span class="step">${step}</span>` : ""}${title}</h2>${lead ? `<div class="lead">${lead}</div>` : ""}</div>`;
+}
+function glossary(keys){
+  const rows = keys.filter(k => TERMS[k]).map(k => {
+    const t = TERMS[k];
+    return `<dt>${esc(t.label)}<span class="techname">${esc(t.tech)}</span></dt><dd>${esc(t.help)}</dd>`;
+  }).join("");
+  return `<details class="deep-detail"><summary>Sözlük — ekrandaki terimler ne anlama geliyor?</summary>
+    <div class="inner"><div class="gloss" style="border:none;padding:0;margin:0"><dl>${rows}</dl></div></div></details>`;
+}
+// "233 → 68" with the direction read out loud, so a reader never has to work
+// out whether a falling number is good news.
+function deltaPill(from, to, lowerIsBetter){
+  if (from === null || from === undefined || to === null || to === undefined) return "";
+  const d = to - from;
+  if (!d) return `<span class="delta flat">değişmedi</span>`;
+  const better = lowerIsBetter === false ? d > 0 : d < 0;
+  const share = from ? Math.round(Math.abs(d) / from * 100) : null;
+  const sign = d < 0 ? "−" : "+";
+  return `<span class="delta ${better ? "good" : "warn"}">${sign}${Math.abs(d)}${share !== null ? ` (%${share})` : ""} ${better ? "daha iyi" : "daha fazla"}</span>`;
+}
+function kpi(label, help, valueHtml, sub, extraClass){
+  return `<div class="kpi ${extraClass || ""}"><div class="lab">${label}${info(help)}</div>
+    <div class="v">${valueHtml}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+}
+const arrowValue = (from, to) => `<span class="from">${from}</span><span class="arrow">→</span><span class="to">${to}</span>`;
+
+function unitById(id){ return D()._byId[id]; }
+function indexDoc(doc){
+  doc._byId = {};
+  doc.units.forEach(u => { doc._byId[u.i] = u; });
+  doc._diffKey = new Set((doc.diffs || []).map(d => d.a + "|" + d.b));
+  for (const arm of Object.values(doc.arms)) {
+    arm._idx = {};
+    arm.chunks.forEach((c, i) => { arm._idx[c.id] = i; });
+  }
+  return doc;
+}
+function indexDocs(){ for (const doc of Object.values(DATA.docs)) indexDoc(doc); }
 indexDocs();
+const isLive = id => Boolean((DATA.docs[id || state.doc] || {}).live);
 function defaultArm(){ return hasArm("agentic") && isDeepArm("agentic") ? "agentic" : (hasArm("structure-only") ? "structure-only" : docArms()[0]); }
 state.arm = defaultArm();
 state.armB = hasArm("structure-only") && state.arm !== "structure-only" ? "structure-only" : (docArms().find(a => a !== state.arm) || state.arm);
@@ -587,16 +779,8 @@ function mdLite(text){
 /* -------- top bar -------- */
 function initBar(){
   const docsel = $("docsel");
-  docsel.innerHTML = DOC_ORDER
-    .map(id => `<option value="${id}">${esc(DATA.docs[id].label)}</option>`).join("");
-  docsel.value = state.doc;
-  docsel.onchange = () => { state.doc = docsel.value; state.page = null;
-    state.query = null; state.selChunk = null; state.selUnit = null; state.diffIdx = -1;
-    state.arm = defaultArm();
-    state.armB = hasArm("structure-only") && state.arm !== "structure-only" ? "structure-only" : (docArms().find(a => a !== state.arm) || state.arm);
-    state.chat.turns = []; state.chat.arm = null;
-    if (state.filter === "diff" && !D().diffs.length) state.filter = "all";
-    render(); };
+  syncDocOptions();
+  docsel.onchange = () => selectDoc(docsel.value);
   $("modetabs").querySelectorAll("button").forEach(b => {
     b.onclick = () => { state.mode = b.dataset.mode; render(); };
   });
@@ -611,6 +795,22 @@ function initBar(){
   });
   $("modal").onclick = e => { if (e.target === $("modal")) closeModal(); };
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+  // Coming back to this tab after creating a knowledge base in the console is
+  // the demo's natural gesture: re-read the console then, throttled so a busy
+  // alt-tab does not turn into a request per switch.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && Date.now() - workspace.at > 10000) loadWorkspace();
+  });
+  measureBar();
+  window.addEventListener("resize", measureBar);
+  loadWorkspace();
+}
+
+// The top bar wraps at narrow widths, so its height is a measurement, not
+// a constant: sticky table headers, side cards and scroll targets read it.
+function measureBar(){
+  const h = Math.round(document.querySelector(".topbar").getBoundingClientRect().height);
+  document.documentElement.style.setProperty("--barh", h + "px");
 }
 
 function pageList(){
@@ -677,6 +877,7 @@ function syncBar(){
   $("contchk").checked = state.contShow;
   let hint = state.mode === "presentation" ? MODE_HINTS[state.arm] : null;
   if (state.mode === "presentation" && state.arm === "agentic" && isLegacyAgentic()) hint = LEGACY_HINT;
+  else if (state.mode === "presentation" && state.arm === "agentic" && isDeepArm("agentic") && !deepUsedLlm()) hint = RULES_ONLY_HINT;
   $("modehint").textContent = hint || "";
   $("modehint").classList.toggle("hidden", !hint);
   if (inPage) {
@@ -699,14 +900,27 @@ function renderMethods(){
     const arm = doc.arms[a];
     const naming = modeName(a);
     const badge = a === "structure-only" ? `<span class="pill std">Standard</span>` :
-      (a === "agentic" ? (isDeepArm(a) ? `<span class="pill deep">Deep Analysis</span>` : `<span class="pill grey">araştırma koşusu</span>`) :
+      (a === "agentic" ? (isDeepArm(a) ? (deepUsedLlm() ? `<span class="pill deep">Deep Analysis</span>` : `<span class="pill deep">Deep Analysis · kural tabanlı</span>`) : `<span class="pill grey">araştırma koşusu</span>`) :
       (a === "hybrid" ? `<span class="pill grey">araştırma kolu</span>` : `<span class="pill grey">baseline</span>`));
+    // An absent arm is explained, never faked: on a live document Markdown and
+    // Hybrid were simply never run, and saying so is the honest answer.
+    const absentWhy = isLive()
+      ? "bu doküman için üretilmedi — yalnız karşılaştırma setinde var"
+      : "bu dokümanda yok";
     const facts = arm ? [`${arm.chunks.length} chunk`, arm.sq && arm.sq.token_count ? `medyan ${fmt(arm.sq.token_count.median, 0)} token` : "",
-      a === "agentic" && deepMeta() ? `${deepMeta().calls.total} LLM çağrısı` : (a === "structure-only" || a === "markdown" ? "LLM yok" : "")].filter(Boolean) : ["bu dokümanda yok"];
-    const desc = a === "agentic" && isLegacyAgentic() ? "Yapısal adaylar section başına tek çağrıda oylanır; final seçim ve limitler deterministic kuralda kalır. " + LEGACY_AGENTIC_SUB + "." : METHOD_DESC[a];
+      a === "agentic" && deepMeta() ? (deepMeta().calls.total ? `${deepMeta().calls.total} LLM çağrısı` : "LLM yok — kural tabanlı") : (a === "structure-only" || a === "markdown" ? "LLM yok" : "")].filter(Boolean) : [absentWhy];
+    // On a document where no model was consulted, describing the model layer
+    // would be describing something that did not happen.
+    const desc = a === "agentic" && isLegacyAgentic()
+      ? "Yapısal adaylar section başına tek çağrıda oylanır; final seçim ve limitler deterministic kuralda kalır. " + LEGACY_AGENTIC_SUB + "."
+      : (a === "agentic" && isDeepArm(a) && !deepUsedLlm() ? METHOD_DESC.agentic_rules : METHOD_DESC[a]);
+    // Product language first, mechanism underneath: the card answers "bu bana
+    // ne kazandırır?" before it answers "nasıl çalışır?".
+    const impact = METHOD_IMPACT[a];
     return `<div class="method ${arm ? "" : "absent"} ${state.arm === a ? "on" : ""} ${a === "agentic" ? "deepm" : ""}" data-arm="${a}">
       <div class="name">${esc(naming.top)} ${badge}</div>
-      <div class="desc">${esc(desc)}</div>
+      ${impact ? `<div class="desc">${esc(impact)}</div>` : ""}
+      <div class="help">${esc(desc)}</div>
       <div class="facts">${facts.map(f => `<span>${esc(f)}</span>`).join("")}</div>
     </div>`;
   }).join("");
@@ -733,31 +947,122 @@ function renderResults(){
     } else box.innerHTML = "";
     return;
   }
+  box.innerHTML = deepStory(dm, {heading: true});
+}
+
+// The Standard -> Deep Analysis story, in the order a reader needs it:
+// what each mode does, what actually got better, what it cost, and when it is
+// worth turning on. The numbers underneath are the same ones the Benchmark tab
+// audits -- only the wording changes, never the source.
+function deepStory(dm, opts){
   const ts = dm.totals.standard || {}, td = dm.totals.deep || {};
   const sc = dm.storyCounts || {};
   const origin = sc.final_boundaries_by_origin || {};
-  const secs = (dm.timing.llm_calls || 0) + (dm.timing.verifier_calls || 0) + (dm.timing.selection || 0) + (dm.timing.standard || 0);
-  const smellKeys = ["orphan_label","lead_in_cut","continuation_cut","run_split_when_fits","table_split","fragment_cut"].filter(k => (ts[k] || 0) + (td[k] || 0) > 0);
-  const maxS = Math.max(1, ...smellKeys.map(k => ts[k] || 0));
+  const secs = (dm.timing.llm_calls || 0) + (dm.timing.verifier_calls || 0) + (dm.timing.selection || 0);
   const retr = dm.retrieval || {};
-  let retrLine = "";
-  if (retr.deep && retr.standard) {
-    retrLine = `<div class="item"><div class="v">${fmt(retr.standard.hit_at_5, 3)}<span class="arrow">→</span><span class="to">${fmt(retr.deep.hit_at_5, 3)}</span></div><div class="k">Hit@5 (BM25, aynı gold set)</div></div>`;
-  }
-  box.innerHTML = `<div class="results">
-    <div class="title"><span class="pill std">Standard</span><span class="muted" style="font-weight:400">→</span><span class="pill deep">Deep Analysis</span>
-      <span class="muted" style="font-weight:400;font-size:13px">${esc(D().label)} · ${Math.max(...D().pages)} sayfa · ${D().meta.unitCount} canonical unit · model ${esc(dm.model || "—")}${dm.status && dm.status !== "ok" ? " · durum: " + esc(dm.status) : ""}</span></div>
-    <div class="grid">
-      <div class="item"><div class="v">${dm.chunkCount.standard}<span class="arrow">→</span><span class="to">${dm.chunkCount.deep}</span></div><div class="k">chunk sayısı</div></div>
-      <div class="item"><div class="v">${dm.smellTotal.standard}<span class="arrow">→</span><span class="to">${dm.smellTotal.deep}</span></div><div class="k">yapısal kusur (koku) toplamı</div></div>
-      <div class="item"><div class="v" style="color:var(--good)">${dm.regressions}</div><div class="k">Standard'a göre kötüleşen bölüm</div></div>
-      <div class="item"><div class="v">${(origin.deterministic || 0)}<span class="muted" style="font-size:13px;font-weight:500"> kural</span> + <span class="to">${origin.llm || 0}</span><span class="muted" style="font-size:13px;font-weight:500"> LLM</span></div><div class="k">taşınan/eklenen final sınır</div></div>
-      <div class="item"><div class="v">${dm.calls.total}</div><div class="k">LLM çağrısı (${dm.calls.proposer} öneri + ${dm.calls.verifier} doğrulama)</div></div>
-      <div class="item"><div class="v">${secs ? secs.toFixed(0) + " s" : "—"}</div><div class="k">Deep süresi${dm.timing.standard ? " (Standard: " + fmt(dm.timing.standard, 2) + " s)" : " (ingest, tek sefer)"}</div></div>
-      ${retrLine}
-    </div>
-    <div class="smellbars">${smellKeys.map(k => `<div class="smellbar"><span>${esc(SMELL_TEXT[k] || k)}</span><span class="bar"><i style="width:${Math.round((ts[k] || 0) / maxS * 100)}%"></i><b style="width:${Math.round((td[k] || 0) / maxS * 100)}%"></b></span><span class="n">${ts[k] || 0} → <span style="color:var(--deep);font-weight:600">${td[k] || 0}</span></span></div>`).join("")}</div>
-    <div class="note" style="margin-top:8px">Koku = şekle bakan deterministik kusur sayacı (yetim başlık, ayrılmış lead-in, bölünmüş liste, unit içi zorunlu kesim). Deep, hiçbir koku türünde Standard'dan kötü olamaz; kalan kokuların tamamı tek bir unit'in içine zorunlu kesimler (temsil tavanı). ${retr.deep && retr.standard ? `Retrieval farkı ${D().meta.queryCount} gold soruda gürültü içindedir; kazanan ilan edilmez.` : "Bu doküman için gold sorgu seti yok; retrieval karşılaştırması yapılmadı, uydurulmadı."}</div>
+  const smellDrop = dm.smellTotal.standard - dm.smellTotal.deep;
+  const fixedCount = smellDrop > 0 ? smellDrop : 0;
+  const cost = `≈ $${dm.estCostUsd.toFixed(3)}`;
+  const doc = D();
+
+  const head = opts && opts.heading ? `<div class="title"><span class="pill std">Standard</span><span class="muted" style="font-weight:400">→</span><span class="pill deep">Deep Analysis</span>
+      <span class="muted" style="font-weight:400;font-size:13.5px">${esc(doc.label)} · ${Math.max(...doc.pages)} sayfa · ${doc.meta.unitCount} canonical unit · model ${esc(dm.model || "—")}${dm.status && dm.status !== "ok" ? " · durum: " + esc(dm.status) : ""}</span></div>` : "";
+
+  // Two genuinely different runs share this panel: one where a model was
+  // consulted, and one where only the free deterministic contract ran. The
+  // numbers are read the same way; the sentences must not be.
+  const llm = deepUsedLlm();
+  const story = `<div class="story">
+    <div class="col std"><h4><span class="pill std">Standard</span> ne yapar?</h4>
+      <ul><li>Dokümanın başlık ve bölüm yapısını takip eder; her bölüm kendi başlığı altında kalır.</li>
+      <li>Yalnız bütçeyi aşan bölümleri böler. Kural tabanlı, tekrarlanabilir, LLM kullanmaz.</li>
+      <li>Ek maliyeti ve ek gecikmesi yoktur.</li></ul></div>
+    <div class="col deep"><h4><span class="pill deep">Deep Analysis</span> ne ekler?</h4>
+      <ul><li>Kötü kalan sınırları arar: kopmuş başlık, bölünmüş liste, ikiye ayrılmış tablo.</li>
+      ${llm
+        ? `<li>Bunların çoğunu ücretsiz kalite kurallarıyla düzeltir; yalnız kuralın kararsız kaldığı ${sc.llm_consulted_sections ?? "—"} bölümde LLM'e danışır.</li>
+           <li>Her LLM önerisi iki ayrı sırada doğrulanır; doğrulanmayan öneri geri alınır.</li>`
+        : `<li>Bu koşuda yalnız <b>ücretsiz kalite kuralları</b> çalıştı: hiçbir model çağrısı yapılmadı.</li>
+           <li>Sonuç tamamen tekrarlanabilir. Model katmanını görmek için dokümanı RAG Console'da <b>Deep Analysis</b> seçeneğiyle yükleyin.</li>`}</ul></div>
+    <div class="col impact"><h4>Kullanıcıya etkisi ne?</h4>
+      <ul><li><b>${fixedCount}</b> yapısal kalite problemi ortadan kalktı — bunlar cevabın yarım gelmesine yol açan yerlerdi.</li>
+      <li>Hiçbir bölüm kötüleşmedi (<b>${dm.regressions}</b> kötüleşme); Deep hiçbir problem türünde Standard'ın gerisine düşemez.</li>
+      ${llm
+        ? `<li>Karşılığı ${cost} ve ${secs ? secs.toFixed(0) + " s" : "kısa"} ek süre — yalnız yükleme sırasında, bir kez.</li>`
+        : `<li>Bu kazanım <b>tamamen ücretsiz</b>: kural katmanının tek başına ne yaptığını gösterir.</li>`}</ul></div>
+  </div>`;
+
+  const cards = `<div class="kpis" style="margin-top:12px">
+    ${kpi(term("smell"), null, arrowValue(dm.smellTotal.standard, dm.smellTotal.deep),
+      deltaPill(dm.smellTotal.standard, dm.smellTotal.deep, true), "hero")}
+    ${kpi(term("regression"), null, `<span style="color:var(--good)">${dm.regressions}</span>`,
+      dm.regressions === 0 ? "Hiçbir bölüm Standard'ın gerisine düşmedi." : "Sözleşme ihlali — koşu incelenmeli.")}
+    ${kpi("Düzeltmeyi kim yaptı?", "Deep Analysis'in taşıdığı ya da eklediği chunk sınırlarının kaynağı. Ücretsiz kural katmanı, ücretli LLM katmanından çok daha fazla iş yapar.",
+      `${origin.deterministic || 0}<span class="unit">kural</span><span class="arrow">+</span><span class="to">${origin.llm || 0}</span><span class="unit">LLM</span>`,
+      "Kazanımın büyük kısmı LLM'siz gelir; LLM yalnız kalan zor sınırlara dokunur.")}
+    ${retr.deep && retr.standard ? kpi(term("hit"), null,
+      arrowValue(fmt(retr.standard.hit_at_5, 3), fmt(retr.deep.hit_at_5, 3)),
+      `${retr.deep.query_count} gold soruda, ilk 5 sonuç içinde. Fark bu örneklemde gürültü içindedir; iddiamız Deep'in <b>en az Standard kadar iyi</b> olduğudur.`)
+      : kpi(term("goldset"), null, `<span class="unit" style="font-size:16px">ölçülmedi</span>`,
+        "Bu dokümanın gold sorgu seti yok; retrieval karşılaştırması yapılmadı ve uydurulmadı.")}
+    ${llm
+      ? kpi("Ek maliyet", "Deep Analysis yalnız yükleme (ingest) sırasında çalışır; sorgu anında ne maliyet ne gecikme ekler.",
+          `${cost}`,
+          `${dm.calls.total} LLM çağrısı · ${secs ? secs.toFixed(0) + " s" : "—"} ek süre · yükleme sırasında tek sefer${dm.timing.standard ? ` (Standard ${fmt(dm.timing.standard, 2)} s)` : ""}`)
+      : kpi("Ek maliyet", "Bu koşuda model kullanılmadı: yalnız deterministik kalite sözleşmesi çalıştı.",
+          `<span style="color:var(--good)">yok</span>`,
+          `0 LLM çağrısı · yalnız kural katmanı · sonuç tekrarlanabilir`)}
+    ${kpi(term("chunk"), null, arrowValue(dm.chunkCount.standard, dm.chunkCount.deep),
+      "Parça sayısındaki değişim tek başına iyi ya da kötü değildir; önemli olan sınırların nereden geçtiğidir.")}
+  </div>`;
+
+  return `<div class="results">${head}${story}${cards}${fixList(ts, td)}
+    <div class="note" style="margin-top:12px"><b>Bu sayılar neye dayanıyor?</b> Her problem türü, chunk sınırlarının şekline bakan deterministik bir sayaçtır — model yorumu değil. Deep Analysis, hiçbir problem türünde Standard'ın gerisine düşemeyecek bir sözleşmeyle çalışır. Geriye kalan problemler ${term("ceiling")} sayılır: tek bir tablonun ya da paragrafın kendisi bütçeden büyük olduğu için hiçbir yöntemin kaçınamayacağı yerlerdir. ${retr.deep && retr.standard ? `Arama sonucundaki fark ${doc.meta.queryCount} gold soruda gürültü içindedir; kazanan ilan edilmez.` : "Bu doküman için gold sorgu seti yok; arama karşılaştırması yapılmadı, uydurulmadı."}</div>
+    ${deepDecideBox(dm, secs, cost)}
+  </div>`;
+}
+
+// The improvement table: one row per defect type, plain label above the
+// technical key, Standard and Deep bars on the same scale.
+function fixList(ts, td){
+  const keys = ["orphan_label","lead_in_cut","continuation_cut","run_split_when_fits","table_split","fragment_cut"]
+    .filter(k => (ts[k] || 0) + (td[k] || 0) > 0);
+  if (!keys.length) return "";
+  const maxS = Math.max(1, ...keys.map(k => Math.max(ts[k] || 0, td[k] || 0)));
+  const rows = keys.map(k => {
+    const s = ts[k] || 0, d = td[k] || 0;
+    const gone = s > 0 && d === 0;
+    return `<div class="fixrow">
+      <div class="name">${esc(SMELL_TEXT[k] || k)}<span class="sub">${esc(SMELL_HELP[k] || "")}</span></div>
+      <div class="bar" title="Standard ${s} · Deep ${d}"><i style="width:${Math.round(s / maxS * 100)}%"></i><b style="width:${Math.round(d / maxS * 100)}%"></b></div>
+      <div class="n">${s} <span class="muted">→</span> <span class="${gone ? "gone" : "to"}">${d}</span>${gone ? " ✓" : ""}</div>
+    </div>`;
+  }).join("");
+  return `<h3 class="sub" style="margin-top:20px">Ne düzeldi?</h3>
+    <div class="help" style="margin-top:0">Her satır, chunk sınırının yanlış yerden geçtiği bir durumu sayar. Soldaki açık çubuk Standard, koyu çubuk Deep Analysis. Düşük olan iyidir.</div>
+    <div class="fixlist">${rows}
+      <div class="barkey"><span><i style="background:#cdbff0"></i> Standard</span><span><i style="background:var(--deep)"></i> Deep Analysis</span><span>✓ tamamen ortadan kalktı</span></div>
+    </div>`;
+}
+
+function deepDecideBox(dm, secs, cost){
+  return `<h3 class="sub" style="margin-top:20px">Deep Analysis ne zaman seçmeye değer?</h3>
+  <div class="decide">
+    <div class="box yes"><h4>Değer</h4><ul>
+      <li>Doküman tablo, liste ve çok sayıda alt başlık içeriyorsa — kopmaların çıktığı yerler buralar.</li>
+      <li>Cevabın bir tablo satırını ya da madde listesini eksiksiz vermesi gerekiyorsa.</li>
+      <li>Doküman bir kez yüklenip çok kez sorgulanacaksa: maliyet bir kerelik, kazanç her sorguda.</li></ul></div>
+    <div class="box no"><h4>Gerekmeyebilir</h4><ul>
+      <li>Düz, tablosuz, kısa metinlerde: Standard zaten aynı sınırları bulur.</li>
+      <li>Yükleme süresinin saniyeler içinde bitmesi gerektiği durumlarda.</li>
+      <li>Tek seferlik, atılacak bir doküman söz konusuysa.</li></ul></div>
+    <div class="box cost"><h4>Bedeli ne?</h4><ul>
+      ${dm.calls.total
+        ? `<li><b>${cost}</b> yaklaşık LLM maliyeti (liste fiyatı, ${dm.calls.total} çağrı).</li>
+           <li><b>${secs ? secs.toFixed(0) + " s" : "—"}</b> ek yükleme süresi.</li>`
+        : `<li>Bu koşuda <b>model kullanılmadı</b>: LLM maliyeti yok.</li>
+           <li>Yalnız deterministik kural katmanının ek süresi.</li>`}
+      <li>Sorgu anında <b>sıfır</b> ek maliyet ve gecikme: Deep yalnız yüklemede çalışır.</li></ul></div>
   </div>`;
 }
 
@@ -1007,7 +1312,7 @@ function renderPresDetail(){
     if (d) {
       if (d.status === "kept") sent = d.llm_reverted ? `Bu sınır Standard'ın sınırıyla aynı. LLM burada farklı bir sınır önerdi, ancak çift sıralı doğrulama öneriyi <b>reddetti</b> (${esc(d.llm_reverted === "order_dependent" ? "sıraya bağlı cevap — pozisyon yanlılığı" : d.llm_reverted === "base_preferred" ? "model deterministik bölümlemeyi tercih etti" : d.llm_reverted)}); deterministik sınır korundu.` : "Bu sınır Standard'ın sınırıyla aynı: kalite kuralı ve LLM değişiklik gerektiren bir şey bulmadı.";
       else if (d.status === "det_moved") sent = `Kalite sözleşmesi bu sınırı taşıdı${(d.removed_smells || []).length ? ": Standard'ın kesimi <b>" + esc((d.removed_smells || []).map(s => SMELL_TEXT[s] || s).join(", ")) + "</b> üretiyordu; yeni kesim bu kusuru taşımıyor" : " (boyut dengesi: min altı parça azaldı)"}. LLM'siz, deterministik karar.` + (d.llm_reverted ? " LLM bu bölgede başka bir sınır önerdi; verifier reddetti." : "");
-      else if (d.status === "llm_accepted") sent = "Bu sınırı LLM önerdi. Öneri, değişim grubu iki sunum sırasında da tercih edilince kabul edildi; sonra deterministik sözleşmeden yeniden geçti (hard cap, coverage, koku vektörü).";
+      else if (d.status === "llm_accepted") sent = "Bu sınırı LLM önerdi. Öneri, değişim grubu iki sunum sırasında da tercih edilince kabul edildi; sonra deterministik sözleşmeden yeniden geçti (hard cap, kapsama, yapısal problem sayaçları).";
       else if (d.status === "ceiling") sent = "Zorunlu kesim: bu chunk tek bir canonical unit'in (tablo/paragraf) içinden başlıyor, çünkü unit hard cap'ten büyük. Hiçbir bölümleme bu kesimi kaldıramaz — temsil tavanı (parser/canonical).";
     }
     deepBlock = `<div class="reason-sent deep"><b>Deep Analysis kararı.</b> ${sent || "Bu chunk bölüm başlangıcında; kesim kararı bölüm sınırının kendisi."}</div>` +
@@ -1135,6 +1440,21 @@ async function renderChat(){
   renderChatArms();
   renderSuggest();
   const online = await checkOnline();
+  // A live document is indexed in the RAG console, not in this page's demo
+  // engine: asking here would query the wrong corpus, so the chat says where
+  // the answer actually lives instead of pretending to have one.
+  if (isLive()) {
+    const consoleUrl = (workspace.data && workspace.data.url) || "";
+    $("offline").classList.remove("hidden");
+    $("offline").innerHTML = `<b>Bu doküman RAG Console'da sorgulanır.</b> Buradaki “Dokümana Sor”, viewer sunucusunun kendi demo korpusunu (dondurulmuş karşılaştırma seti) sorgular; canlı çalışma alanı dokümanları RAG Console'un kendi bilgi tabanında indekslenir.<br>
+      Bu dokümanı sormak için ${consoleUrl ? `<a href="${esc(consoleUrl)}" target="_blank" rel="noopener">RAG Console'u açın ↗</a>` : "RAG Console'u açın"} ve ait olduğu bilgi tabanını seçin.<br>
+      <span class="muted">Sunum, Debug ve Benchmark sekmeleri bu doküman için burada çalışır.</span>`;
+    $("chatsend").disabled = true;
+    $("chatq").disabled = true;
+    renderChatSide();
+    renderTurns();
+    return;
+  }
   $("offline").classList.toggle("hidden", online);
   if (!online) {
     $("offline").innerHTML = `<b>Canlı sohbet için sunucu gerekli.</b> Bu dosya tek başına Sunum, Debug, Benchmark ve gold sorgu görünümünü çalıştırır; "Dokümana Sor" için viewer'ı yerel sunucudan açın:<br>
@@ -1394,7 +1714,7 @@ function groupHtml(g, si){
   const intro = (g.in || []).map(s => SMELL_TEXT[s] || s).join(", ");
   const se = g.se ? ` · min altı ${g.se.below_min.standard}→${g.se.below_min.final}, soft-max üstü ${g.se.above_soft_max.standard}→${g.se.above_soft_max.final}` : "";
   return `<div class="grp"><b>${g.or === "llm" ? "LLM önerisi" : "Kalite kuralı"}</b> — Standard kesimleri: <span class="mono">${esc((g.sc || []).join(", ") || "—")}</span> → final: <span class="mono">${esc((g.fc || []).join(", ") || "— (birleştirildi)")}</span>
-    <div>${fixed ? "kaldırılan koku: " + esc(fixed) : "koku değişimi yok"}${intro ? " · eklenen: " + esc(intro) : ""}${esc(se)}</div>
+    <div>${fixed ? "giderilen problem: " + esc(fixed) : "yapısal problem değişmedi"}${intro ? " · eklenen: " + esc(intro) : ""}${esc(se)}</div>
     <div class="ids">grup: ${esc((g.u || []).join(" "))}</div></div>`;
 }
 function renderInspector(){
@@ -1431,11 +1751,16 @@ function renderSectionPanel(){
   const story = D().story;
   const box = $("secpanel");
   if (!story) { box.innerHTML = ""; return; }
-  const f = state.dbg.secStatus;
   const all = story.sections;
+  const changedCount = all.filter(s => s.st !== "standard_kept").length;
+  // A document Deep Analysis left alone would otherwise open on an empty
+  // table, which reads as a broken panel rather than as the answer it is.
+  const fellBack = state.dbg.secStatus === "changed" && !changedCount && all.length;
+  const f = fellBack ? "all" : state.dbg.secStatus;
   const shown = all.filter(s => f === "all" || (f === "changed" ? s.st !== "standard_kept" : s.st === f));
   const counts = story.counts || {};
   box.innerHTML = `<h2 class="sec">Bölüm kararları — Deep Analysis</h2>
+    ${fellBack ? `<div class="help" style="margin-top:0">Bu dokümanda Deep Analysis hiçbir bölümün sınırlarını değiştirmedi — Standard zaten temiz kesmişti. Aşağıda bölümlerin tamamı listeleniyor.</div>` : ""}
     <div class="dbgbar"><span>Durum:</span><select id="secstatus">
       <option value="changed" ${f === "changed" ? "selected" : ""}>değişen bölümler (${all.filter(s => s.st !== "standard_kept").length})</option>
       <option value="all" ${f === "all" ? "selected" : ""}>tümü (${all.length})</option>
@@ -1466,7 +1791,7 @@ function benchTable(title, rows, columns, higherBetter, deepArms){
     const vals = rows.map(r => r.values[col.k]).filter(v => v !== null && v !== undefined);
     if (vals.length) best[col.k] = higherBetter === false ? Math.min(...vals) : Math.max(...vals);
   }
-  let out = `<h2>${esc(title)}</h2><div class="scrollx"><table class="t"><tr><th>Yöntem</th>` + columns.map(c => `<th>${esc(c.t)}</th>`).join("") + "</tr>";
+  let out = `<h2>${esc(title)}</h2><div class="scrollx"><table class="t"><tr><th>Yöntem</th>` + columns.map(c => `<th>${esc(c.t)}${info(c.h)}</th>`).join("") + "</tr>";
   for (const row of rows) {
     out += `<tr><td>${esc(row.arm)}</td>` + columns.map(c => {
       const v = row.values[c.k];
@@ -1479,6 +1804,15 @@ function benchTable(title, rows, columns, higherBetter, deepArms){
 const RET_COLS = [
   {k:"hit_at_1", t:"Hit@1"}, {k:"hit_at_3", t:"Hit@3"}, {k:"hit_at_5", t:"Hit@5"},
   {k:"mrr", t:"MRR"}, {k:"evidence_coverage_at_5", t:"Kanıt kaps.@5"}, {k:"source_evidence_coverage", t:"Kaynak kapsama"}
+];
+// The same numbers, named the way a reader without the metric vocabulary would
+// name them. Used in the top-level summary; RET_COLS stays for the audit view.
+const RET_COLS_PLAIN = [
+  {k:"hit_at_1", t:"İlk sonuçta doğru", d:3, h:"Gold soruların hangi oranında doğru cevabı içeren parça ilk sırada geldi. Yüksek olan iyi. (Hit@1)"},
+  {k:"hit_at_3", t:"İlk 3'te doğru", d:3, h:"Doğru parça ilk üç sonuç arasında geldi mi? (Hit@3)"},
+  {k:"hit_at_5", t:"İlk 5'te doğru", d:3, h:"Doğru parça ilk beş sonuç arasında geldi mi? Modele genelde bu kadarı verilir. (Hit@5)"},
+  {k:"mrr", t:"Sıralama kalitesi", d:3, h:"Doğru parça listenin ne kadar üstünde çıkıyor. Yüksek olan iyi. (MRR)"},
+  {k:"evidence_coverage_at_5", t:"Kanıt kapsama", d:3, h:"Cevabın dayandığı kanıt metninin ne kadarı getirilen parçaların içinde. (evidence coverage@5)"}
 ];
 function sqValues(s){
   return {
@@ -1539,13 +1873,13 @@ function renderFrozenBenchmark(doc){
 function interpretDeep(dm){
   const parts = [];
   const smellDrop = dm.smellTotal.standard - dm.smellTotal.deep;
-  parts.push(`<b>Yapısal kalite:</b> koku toplamı ${dm.smellTotal.standard} → ${dm.smellTotal.deep} (${smellDrop > 0 ? "−" + smellDrop : "değişmedi"}); hiçbir bölüm hiçbir koku türünde kötüleşmedi (tiered regresyon ${dm.regressions}).`);
+  parts.push(`<b>Yapısal kalite:</b> problem toplamı ${dm.smellTotal.standard} → ${dm.smellTotal.deep} (${smellDrop > 0 ? "−" + smellDrop : "değişmedi"}); hiçbir bölüm hiçbir problem türünde kötüleşmedi (kötüleşen bölüm: ${dm.regressions}).`);
   const r = dm.retrieval || {};
   if (r.deep && r.standard) {
     const d5 = r.deep.hit_at_5 - r.standard.hit_at_5, d1 = r.deep.hit_at_1 - r.standard.hit_at_1, dm_ = r.deep.mrr - r.standard.mrr;
     const noise = Math.abs(d5) < 0.03 && Math.abs(dm_) < 0.03;
-    parts.push(`<b>Retrieval:</b> Hit@5 ${fmt(r.standard.hit_at_5, 3)} → ${fmt(r.deep.hit_at_5, 3)}, Hit@1 ${fmt(r.standard.hit_at_1, 3)} → ${fmt(r.deep.hit_at_1, 3)}, MRR ${fmt(r.standard.mrr, 3)} → ${fmt(r.deep.mrr, 3)} — ${r.deep.query_count} gold soruda ${noise ? "fark gürültü içinde; Deep en azından Standard kadar iyi (non-inferior), daha iyi olduğu iddia edilmiyor" : "fark küçük örneklemde ölçüldü, tek başına bir kazanan ilan etmez"}.`);
-  } else parts.push(`<b>Retrieval:</b> bu doküman için gold sorgu seti yok; uydurulmadı. Retrieval sonucu olmaması holdout'u başarısız saymaz.`);
+    parts.push(`<b>Arama başarısı:</b> ilk 5'te doğru ${fmt(r.standard.hit_at_5, 3)} → ${fmt(r.deep.hit_at_5, 3)}, ilk sonuçta doğru ${fmt(r.standard.hit_at_1, 3)} → ${fmt(r.deep.hit_at_1, 3)}, sıralama kalitesi ${fmt(r.standard.mrr, 3)} → ${fmt(r.deep.mrr, 3)} <span class="techname">(Hit@5 / Hit@1 / MRR)</span> — ${r.deep.query_count} gold soruda ${noise ? "fark gürültü içinde; Deep en azından Standard kadar iyi (non-inferior), daha iyi olduğu iddia edilmiyor" : "fark küçük örneklemde ölçüldü, tek başına bir kazanan ilan etmez"}.`);
+  } else parts.push(`<b>Arama başarısı:</b> bu doküman için gold sorgu seti yok; uydurulmadı. Arama sonucu olmaması holdout'u başarısız saymaz.`);
   const sc = dm.storyCounts || {};
   parts.push(`<b>LLM'in rolü:</b> ${sc.llm_consulted_sections ?? "—"} bölüme danışıldı, ${dm.verifier ? dm.verifier.accepted : 0} öneri iki sırada da kazanıp kabul edildi, ${dm.verifier ? dm.verifier.reverted : 0} geri alındı${dm.verifier && dm.verifier.reasons ? " (" + Object.entries(dm.verifier.reasons).map(([k, v]) => k + " " + v).join(", ") + ")" : ""}. Ölçülebilir kazanımın büyük kısmı ücretsiz deterministik katmandan gelir; LLM katmanı doğrulanmış küçük bir ek sağlar ve seed olmadığından koşudan koşuya değişir.`);
   parts.push(`<b>Maliyet:</b> ${dm.calls.total} çağrı, ≈ ${(dm.estTokens.prompt / 1000).toFixed(0)}k prompt + ${(dm.estTokens.completion / 1000).toFixed(0)}k completion token (karakter/2,45 tahmini), liste fiyatıyla ≈ $${dm.estCostUsd.toFixed(3)}; duvar saati ≈ ${((dm.timing.llm_calls || 0) + (dm.timing.verifier_calls || 0) + (dm.timing.selection || 0)).toFixed(0)} s, ingest'te tek sefer${dm.timing.standard ? " (Standard " + fmt(dm.timing.standard, 2) + " s)" : ""}.`);
@@ -1560,23 +1894,23 @@ function renderDeepPanel(doc){
   const sc = dm.storyCounts || {};
   const origin = sc.final_boundaries_by_origin || {};
   const ts = dm.totals.standard || {}, td = dm.totals.deep || {};
-  let out = `<h2 class="sec">Deep Analysis paneli — Standard vs Agentic Chunker (ayrı koşu, aynı canonical)</h2>`;
+  let out = `<h2 style="margin-top:14px">Standard vs Agentic Chunker — ayrı koşu, aynı canonical</h2>`;
   out += `<div class="guard deep">Bu panel frozen üçlü benchmark'ın dışındadır: Deep Analysis model-bağımlı ve yalnız replay-deterministik bir koşudur (model: ${esc(dm.model || "—")}${dm.verifierModel && dm.verifierModel !== dm.model ? ", verifier: " + esc(dm.verifierModel) : ""}; prompt ${esc(dm.promptVersion || "—")}; mod ${esc(dm.mode || "—")}${dm.status && dm.status !== "ok" ? "; durum " + esc(dm.status) : ""}). Retrieval sayıları frozen kolun kendi BM25 ayarları ve gold setiyle, frozen ağaca dokunmadan hesaplandı. Kazanan ilan edilmez; eşikler poc_initial_not_optimized.</div>`;
   out += `<div class="cards" style="margin-top:12px">
-    <div class="card stat"><div class="v">${dm.chunkCount.standard}<small>→ ${dm.chunkCount.deep}</small></div><div class="k">chunk</div></div>
-    <div class="card stat deep"><div class="v">${dm.smellTotal.standard}<small>→ ${dm.smellTotal.deep}</small></div><div class="k">koku toplamı</div></div>
-    <div class="card stat good"><div class="v">${dm.regressions}</div><div class="k">yapısal regresyon (tiered)</div></div>
-    <div class="card stat"><div class="v">${dm.strictRegressions}</div><div class="k">boyut takası (koku ↓, soft-max ↑)</div></div>
+    <div class="card stat"><div class="v">${dm.chunkCount.standard}<small>→ ${dm.chunkCount.deep}</small></div><div class="k">parça (chunk)</div></div>
+    <div class="card stat deep"><div class="v">${dm.smellTotal.standard}<small>→ ${dm.smellTotal.deep}</small></div><div class="k">yapısal kalite problemi<span class="techname"> smell total</span></div></div>
+    <div class="card stat good"><div class="v">${dm.regressions}</div><div class="k">kötüleşen bölüm<span class="techname"> tiered regression</span></div></div>
+    <div class="card stat"><div class="v">${dm.strictRegressions}</div><div class="k">boyut takası<span class="techname"> strict regression</span></div></div>
     <div class="card stat"><div class="v">${dm.changeGroups}</div><div class="k">değişim grubu</div></div>
-    <div class="card stat"><div class="v">${sc.ceiling_boundaries ?? "—"}</div><div class="k">temsil tavanı kesimi</div></div>
+    <div class="card stat"><div class="v">${sc.ceiling_boundaries ?? "—"}</div><div class="k">kaçınılmaz kesim<span class="techname"> temsil tavanı</span></div></div>
     <div class="card stat"><div class="v">${dm.calls.total}</div><div class="k">LLM çağrısı</div></div>
-    <div class="card stat"><div class="v">${dm.verifier ? dm.verifier.accepted : 0}<small>/ ${dm.verifier ? dm.verifier.group_count : 0}</small></div><div class="k">verifier kabul / öneri</div></div>
+    <div class="card stat"><div class="v">${dm.verifier ? dm.verifier.accepted : 0}<small>/ ${dm.verifier ? dm.verifier.group_count : 0}</small></div><div class="k">doğrulanan / gelen öneri</div></div>
   </div>`;
   const smellRows = ["orphan_label","lead_in_cut","continuation_cut","run_split_when_fits","table_split","fragment_cut","below_min","above_soft_max"];
-  out += `<h2>Sınır kalitesi (boundary_quality, bölüm bazında sözleşme)</h2><div class="scrollx"><table class="t"><tr><th>Koku / sayaç</th><th>Standard</th><th>Deep</th><th>Δ</th></tr>` +
-    smellRows.map(k => `<tr><td>${esc(SMELL_TEXT[k] || k)} <span class="mono muted">${k}</span></td><td>${ts[k] ?? 0}</td><td class="deepcol">${td[k] ?? 0}</td><td>${(td[k] ?? 0) - (ts[k] ?? 0)}</td></tr>`).join("") +
-    `<tr><td><b>koku toplamı</b></td><td><b>${dm.smellTotal.standard}</b></td><td class="deepcol"><b>${dm.smellTotal.deep}</b></td><td><b>${dm.smellTotal.deep - dm.smellTotal.standard}</b></td></tr></table></div>
-    <div class="legend">Sözleşme: her koku türü için count_D ≤ count_S bölüm başına; boyut sayaçları yalnız koku toplamı kesin azalırken büyüyebilir (tier 2). Kalan table_split/fragment_cut tek bir unit'in içine zorunlu kesimlerdir — hiçbir bölümleme ulaşamaz (temsil tavanı). Bölüm verdict'leri: ${esc(JSON.stringify(dm.verdictsTiered))}.</div>`;
+  out += `<h2>Sınır kalitesi — bölüm bazında sözleşme<span class="techname"> boundary_quality</span></h2><div class="scrollx"><table class="t"><tr><th>Problem türü</th><th>Standard</th><th>Deep</th><th>Δ</th></tr>` +
+    smellRows.map(k => `<tr><td>${esc(SMELL_TEXT[k] || k)}${info(SMELL_HELP[k])} <span class="mono muted">${k}</span></td><td>${ts[k] ?? 0}</td><td class="deepcol">${td[k] ?? 0}</td><td>${(td[k] ?? 0) - (ts[k] ?? 0)}</td></tr>`).join("") +
+    `<tr><td><b>toplam</b></td><td><b>${dm.smellTotal.standard}</b></td><td class="deepcol"><b>${dm.smellTotal.deep}</b></td><td><b>${dm.smellTotal.deep - dm.smellTotal.standard}</b></td></tr></table></div>
+    <div class="legend"><b>Sözleşme:</b> her problem türü için Deep'in bölüm başına sayısı Standard'ı geçemez (count_D ≤ count_S). Boyut sayaçları yalnız toplam problem sayısı kesin azalırken büyüyebilir — bilinçli bir takas (tier 2). Kalan “tablo ortadan bölündü” / “paragraf ortasından kesildi” değerleri tek bir unit'in içine düşen zorunlu kesimlerdir; hiçbir bölümleme yöntemi bunlardan kaçınamaz (temsil tavanı). Bölüm verdict'leri: ${esc(JSON.stringify(dm.verdictsTiered))}.</div>`;
   const deepSet = new Set(["Agentic Chunker (Deep)"]);
   if (std && std.sq && deep && deep.sq) {
     out += benchTable("Yapısal kalite (chunk_quality, parser tabanı çıkarılmış)", [
@@ -1612,20 +1946,102 @@ function renderDeepPanel(doc){
 }
 
 function renderCrossDoc(){
-  const docs = DOC_ORDER.map(id => [id, DATA.docs[id]]).filter(([, d]) => d.meta.deep);
+  const docs = FROZEN_ORDER.map(id => [id, DATA.docs[id]]).filter(([, d]) => d && d.meta.deep && !d.live);
   if (docs.length < 2) return "";
-  let out = `<h2 class="sec">Dokümanlar arası — Deep Analysis kalite sözleşmesi</h2><div class="scrollx"><table class="t"><tr><th>Doküman</th><th>Sayfa</th><th>Unit</th><th>Chunk S→D</th><th>Koku S→D</th><th>Regresyon</th><th>Kural / LLM sınır</th><th>LLM çağrısı</th><th>Verifier kabul</th><th>Süre (s)</th><th>Hit@5 S→D</th></tr>`;
+  let out = `<div class="scrollx"><table class="t"><tr><th>Doküman</th><th>Sayfa</th><th>Unit</th><th>Parça S→D</th><th>Yapısal problem S→D${info(TERMS.smell.help)}</th><th>Kötüleşen bölüm${info(TERMS.regression.help)}</th><th>Kural / LLM sınır</th><th>LLM çağrısı</th><th>Doğrulanan öneri</th><th>Süre (s)</th><th>İlk 5'te doğru S→D${info(TERMS.hit.help)}</th></tr>`;
   for (const [id, d] of docs) {
     const dm = d.meta.deep, sc = dm.storyCounts || {}, o = sc.final_boundaries_by_origin || {}, r = dm.retrieval || {};
     out += `<tr><td>${esc(d.label)}${id === "arcelik-2024" ? ' <span class="pill grey">holdout — tuning görmedi</span>' : ""}</td><td>${d.meta.pageCount}</td><td>${d.meta.unitCount}</td><td>${dm.chunkCount.standard} → ${dm.chunkCount.deep}</td><td>${dm.smellTotal.standard} → <b>${dm.smellTotal.deep}</b></td><td>${dm.regressions}</td><td>${o.deterministic ?? "—"} / ${o.llm ?? "—"}</td><td>${dm.calls.total}</td><td>${dm.verifier ? dm.verifier.accepted + "/" + dm.verifier.group_count : "—"}</td><td>${((dm.timing.llm_calls || 0) + (dm.timing.verifier_calls || 0) + (dm.timing.selection || 0)).toFixed(0)}</td><td>${r.deep && r.standard ? fmt(r.standard.hit_at_5, 3) + " → " + fmt(r.deep.hit_at_5, 3) : "gold yok"}</td></tr>`;
   }
-  return out + `</table></div><div class="legend">KKB 2024 geliştirme/tuning verisi, KKB 2022 holdout, Arçelik 2024 hiç tuning görmemiş ikinci holdout. Kalan koku toplamlarının tamamı temsil tavanı (unit içi zorunlu kesim) ya da parser kaynaklıdır.</div>`;
+  return out + `</table></div><div class="legend">KKB 2024 kuralların ayarlandığı dokümandır; KKB 2022 ve Arçelik 2024 ${term("holdout")} — üzerlerinde hiçbir ayar yapılmadı. Aynı sözleşmenin bu dokümanlarda da tutması, sonucun tek bir dokümana özel ayarla elde edilmediğini gösterir. Kalan problemlerin tamamı ${term("ceiling")} ya da parser kaynaklıdır.</div>`;
+}
+
+// -- the product layer over the measurements -------------------------------
+// Benchmark opens with the answer ("bu dokümanda ne kazandık, neye mal oldu"),
+// then the side-by-side method view, and only then the audit tables. Nothing
+// is removed: every technical table is one click away, with its own caption.
+
+function benchSummary(doc, dm, step){
+  const ts = dm.totals.standard || {}, td = dm.totals.deep || {};
+  const sc = dm.storyCounts || {};
+  const origin = sc.final_boundaries_by_origin || {};
+  const secs = (dm.timing.llm_calls || 0) + (dm.timing.verifier_calls || 0) + (dm.timing.selection || 0);
+  const retr = dm.retrieval || {};
+  const fixed = Math.max(0, dm.smellTotal.standard - dm.smellTotal.deep);
+  const live = Boolean(doc.live);
+  const llm = dm.calls && dm.calls.total > 0;
+  let out = sectionHead(step, live ? "Bu dokümanda kalite" : "Kalite özeti",
+    live
+      ? `<b>${esc(doc.label)}</b> RAG Console'a yüklendiğinde üretilen chunk'lar üzerinden ölçüldü. Bu doküman dondurulmuş karşılaştırma setinin parçası <b>değildir</b>; gold sorgusu olmadığı için arama metrikleri hesaplanmaz, uydurulmaz.`
+      : `<b>${esc(doc.label)}</b> üzerinde Standard bölümleme ile Deep Analysis bölümlemesinin ölçülen farkı. Aynı doküman, aynı ayarlar; yalnız sınırların nereden geçtiği değişiyor.`);
+  out += `<div class="kpis">
+    ${kpi(term("smell"), null, arrowValue(dm.smellTotal.standard, dm.smellTotal.deep),
+      `<b>${fixed}</b> sorunlu sınır ortadan kalktı.`, "hero")}
+    ${kpi(term("regression"), null, `<span style="color:var(--good)">${dm.regressions}</span>`,
+      dm.regressions === 0 ? "Deep Analysis hiçbir bölümde, hiçbir problem türünde Standard'ın gerisine düşmedi." : "Sözleşme ihlali — bu koşu incelenmeli.")}
+    ${kpi("Düzeltmeyi kim yaptı?", "Deep Analysis'in taşıdığı ya da eklediği chunk sınırlarının kaynağı: ücretsiz kural katmanı mı, LLM mi.",
+      `${origin.deterministic || 0}<span class="unit">kural</span><span class="arrow">+</span><span class="to">${origin.llm || 0}</span><span class="unit">LLM</span>`,
+      (origin.deterministic || origin.llm)
+        ? `LLM ${sc.llm_consulted_sections ?? "—"} bölümde devreye girdi; kazanımın çoğu LLM'siz katmandan geliyor.`
+        : "Deep Analysis bu dokümanda hiçbir sınırı taşımadı: Standard zaten temiz kesmişti.")}
+    ${retr.deep && retr.standard ? kpi(term("hit"), null,
+      arrowValue(fmt(retr.standard.hit_at_5, 3), fmt(retr.deep.hit_at_5, 3)),
+      `${retr.deep.query_count} gold soruda, ilk 5 sonuç içinde. Bu örneklemde fark gürültü içindedir: iddia “Deep daha iyi” değil, <b>“Deep en az Standard kadar iyi”</b>dir.`)
+      : kpi(term("goldset"), null, `<span class="unit" style="font-size:17px">ölçülmedi</span>`,
+        "Bu dokümanın gold sorgu seti yok; arama karşılaştırması yapılmadı ve uydurulmadı.")}
+    ${llm
+      ? kpi("Ek maliyet", "Deep Analysis yalnız yükleme sırasında çalışır: sorgu anına ne maliyet ne gecikme ekler.",
+          `≈ $${dm.estCostUsd.toFixed(3)}`,
+          `${dm.calls.total} LLM çağrısı · ${secs ? secs.toFixed(0) + " s" : "—"} · yüklemede tek sefer`)
+      : kpi("Ek maliyet", "Bu koşuda hiçbir model çağrısı yapılmadı: kazanımın tamamı deterministik kalite sözleşmesinden geliyor.",
+          `<span style="color:var(--good)">yok</span>`, `0 LLM çağrısı · sonuç tekrarlanabilir`)}
+    ${kpi(term("ceiling"), null, `${sc.ceiling_boundaries ?? "—"}`,
+      `Tek bir tablo ya da paragraf bütçeden büyük olduğu için hiçbir yöntemin kaçınamayacağı kesim. Deep'te kalan ${dm.smellTotal.deep} problem ağırlıklı olarak buradan geliyor.`)}
+  </div>`;
+  out += fixList(ts, td);
+  out += llm
+    ? `<div class="guard deep" style="margin-top:16px"><b>Neyi iddia etmiyoruz.</b> Deep Analysis model kullanır; aynı koşu birebir tekrarlanmaz ve bir “kazanan yöntem” ilan edilmez. Ölçülen ve garanti edilen şey şudur: yapısal problemler azalır, hiçbir bölüm kötüleşmez, arama kalitesi en azından korunur. Eşikler PoC seviyesindedir, optimize edilmemiştir.</div>`
+    : `<div class="guard deep" style="margin-top:16px"><b>Bu koşuda model kullanılmadı.</b> Karşılaştırmanın Deep tarafını yalnız deterministik kalite sözleşmesi üretti: sonuç tekrarlanabilir, maliyeti yok ve model katmanının ekleyeceği kazanç bu tabloda <b>yer almıyor</b>. Onu görmek için dokümanı RAG Console'da Deep Analysis seçeneğiyle yükleyin. Eşikler PoC seviyesindedir, optimize edilmemiştir.</div>`;
+  return out;
+}
+
+function benchMethods(doc, step){
+  const arms = doc.arms;
+  const frozen = ARMS.filter(a => arms[a] && arms[a].ret);
+  if (frozen.length < 3) return "";
+  let out = sectionHead(step, "Yöntemler yan yana",
+    `Aynı doküman dört farklı şekilde parçalandı ve aynı ${doc.meta.queryCount} gold soruyla arandı. Sayılar 0–1 arasıdır; yüksek olan iyidir. Sütun başlıklarındaki <span class="info">?</span> işaretine gelin, ne ölçtüğünü söyler.`);
+  const armName = a => modeName(a).top === ARM_LABEL[a] ? modeName(a).top : `${modeName(a).top} — ${ARM_LABEL[a]}`;
+  const rows = frozen.map(a => ({arm: armName(a), values: arms[a].ret}));
+  const deepArm = arms.agentic && isDeepArm("agentic") && arms.agentic.ret ? [{arm: `Deep Analysis — ${ARM_LABEL.agentic}`, values: arms.agentic.ret}] : [];
+  out += benchTable("Arama başarısı — hangi yöntem doğru parçayı getiriyor?", rows.concat(deepArm), RET_COLS_PLAIN, undefined,
+    new Set(deepArm.map(r => r.arm)));
+  out += `<div class="legend">● işareti bu koşuda gözlenen en iyi değeri gösterir. Tek bir yöntem her sütunda önde değildir — bu beklenen bir sonuçtur ve tek başına bir kazanan ilan etmez. Değerler PoC parametreleriyle, tek koşuda alınmıştır.</div>`;
+  return out;
 }
 
 function renderBenchmark(){
   const doc = D();
-  let out = renderFrozenBenchmark(doc);
-  if (!out) out = `<div class="guard">Bu doküman için frozen üçlü benchmark yok (gold sorgu seti yok). Aşağıdaki panel Standard ile Deep Analysis'i aynı canonical üzerinde yapısal olarak karşılaştırır.</div>`;
+  const dm = doc.meta.deep;
+  let out = "";
+  let step = 0;
+  const nextStep = () => ++step;
+  if (doc.live) {
+    out += `<div class="guard"><b>Canlı çalışma alanı dokümanı.</b> Bu doküman RAG Console'a yüklendi ve analizi o yüklemenin kendi çıktısından üretildi. Aşağıdaki sayılar <b>bu dokümana</b> aittir; dondurulmuş <i>frozen benchmark v5</i> karşılaştırmasının parçası değildir ve o tabloları değiştirmez. Yöntem karşılaştırması (Markdown / Hybrid) ve arama metrikleri, gold sorgu seti olmadığı için bu dokümanda üretilmez.</div>`;
+  }
+  if (dm) out += benchSummary(doc, dm, nextStep());
+  const methods = benchMethods(doc, step + 1);
+  if (methods) nextStep();
+  out += methods;
+  if (!dm && !methods) out += `<div class="guard">Bu doküman için ne dondurulmuş üç kol karşılaştırması ne de Deep Analysis paneli var.</div>`;
+  const frozen = renderFrozenBenchmark(doc);
+  if (frozen) {
+    out += sectionHead(nextStep(), "Detaylar",
+      "Yukarıdaki her sayının arkasındaki ham ölçümler. Sunum sırasında açmanız gerekmez; “nereden geliyor?” sorusu gelirse buradadır.");
+    out += `<details class="deep-detail"><summary>Dondurulmuş üç kol karşılaştırması — tüm metrikler (frozen benchmark v5)</summary><div class="inner">${frozen}</div></details>`;
+  } else if (dm) {
+    out += sectionHead(nextStep(), "Detaylar", "Ham ölçümler. Bu doküman için gold sorgu seti olmadığından üç kol karşılaştırması yok; aşağıdaki panel Standard ile Deep Analysis'i aynı canonical üzerinde yapısal olarak karşılaştırır.");
+  }
   const ag = doc.arms.agentic;
   if (ag && isLegacyAgentic()) {
     const am = doc.agenticMeta || {}, s = am.summary || {}, bd = am.diff || {};
@@ -1641,11 +2057,241 @@ function renderBenchmark(){
       out += `<div class="legend">Bu tablo tek satırdır ve frozen üçlü tablodaki "en iyi" işaretlerine katılmaz; yan yana okuma yaparken model bağımlılığı ve tek koşu olduğu unutulmamalıdır.</div>`;
     } else out += `<div class="legend">Bu ağaçta agentic retrieval değerlendirmesi yok — amsc.agentic_benchmark henüz koşulmamış.</div>`;
   }
-  out += renderDeepPanel(doc);
-  out += renderCrossDoc();
+  const deepPanel = renderDeepPanel(doc);
+  if (deepPanel) {
+    out += `<details class="deep-detail"><summary>Deep Analysis ölçüm paneli — sınır kalitesi, LLM kullanımı, maliyet</summary>
+      <div class="inner"><div class="help" style="margin:0 0 6px">Yukarıdaki özetin arkasındaki bölüm bazlı sözleşme sayaçları, LLM çağrı dökümü ve token/maliyet tahmini.</div>${deepPanel}</div></details>`;
+  }
+  const crossDoc = doc.live ? "" : renderCrossDoc();
+  if (crossDoc) {
+    out += `<details class="deep-detail" open><summary>Dokümanlar arası — aynı sözleşme üç dokümanda</summary>
+      <div class="inner"><div class="help" style="margin:0 0 6px">Aynı kurallar, üzerinde hiç ayar yapılmamış dokümanlarda da tutuyor mu? Bu tablo o sorunun cevabıdır.</div>${crossDoc}</div></details>`;
+  }
+  out += glossary(doc.live
+    ? ["smell","regression","ceiling","goldset","llmrole","chunk","sizetrade"]
+    : ["smell","regression","ceiling","hit","mrr","coverage","goldset","holdout","llmrole","chunk","sizetrade","frozen"]);
   $("view-benchmark").innerHTML = out;
   $("view-benchmark").querySelectorAll(".qidchip[data-q]").forEach(el => {
     el.onclick = () => { state.mode = "query"; state.qsub = "gold"; state.query = el.dataset.q; render(); };
+  });
+}
+
+/* -------- workspace: the RAG console's live state --------
+   The console owns knowledge bases and documents; this page owns the chunking
+   analysis. Rather than keeping a second copy of the console's state, the page
+   asks its own server for it (/api/workspace proxies the console), so a
+   knowledge base created over there shows up here on the next refresh with
+   nothing to update by hand. */
+const workspace = {status: "idle", data: null, open: false, at: 0, error: null,
+  loading: null, preparing: new Set(), poll: null};
+
+// "Arçelik 2024" and "arcelikfaaliyet2024.pdf" are the same document to a
+// reader; fold the accents and punctuation away before comparing.
+const foldTr = s => String(s || "").toLocaleLowerCase("tr")
+  .replace(/ı/g, "i").replace(/İ/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g")
+  .replace(/ü/g, "u").replace(/ö/g, "o").replace(/ç/g, "c")
+  .replace(/[^a-z0-9]+/g, "");
+function viewerDocFor(fileName){
+  const hay = foldTr(fileName);
+  if (!hay) return null;
+  return DOC_ORDER.find(id => id.split(/[-_]/).filter(t => t.length >= 3).every(t => hay.includes(foldTr(t)))) || null;
+}
+function consoleDocsFor(docId){
+  const kbs = (workspace.data && workspace.data.knowledge_bases) || [];
+  const out = [];
+  for (const kb of kbs) for (const d of (kb.documents || [])) if (viewerDocFor(d.name) === docId) out.push({kb, doc: d});
+  return out;
+}
+
+// A live document's payload is built by the console from its own ingest and
+// relayed by this page's own server. It is merged into the same DATA.docs the
+// frozen corpus lives in -- every renderer then works unchanged -- but it is
+// flagged, so nothing that belongs to the frozen benchmark can pick it up.
+async function openLiveDoc(docId, label){
+  if (LIVE_LOADED.has(docId)) { selectDoc(docId); return; }
+  workspace.loading = docId;
+  renderWorkspace();
+  try {
+    const r = await fetch("/api/live-document?doc=" + encodeURIComponent(docId), {cache: "no-store"});
+    const body = await r.json();
+    if (!r.ok || !body.connected || !body.payload) throw new Error(body.reason || body.error || ("HTTP " + r.status));
+    const doc = body.payload;
+    doc.live = Object.assign({docId, label: label || doc.label}, doc.live || {});
+    DATA.docs[docId] = indexDoc(doc);
+    if (!DOC_ORDER.includes(docId)) DOC_ORDER.push(docId);
+    LIVE_LOADED.add(docId);
+    workspace.error = null;
+    selectDoc(docId);
+  } catch (e) {
+    workspace.error = String(e.message || e);
+  } finally {
+    workspace.loading = null;
+    renderWorkspace();
+  }
+}
+
+// Everything the document picker does when the document changes, in one place
+// so the picker, the workspace panel and a deep link cannot drift apart.
+function selectDoc(docId){
+  if (!DATA.docs[docId]) return;
+  state.doc = docId;
+  state.page = null; state.query = null; state.selChunk = null; state.selUnit = null; state.diffIdx = -1;
+  state.arm = defaultArm();
+  state.armB = hasArm("structure-only") && state.arm !== "structure-only"
+    ? "structure-only" : (docArms().find(a => a !== state.arm) || state.arm);
+  state.chat.turns = []; state.chat.arm = null;
+  if (state.filter === "diff" && !D().diffs.length) state.filter = "all";
+  if (isLive() && state.qsub === "gold") state.qsub = "chat";
+  syncDocOptions();
+  render();
+}
+
+async function prepareLiveDoc(docId){
+  workspace.preparing.add(docId);
+  renderWorkspace();
+  try {
+    await fetch("/api/live-prepare", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({doc: docId})});
+  } catch (e) { workspace.error = String(e.message || e); }
+  workspace.preparing.delete(docId);
+  await loadWorkspace();
+}
+
+async function loadWorkspace(){
+  if (location.protocol === "file:") { workspace.status = "standalone"; renderWorkspace(); return; }
+  workspace.status = workspace.data ? "refreshing" : "loading";
+  renderWorkspace();
+  try {
+    // prepare=1 asks the console to queue an analysis for every document that
+    // has none. Queuing only: the console packages on its own worker, so this
+    // call returns at status speed however much work is outstanding.
+    const r = await fetch("/api/workspace?prepare=1", {cache: "no-store"});
+    const payload = await r.json();
+    if (!r.ok) throw new Error(payload.error || ("HTTP " + r.status));
+    workspace.data = payload.connected ? payload : null;
+    workspace.status = payload.connected ? "live" : (payload.configured ? "down" : "standalone");
+    workspace.error = payload.connected ? null : (payload.reason || null);
+  } catch (e) {
+    workspace.data = null;
+    workspace.status = "down";
+    workspace.error = String(e.message || e);
+  }
+  workspace.at = Date.now();
+  renderWorkspace();
+  syncDocOptions();
+  scheduleWorkspacePoll();
+}
+
+// While the console is still packaging something, look again shortly. The
+// poll stops as soon as nothing is outstanding, so an idle page is idle.
+function scheduleWorkspacePoll(){
+  if (workspace.poll) { clearTimeout(workspace.poll); workspace.poll = null; }
+  const busy = liveDocs().some(d => ["pending","running"].includes((d.doc.viewer || {}).status));
+  if (busy) workspace.poll = setTimeout(loadWorkspace, 4000);
+}
+
+// Every console document, flattened, with its knowledge base beside it.
+function liveDocs(){
+  const kbs = (workspace.data && workspace.data.knowledge_bases) || [];
+  const out = [];
+  for (const kb of kbs) for (const doc of (kb.documents || [])) out.push({kb, doc});
+  return out;
+}
+const liveReady = () => liveDocs().filter(d => (d.doc.viewer || {}).status === "ready");
+
+// Two groups, never one list: the frozen corpus is the published benchmark
+// set, and a live document is this console's own ingest. Reading them as one
+// dataset is exactly the mistake the grouping prevents.
+function syncDocOptions(){
+  const sel = $("docsel");
+  if (!sel) return;
+  const option = id => {
+    const live = !isLive(id) && workspace.status === "live" ? consoleDocsFor(id).length : 0;
+    return `<option value="${esc(id)}">${esc(DATA.docs[id].label)}${live ? " · RAG Console'da da yüklü" : ""}</option>`;
+  };
+  const liveIds = DOC_ORDER.filter(isLive);
+  let html = `<optgroup label="Dondurulmuş karşılaştırma seti">${FROZEN_ORDER.map(option).join("")}</optgroup>`;
+  if (liveIds.length) {
+    html += `<optgroup label="Canlı çalışma alanı — RAG Console">${liveIds.map(option).join("")}</optgroup>`;
+  }
+  sel.innerHTML = html;
+  sel.value = state.doc;
+}
+
+// One console document's row in the workspace panel: what the Viewer can do
+// with it right now, and the one action that moves it forward.
+function liveDocRow(entry){
+  const doc = entry.doc;
+  const viewer = doc.viewer || {};
+  const status = viewer.status || "missing";
+  const id = doc.doc_id;
+  const loading = workspace.loading === id;
+  const preparing = workspace.preparing.has(id);
+  let action = "", note = "";
+  if (status === "ready") {
+    action = `<button class="linkbtn" data-live="${esc(id)}" data-label="${esc(doc.name || id)}">${loading ? "açılıyor…" : "Viewer'da aç"}</button>`;
+    note = viewer.deep_source === "deterministic_contract"
+      ? `<span class="pill grey" title="Bu doküman Standard modda yüklendi. Karşılaştırmanın Deep tarafını ücretsiz, LLM'siz kalite sözleşmesi üretti — model çağrısı yapılmadı.">kural tabanlı karşılaştırma</span>`
+      : `<span class="pill deep" title="Yükleme sırasında çalışan Deep Analysis koşusu olduğu gibi paketlendi; Viewer için ikinci bir LLM çağrısı yapılmadı.">Deep Analysis koşusu</span>`;
+  } else if (status === "pending" || status === "running" || preparing) {
+    action = `<span class="pill grey">Viewer analizi hazırlanıyor…</span>`;
+  } else if (status === "failed") {
+    action = `<button class="linkbtn" data-prepare="${esc(id)}">Yeniden dene</button>`;
+    note = `<span class="pill miss" title="${esc(viewer.error || "")}">hazırlanamadı</span>`;
+  } else {
+    action = `<button class="linkbtn" data-prepare="${esc(id)}">Viewer analizi hazırla</button>`;
+  }
+  return `<div class="wsdoc"><span class="dname">${esc(doc.name || id)}</span>${action}${note}
+    <span class="dmeta">${(doc.chunk_count || 0).toLocaleString("tr-TR")} parça${doc.chunking_mode ? " · " + esc(doc.chunking_mode) : ""}${doc.ingested_at ? " · " + esc(String(doc.ingested_at).slice(0, 10)) : ""}</span></div>`;
+}
+
+function renderWorkspace(){
+  const bar = $("wsbar"), panel = $("wspanel");
+  if (workspace.status === "standalone") { bar.classList.add("hidden"); panel.classList.add("hidden"); return; }
+  bar.classList.remove("hidden");
+  const data = workspace.data;
+  const totals = (data && data.totals) || {};
+  const live = workspace.status === "live";
+  bar.className = "wsbar" + (live ? " live" : (workspace.status === "down" ? " down" : ""));
+  let summary;
+  if (workspace.status === "loading") summary = "durum okunuyor…";
+  else if (live) {
+    const busy = liveDocs().filter(d => ["pending","running"].includes((d.doc.viewer || {}).status)).length;
+    summary = `${totals.knowledge_bases ?? 0} bilgi tabanı · ${totals.documents ?? 0} doküman · ${(totals.chunks ?? 0).toLocaleString("tr-TR")} parça` +
+      ` · ${totals.viewer_ready ?? liveReady().length} tanesi Viewer'da incelenebilir` +
+      (busy ? ` · ${busy} analiz hazırlanıyor…` : "") +
+      (workspace.status === "refreshing" ? " · yenileniyor…" : "");
+  }
+  else summary = `bağlanılamadı — konsol kapalı olabilir${workspace.error ? ` (${workspace.error})` : ""}`;
+  bar.innerHTML = `<span class="dot"></span><span class="who">RAG Console</span>
+    <span class="sum">${esc(summary)}</span>
+    ${live && data.url ? `<a href="${esc(data.url)}" target="_blank" rel="noopener">konsolu aç ↗</a>` : ""}
+    <span class="spacer"></span>
+    ${live ? `<button class="btn small" id="wstoggle">${workspace.open ? "Gizle" : "Yüklü dokümanları göster"}</button>` : ""}
+    <button class="btn small" id="wsrefresh">Yenile</button>`;
+  const refresh = $("wsrefresh");
+  if (refresh) refresh.onclick = loadWorkspace;
+  const toggle = $("wstoggle");
+  if (toggle) toggle.onclick = () => { workspace.open = !workspace.open; renderWorkspace(); };
+
+  if (!live || !workspace.open) { panel.classList.add("hidden"); panel.innerHTML = ""; return; }
+  panel.classList.remove("hidden");
+  const kbs = data.knowledge_bases || [];
+  panel.innerHTML = `<div class="help" style="margin-top:12px">RAG Console'daki güncel bilgi tabanları ve içlerine yüklenmiş dokümanlar. Konsola yeni bir doküman yüklediğinizde analizi <b>kendiliğinden hazırlanır</b> — yüklemede üretilen chunk'lar, sınır kararları ve kalite ölçümleri yeniden kullanılır, doküman ikinci kez ne ayrıştırılır ne de modele gönderilir. Hazır olduğunda <b>Viewer'da aç</b> ile Sunum ve Debug ekranlarında inceleyebilirsiniz. Bu dokümanlar dondurulmuş karşılaştırma setinin parçası değildir; gold sorguları olmadığı için arama metrikleri üretilmez.</div>
+    <div class="wsgrid">${kbs.map(kb => {
+      const docs = kb.documents || [];
+      return `<div class="wskb"${kb.orphan ? ' style="opacity:.72"' : ""}>
+        <div class="kbname">${kb.orphan ? "Bilgi tabanı silinmiş kayıtlar" : esc(kb.name)}</div>
+        <div class="kbmeta">${(kb.orphan ? ["bilgi tabanı silindi, doküman kayıtları duruyor"] : [kb.chunker ? "bölümleme: " + kb.chunker : "", kb.retrieval_method ? "arama: " + kb.retrieval_method : "", kb.vector_db_provider || ""]).filter(Boolean).map(x => `<span>${esc(x)}</span>`).join("")}</div>
+        <div class="kbmeta"><span>${docs.length} doküman</span><span>${(kb.chunk_count || 0).toLocaleString("tr-TR")} parça</span></div>
+        ${docs.length ? `${kb.orphan ? `<details><summary>${docs.length} doküman kaydını göster</summary>` : ""}<div class="docs">${docs.map(d => liveDocRow({kb, doc: d})).join("")}</div>${kb.orphan ? "</details>" : ""}` : `<div class="none">Henüz doküman yüklenmemiş.</div>`}
+      </div>`;
+    }).join("")}</div>`;
+  panel.querySelectorAll(".linkbtn[data-live]").forEach(el => {
+    el.onclick = () => openLiveDoc(el.dataset.live, el.dataset.label);
+  });
+  panel.querySelectorAll(".linkbtn[data-prepare]").forEach(el => {
+    el.onclick = () => prepareLiveDoc(el.dataset.prepare);
   });
 }
 
@@ -1657,6 +2303,7 @@ function render(){
   else if (state.mode === "query") renderQuery();
   else if (state.mode === "debug") renderDebug();
   else renderBenchmark();
+  measureBar();  // the mode hint row appears and disappears with the mode
   $("foot").textContent = D().label + " · canonical " + (D().meta.canonicalSha || "").slice(0, 16) + "… · " + (D().meta.status || "") +
     (D().diffs.length ? " · fark tanımı: ardışık iki içerik unit'i arasında chunk sınırı olup olmadığında üç yöntemin uyuşmadığı noktalar" : "") +
     " · " + DATA.generator;

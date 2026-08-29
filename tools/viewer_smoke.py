@@ -134,9 +134,12 @@ with sync_playwright() as p:
     page.locator("#modetabs button[data-mode='benchmark']").click()
     page.wait_for_timeout(500)
     text = page.locator("#view-benchmark").inner_text()
-    check("Frozen benchmark v5" in text, "frozen benchmark section missing")
-    check("Deep Analysis paneli" in text, "deep panel missing")
+    check("Kalite özeti" in text, "benchmark summary section missing")
+    check("Ne düzeldi?" in text, "improvement list missing")
+    check("frozen benchmark v5" in text, "frozen benchmark section missing")
+    check("Deep Analysis ölçüm paneli" in text, "deep panel missing")
     check("Dokümanlar arası" in text, "cross-document table missing")
+    check("Sözlük" in text, "glossary missing")
     page.screenshot(path=str(outdir / "10-benchmark.png"), full_page=True)
 
     # --- doc switch: holdout (deep-only) ---
@@ -150,9 +153,26 @@ with sync_playwright() as p:
     page.locator("#modetabs button[data-mode='benchmark']").click()
     page.wait_for_timeout(500)
     check("gold sorgu seti yok" in page.locator("#view-benchmark").inner_text(), "deep-only benchmark notice missing")
+    check("Kalite özeti" in page.locator("#view-benchmark").inner_text(), "summary missing on the holdout doc")
     page.locator("#modetabs button[data-mode='query']").click()
     page.wait_for_timeout(500)
     check(page.locator("#qsubtabs button[data-sub='gold']").is_hidden(), "gold sub-tab should be hidden without gold")
+
+    # --- workspace strip (the RAG console bridge) ---
+    page.locator("#modetabs button[data-mode='presentation']").click()
+    page.wait_for_timeout(400)
+    if live:
+        page.wait_for_selector("#wsbar:not(.hidden)", timeout=15000)
+        bar = page.locator("#wsbar").inner_text()
+        check("RAG Console" in bar, "workspace strip does not name the console")
+        if "bilgi taban" in bar:
+            page.locator("#wstoggle").click()
+            page.wait_for_timeout(300)
+            check(page.locator("#wspanel .wskb").count() > 0, "workspace panel opened empty")
+            page.screenshot(path=str(outdir / "13-workspace.png"), full_page=False)
+    else:
+        check("hidden" in (page.locator("#wsbar").get_attribute("class") or ""),
+              "the workspace strip must stay hidden in the standalone file")
 
     # --- responsive ---
     page.set_viewport_size({"width": 820, "height": 900})

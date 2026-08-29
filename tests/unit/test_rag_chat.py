@@ -11,6 +11,7 @@ any response.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import http.client
 import re
@@ -19,7 +20,7 @@ import numpy as np
 import pytest
 
 from amsc import rag_answer, rag_chat, rag_context, rag_embeddings, rag_index
-from amsc.viewer_server import make_server, serve_in_thread
+from amsc.viewer_server import console_document, console_prepare, console_workspace, make_server, serve_in_thread
 
 
 class BagOfWordsEmbedder:
@@ -236,3 +237,165 @@ def test_the_server_serves_the_viewer_and_the_api(tmp_path):
     finally:
         server.shutdown()
         server.server_close()
+
+
+# --- the workspace bridge to the RAG console -----------------------------------
+#
+# The viewer page must never have to know the console's address: it asks its own
+# origin, and this process does the cross-service call. A console that is down
+# is an answer the page can render, not an error that blanks the panel.
+
+
+def test_the_workspace_route_relays_the_console(tmp_path, monkeypatch):
+    import urllib.request
+
+    class _Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    seen = {}
+
+    def fake_urlopen(request, timeout):
+        seen["url"] = request.full_url
+        seen["timeout"] = timeout
+        return _Response(json.dumps({
+            "success": True,
+            "knowledge_bases": [{"kb_id": "kb1", "name": "kkb-final", "documents": []}],
+            "totals": {"knowledge_bases": 1, "documents": 0, "chunks": 0},
+        }).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    viewer = tmp_path / "index.html"
+    viewer.write_text("<html><body>viewer</body></html>", encoding="utf-8")
+    server = make_server(engine(tmp_path, answerer=JsonAnswerer()), viewer, port=0, quiet=True,
+                         console_url="http://127.0.0.1:5005")
+    serve_in_thread(server)
+    host, port = server.server_address[:2]
+    try:
+        conn = http.client.HTTPConnection(host, port, timeout=10)
+        conn.request("GET", "/api/workspace")
+        payload = json.loads(conn.getresponse().read())
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert payload["connected"] is True
+    assert payload["knowledge_bases"][0]["name"] == "kkb-final"
+    assert seen["url"] == "http://127.0.0.1:5005/api/demo/workspace"
+    assert seen["timeout"] <= 5, "a panel refresh must not stall the page"
+
+
+def test_a_stopped_console_is_an_answer_not_an_error(monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    def fake_urlopen(request, timeout):
+        raise urllib.error.URLError("connection refused")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    payload = console_workspace("http://127.0.0.1:5005")
+    assert payload["connected"] is False and payload["configured"] is True
+    assert "refused" in payload["reason"]
+
+
+def test_no_console_address_means_no_call():
+    assert console_workspace("") == {
+        "connected": False, "configured": False, "url": "", "reason": "not configured",
+    }
+
+
+def test_a_live_document_payload_is_relayed_from_the_console(monkeypatch):
+    """The console builds a live document's payload from its own ingest; this
+    process moves JSON and neither parses a document nor calls a model."""
+    import urllib.request
+
+    class _Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    seen = {}
+
+    def fake_urlopen(request, timeout):
+        seen["url"] = request.full_url
+        seen["method"] = request.get_method()
+        seen["timeout"] = timeout
+        return _Response(json.dumps({
+            "success": True, "doc_id": "upload_1_pdf",
+            "payload": {"label": "a.pdf", "arms": {"structure-only": {}, "agentic": {}}},
+        }).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    payload = console_document("http://127.0.0.1:5005", "upload_1_pdf")
+    assert payload["connected"] is True
+    assert sorted(payload["payload"]["arms"]) == ["agentic", "structure-only"]
+    assert seen["url"] == "http://127.0.0.1:5005/api/demo/viewer-analysis/upload_1_pdf/payload"
+    assert seen["timeout"] > 5, "a whole document's payload needs longer than a status poll"
+
+
+def test_asking_for_an_unbuilt_document_returns_its_state_not_an_exception(monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    def fake_urlopen(request, timeout):
+        raise urllib.error.HTTPError(
+            request.full_url, 404, "Not Found", None,
+            io.BytesIO(json.dumps({"success": False, "error": "no viewer payload",
+                                   "state": {"status": "pending"}}).encode()),
+        )
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    answer = console_document("http://127.0.0.1:5005", "upload_1_pdf")
+    assert answer["connected"] is True and answer["http_status"] == 404
+    assert answer["state"] == {"status": "pending"}
+
+
+def test_preparing_a_document_is_a_post_to_the_console(monkeypatch):
+    import urllib.request
+
+    class _Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    seen = {}
+
+    def fake_urlopen(request, timeout):
+        seen["url"] = request.full_url
+        seen["method"] = request.get_method()
+        return _Response(json.dumps({"success": True, "state": {"status": "pending"}}).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    answer = console_prepare("http://127.0.0.1:5005", "upload 1/pdf")
+    assert answer["connected"] is True and answer["state"]["status"] == "pending"
+    assert seen["method"] == "POST"
+    assert seen["url"] == "http://127.0.0.1:5005/api/demo/viewer-analysis/upload%201%2Fpdf"
+
+
+def test_the_refresh_can_ask_the_console_to_prepare(monkeypatch):
+    import urllib.request
+
+    class _Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    seen = {}
+
+    def fake_urlopen(request, timeout):
+        seen["url"] = request.full_url
+        return _Response(json.dumps({"success": True, "knowledge_bases": [], "totals": {}}).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    console_workspace("http://127.0.0.1:5005")
+    assert seen["url"].endswith("/api/demo/workspace")
+    console_workspace("http://127.0.0.1:5005", prepare=True)
+    assert seen["url"].endswith("/api/demo/workspace?prepare=1")
