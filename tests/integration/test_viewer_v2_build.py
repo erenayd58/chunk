@@ -93,19 +93,34 @@ def test_difference_points_are_deterministic_and_nonempty(viewer_html, tmp_path)
 
 def test_the_checked_in_viewer_artifact_is_current(tmp_path):
     """The published viewer must equal a fresh build made from the same
-    inputs it was published with: the agentic arm joins the comparison only
-    if the published file already carries it (publishing the fourth arm is a
-    separate, deliberate step). Hashes are compared, not the multi-megabyte
-    strings -- a failing string diff is what a hang looks like in pytest."""
+    inputs it was published with. Those inputs are recorded in the
+    ``catalog.json`` the build writes beside the page, so the check holds
+    whatever composition was published (benchmark trees, packaged Deep
+    trees, the legacy agentic tree). Hashes are compared, not the
+    multi-megabyte strings -- a failing string diff is what a hang looks
+    like in pytest."""
     import hashlib
 
     published = ROOT / "artifacts" / "viewer-v2" / "index.html"
-    if not published.is_file():
+    catalog_path = published.with_name("catalog.json")
+    if not published.is_file() or not catalog_path.is_file():
         pytest.skip("artifacts/viewer-v2/index.html has not been built here")
     published_text = published.read_text(encoding="utf-8")
-    agentic = agentic_on_disk() if '"agenticMeta"' in published_text else {}
+    build = json.loads(catalog_path.read_text(encoding="utf-8")).get("build")
+    if not build:
+        pytest.skip("the published catalog predates build-input recording")
+    order = build.get("document_order") or sorted(set(build["benchmarks"]) | set(build["deep"]))
+    ordered = lambda mapping: {doc: ROOT / mapping[doc] for doc in order if doc in mapping}  # noqa: E731
     output = tmp_path / "fresh.html"
-    build_viewer(BENCHMARKS, output, root=ROOT, agentic=agentic)
+    build_viewer(
+        ordered(build["benchmarks"]),
+        output,
+        root=ROOT,
+        agentic=ordered(build["agentic"]),
+        deep=ordered(build["deep"]),
+        labels=build["labels"],
+        write_catalog=False,
+    )
     fresh = output.read_text(encoding="utf-8")
     assert hashlib.sha256(published_text.encode("utf-8")).hexdigest() == hashlib.sha256(
         fresh.encode("utf-8")

@@ -339,7 +339,8 @@ def test_all_four_modes_are_present(tmp_path):
     for mode in ("presentation", "query", "debug", "benchmark"):
         assert f'data-mode="{mode}"' in html_text
     for label in ("Sunum", "Sorgu", "Debug", "Benchmark"):
-        assert f">{label}</button>" in html_text
+        # Each tab carries its label followed by a one-line subtitle.
+        assert f">{label}<small>" in html_text
 
 
 def test_benchmark_numbers_are_read_from_the_artifacts_not_hardcoded(tmp_path):

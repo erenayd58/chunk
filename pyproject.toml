@@ -21,6 +21,7 @@ benchmark = [
   "sentence-transformers>=3,<6",
 ]
 dev = ["pytest>=8,<10"]
+smoke = ["playwright>=1.40"]
 
 [project.scripts]
 amsc = "amsc.cli:main"

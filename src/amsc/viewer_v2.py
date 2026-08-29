@@ -1,33 +1,50 @@
-"""Viewer v2 -- a presentation-grade, self-contained HTML over frozen benchmark output.
+"""Viewer v2 -- the Chunking + RAG PoC as one self-contained HTML product.
 
-Reads one or more completed ``amsc.chunk_benchmark`` output trees (the frozen
-``artifacts/chunk-benchmark-v5`` generation) plus the pinned canonical each tree
-names, and emits a single offline HTML file with four modes:
+Reads completed artifact trees and emits a single offline HTML file with four
+modes, each a level of the same product:
 
-* **Sunum** (default) -- the document rendered for a non-technical reader, with
-  chunk boundaries and a human-language reason at each boundary.
-* **Sorgu** -- one gold query across the three arms: rank, hit status, the
-  retrieved chunk with the gold evidence highlighted.
-* **Debug** -- the full technical surface: unit ids, roles, section paths,
-  mapping segments and methods, fragment ids.
-* **Benchmark** -- the final retrieval / structural / timing numbers, read from
-  the artifacts rather than restated.
+* **Sunum** -- what we did and what the difference is: the four chunking
+  methods explained, the same page of a document compared across chunkers,
+  every boundary with a human-language reason, and the Standard vs Deep
+  Analysis results in a few numbers.
+* **Sorgu** -- how it works in use: the frozen gold-query retrieval view
+  (offline) and, when served by :mod:`amsc.viewer_server`, a live
+  "ask the document" chat over the same chunks with source cards.
+* **Debug** -- why the system decided what it decided: canonical units,
+  section paths, mappings, the Deep Analysis decision trail (Standard cut,
+  proposed cut, final cut, verifier verdict, smells before/after), parser
+  findings and representation ceilings.
+* **Benchmark** -- what the measurements say: the frozen three-arm
+  benchmark untouched, and a separate, clearly-labelled Deep Analysis panel
+  with structural, retrieval, LLM-usage and latency numbers.
+
+Inputs, per document:
+
+* ``--benchmark DOC=DIR`` -- a frozen ``amsc.chunk_benchmark`` tree (three
+  arms, gold queries, pinned canonical). Optional when ``--deep`` is given.
+* ``--deep DOC=DIR`` -- an ``amsc.deep_run`` tree packaged by
+  ``amsc.deep_arm`` (``arm/``, ``standard/``, ``boundary-decisions.json``).
+  Adds the Agentic Chunker (Deep Analysis) as the fourth arm, or, without a
+  benchmark tree, builds a Standard-vs-Deep document on its own.
+* ``--agentic DOC=DIR`` -- the earlier ``amsc.agentic_chunker`` research
+  tree, kept for provenance; it fills the same fourth-arm slot with its own
+  reduced attribution and cannot be combined with ``--deep`` for one document.
 
 Nothing is recomputed and nothing upstream is touched: the module is a pure
-reader. Chunk text is not embedded; it is reconstructed from the canonical unit
-texts through the mapping segments, so the file stays small and cannot drift
-from the canonical.
+reader that verifies every tree's canonical pin. Chunk text is not embedded;
+it is reconstructed from the canonical unit texts through the mapping
+segments. Beside the HTML it writes ``catalog.json`` -- the documents, arms
+and chunk files the HTML shows -- which is what the chat server serves, so
+the live chat and the page can never disagree about which chunks exist.
 
 Every derived value is deterministic. **Boundary reasons** are restricted to
-what the artifacts actually record: a section change, a label seam, a size
-split, a markdown overlap. Per-boundary semantic-arbitration attribution is
-*not* recorded by the benchmark, so hybrid boundaries are never labelled as
-semantically chosen; the aggregate arbitration counts are shown at arm level
-instead. **The differences filter** is defined over consecutive content units
-(headings excluded, because two arms leave them out of ``unit_ids``): a pair is
-a difference point when the three arms disagree on whether a chunk boundary
-falls between the two units, membership being the first chunk that contains the
-unit. Pairs where any arm has no membership for either unit are skipped.
+what the artifacts record: a section change, a label seam, a size split, a
+markdown overlap; the Deep arm additionally carries the decision story
+``amsc.deep_arm`` derived (origin of each final cut, the smells a moved cut
+removed, verifier verdicts). **The differences filter** is defined over
+consecutive content units (headings excluded, because two arms leave them
+out of ``unit_ids``): a pair is a difference point when the three frozen
+arms disagree on whether a chunk boundary falls between the two units.
 """
 
 from __future__ import annotations
@@ -41,16 +58,19 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .chunk_relations import continuation_groups, derive_continuations
+from .viewer_v2_template import TEMPLATE
 
 ARM_ORDER = ("markdown", "hybrid", "structure-only")
+PRODUCT_ARM_ORDER = ("markdown", "hybrid", "structure-only", "agentic")
 
 ARM_LABELS = {
     "markdown": "Markdown",
     "hybrid": "Hybrid",
     "structure-only": "Structure-only",
+    "agentic": "Agentic Chunker",
 }
 
-DOC_LABELS = {"kkb-2024": "KKB 2024", "kkb-2022": "KKB 2022"}
+DOC_LABELS = {"kkb-2024": "KKB 2024", "kkb-2022": "KKB 2022", "arcelik-2024": "Arçelik 2024"}
 
 #: Files a benchmark tree must hold for the viewer to be buildable.
 REQUIRED_TREE_FILES = (
@@ -66,6 +86,15 @@ REQUIRED_ARM_FILES = (
     "structural_quality.json",
     "timing.json",
 )
+#: A packaged Deep arm needs these; retrieval files are optional (no gold).
+REQUIRED_DEEP_ARM_FILES = ("manifest.json", "chunks.jsonl", "mapping.json", "structural_quality.json")
+
+#: List prices observed on the reference endpoint on 2026-08-29, USD per
+#: million tokens, used only for the "approximate cost" line. Not a claim
+#: about any deployment's cost; the numbers beside it are the real ones.
+REFERENCE_PRICE_PER_M = {"prompt": 0.04815, "completion": 0.19305, "embedding": 0.01}
+#: Characters per cl100k token measured on the KKB/Arçelik canonicals.
+CHARS_PER_TOKEN = 2.45
 
 _EMPHASIS_SPAN = re.compile(r"\*\*(.+?)\*\*")
 _ITALIC_SPAN = re.compile(r"(?<![\w*])_([^_\n]+)_(?![\w*])")
@@ -174,6 +203,10 @@ def _load_jsonl(path: Path) -> list[dict]:
     ]
 
 
+def _optional_json(path: Path) -> Any:
+    return _load_json(path) if path.is_file() else None
+
+
 def _base(unit_id: str) -> str:
     return unit_id.split("#", 1)[0]
 
@@ -231,10 +264,122 @@ def _boundary_reason(
     return "budget_split"
 
 
+def _segments_by_unit(mapping: Mapping[str, Any], chunk_index: Mapping[str, int]) -> dict[str, list]:
+    segments: dict[str, list] = {}
+    for row in mapping["chunks"]:
+        target = chunk_index.get(row["chunk_id"])
+        if target is None:
+            continue
+        for seg in row["segments"]:
+            segments.setdefault(seg["unit_id"], []).append(
+                [target, seg["unit_start"], seg["unit_end"], seg["method"]]
+            )
+    for rows in segments.values():
+        rows.sort(key=lambda r: (r[0], r[1]))
+    return segments
+
+
+def _chunk_entries(chunks_raw: Sequence[dict]) -> list[dict]:
+    return [
+        {
+            "id": chunk["chunk_id"],
+            "num": _chunk_number(chunk["chunk_id"]),
+            "n": chunk["token_count"],
+            "pg": chunk.get("pages") or [],
+            "hd": chunk.get("heading"),
+            "hh": html.escape(heading_plain(chunk["heading"]), quote=False)
+            if chunk.get("heading")
+            else None,
+            "sp": chunk.get("section_paths") or [],
+            "sd": _clean_path((chunk.get("section_paths") or [[]])[0]),
+            "st": chunk.get("split_strategies") or [],
+            "u": chunk.get("fragment_unit_ids") or chunk["unit_ids"],
+        }
+        for chunk in chunks_raw
+    ]
+
+
+def _attach_links(chunks: list[dict], chunks_raw: Sequence[dict], kind: str) -> None:
+    # Continuation links -- the derived relationship layer, computed by
+    # amsc.chunk_relations (single source of truth) over the same frozen
+    # rows. ``cp``/``cn`` carry every same-section link so the detail panel
+    # can name its type; ``g`` (the expansion-chain group) is built from
+    # TOKEN_BUDGET_CONTINUATION links only, because only those are walked
+    # by the local expansion.
+    links = derive_continuations(chunks_raw, kind=kind)
+    budget_links = [
+        link for link in links if link["relation_type"] == "TOKEN_BUDGET_CONTINUATION"
+    ]
+    groups = continuation_groups(len(chunks_raw), budget_links)
+    forward = {link["from_index"]: link["to_index"] for link in links}
+    backward = {link["to_index"]: link["from_index"] for link in links}
+    relation_in = {link["to_index"]: link["relation_type"] for link in links}
+    for index, chunk in enumerate(chunks):
+        chunk["cp"] = backward.get(index)
+        chunk["cn"] = forward.get(index)
+        chunk["g"] = groups[index]
+        chunk["rt"] = relation_in.get(index)
+
+
+def _query_entries(rows: Sequence[dict], chunk_index: Mapping[str, int]) -> dict[str, dict]:
+    queries: dict[str, dict] = {}
+    for row in rows:
+        queries[row["query_id"]] = {
+            "f": row.get("first_relevant_rank"),
+            "cov": row.get("source_evidence_coverage"),
+            "res": [
+                {
+                    "r": result["rank"],
+                    "c": chunk_index.get(result["chunk_id"]),
+                    "m": result.get("matched_evidence_unit_ids") or [],
+                    "pg": result.get("pages") or [],
+                    "tk": result.get("token_count"),
+                }
+                for result in row.get("results") or []
+            ],
+        }
+    return queries
+
+
+def _load_arm_dir(
+    arm_dir: Path,
+    *,
+    kind: str,
+    units_by_id: Mapping[str, dict],
+    require_retrieval: bool,
+) -> tuple[dict, list[dict]]:
+    """One arm from a directory holding chunks + mapping (+ retrieval files)."""
+    names = REQUIRED_ARM_FILES if require_retrieval else ("chunks.jsonl", "mapping.json")
+    for name in names:
+        _require(arm_dir / name)
+    chunks_raw = _load_jsonl(arm_dir / "chunks.jsonl")
+    mapping = _load_json(arm_dir / "mapping.json")
+    chunk_index = {chunk["chunk_id"]: i for i, chunk in enumerate(chunks_raw)}
+    segments = _segments_by_unit(mapping, chunk_index)
+    chunks = _chunk_entries(chunks_raw)
+    for index, chunk in enumerate(chunks):
+        chunk["rs"] = _boundary_reason(kind, chunks, index, units_by_id, segments)
+    _attach_links(chunks, chunks_raw, kind)
+    query_path = arm_dir / "query-results.jsonl"
+    queries = _query_entries(_load_jsonl(query_path), chunk_index) if query_path.is_file() else {}
+    arm = {
+        "kind": kind,
+        "chunks": chunks,
+        "m": _membership(chunks_raw),
+        "seg": segments,
+        "q": queries,
+        "ret": _optional_json(arm_dir / "retrieval.json"),
+        "sq": _optional_json(arm_dir / "structural_quality.json"),
+        "tim": _optional_json(arm_dir / "timing.json"),
+        "health": mapping.get("health") or {},
+    }
+    return arm, chunks_raw
+
+
 def _load_agentic_arm(
     agentic_dir: Path, expected_sha: str, units_by_id: Mapping[str, dict]
 ) -> tuple[dict, dict]:
-    """The optional fourth arm, read from an ``amsc.agentic_chunker`` tree.
+    """The earlier research arm, read from an ``amsc.agentic_chunker`` tree.
 
     Reduced contract: chunks + mapping + judge summary + boundary-diff are
     required; retrieval / query-results / structural quality / timing are
@@ -256,59 +401,13 @@ def _load_agentic_arm(
             f"{agentic_dir} was built from a different canonical corpus than "
             "the benchmark tree; the viewer refuses to pair them"
         )
-    chunks_raw = _load_jsonl(agentic_dir / "agentic" / "chunks.jsonl")
-    mapping = _load_json(agentic_dir / "agentic" / "mapping.json")
+    kind = "agentic_structure_llm"
+    arm, _chunks_raw = _load_arm_dir(
+        agentic_dir / "agentic", kind=kind, units_by_id=units_by_id, require_retrieval=False
+    )
     summary = _load_json(agentic_dir / "judge" / "summary.json")
     diff = _load_json(agentic_dir / "boundary-diff.json")
-
-    chunk_index = {chunk["chunk_id"]: i for i, chunk in enumerate(chunks_raw)}
-    segments: dict[str, list] = {}
-    for row in mapping["chunks"]:
-        target = chunk_index.get(row["chunk_id"])
-        if target is None:
-            continue
-        for seg in row["segments"]:
-            segments.setdefault(seg["unit_id"], []).append(
-                [target, seg["unit_start"], seg["unit_end"], seg["method"]]
-            )
-    for rows in segments.values():
-        rows.sort(key=lambda r: (r[0], r[1]))
-
-    kind = "agentic_structure_llm"
-    chunks = [
-        {
-            "id": chunk["chunk_id"],
-            "num": _chunk_number(chunk["chunk_id"]),
-            "n": chunk["token_count"],
-            "pg": chunk.get("pages") or [],
-            "hd": chunk.get("heading"),
-            "hh": html.escape(heading_plain(chunk["heading"]), quote=False)
-            if chunk.get("heading")
-            else None,
-            "sp": chunk.get("section_paths") or [],
-            "sd": _clean_path((chunk.get("section_paths") or [[]])[0]),
-            "st": chunk.get("split_strategies") or [],
-            "u": chunk["unit_ids"],
-        }
-        for chunk in chunks_raw
-    ]
-    for index, chunk in enumerate(chunks):
-        chunk["rs"] = _boundary_reason(kind, chunks, index, units_by_id, segments)
-
-    links = derive_continuations(chunks_raw, kind=kind)
-    budget_links = [
-        link for link in links
-        if link["relation_type"] == "TOKEN_BUDGET_CONTINUATION"
-    ]
-    groups = continuation_groups(len(chunks_raw), budget_links)
-    forward = {link["from_index"]: link["to_index"] for link in links}
-    backward = {link["to_index"]: link["from_index"] for link in links}
-    relation_in = {link["to_index"]: link["relation_type"] for link in links}
-    for index, chunk in enumerate(chunks):
-        chunk["cp"] = backward.get(index)
-        chunk["cn"] = forward.get(index)
-        chunk["g"] = groups[index]
-        chunk["rt"] = relation_in.get(index)
+    chunks = arm["chunks"]
 
     # LLM boundary attribution -- recorded in the audit, so the viewer may
     # show it (unlike hybrid, whose benchmark records no attribution). The
@@ -317,9 +416,6 @@ def _load_agentic_arm(
     consulted: dict[str, dict] = {}
     for window in diff.get("windows") or []:
         after = _base(window["chosen_after_unit_id"])
-        # Only a cut that survived into the final chunks is a moved
-        # boundary; a provisional cut the rejoin absorbed never reaches a
-        # chunk here (no chunk ends at it), so it cannot be mislabelled.
         moved = bool(window["final_boundary_moved"])
         reason = None
         if moved:
@@ -330,11 +426,7 @@ def _load_agentic_arm(
                 ):
                     reason = decision.get("reason_code")
                     break
-        consulted[after] = {
-            "m": 1 if moved else 0,
-            "rc": reason,
-            "fb": window.get("fallback"),
-        }
+        consulted[after] = {"m": 1 if moved else 0, "rc": reason, "fb": window.get("fallback")}
     for index in range(1, len(chunks)):
         previous = chunks[index - 1]
         if not previous["u"]:
@@ -343,39 +435,6 @@ def _load_agentic_arm(
         if flag is not None:
             chunks[index]["llm"] = flag
 
-    queries: dict[str, dict] = {}
-    query_path = agentic_dir / "agentic" / "query-results.jsonl"
-    if query_path.is_file():
-        for row in _load_jsonl(query_path):
-            queries[row["query_id"]] = {
-                "f": row.get("first_relevant_rank"),
-                "cov": row.get("source_evidence_coverage"),
-                "res": [
-                    {
-                        "r": result["rank"],
-                        "c": chunk_index.get(result["chunk_id"]),
-                        "m": result.get("matched_evidence_unit_ids") or [],
-                        "pg": result.get("pages") or [],
-                        "tk": result.get("token_count"),
-                    }
-                    for result in row.get("results") or []
-                ],
-            }
-
-    def _optional_json(path: Path) -> Any:
-        return _load_json(path) if path.is_file() else None
-
-    arm = {
-        "kind": kind,
-        "chunks": chunks,
-        "m": _membership(chunks_raw),
-        "seg": segments,
-        "q": queries,
-        "ret": _optional_json(agentic_dir / "agentic" / "retrieval.json"),
-        "sq": _optional_json(agentic_dir / "agentic" / "structural_quality.json"),
-        "tim": _optional_json(agentic_dir / "agentic" / "timing.json"),
-        "health": mapping.get("health") or {},
-    }
     meta = {
         "mode": manifest.get("mode"),
         "model": manifest.get("model_id"),
@@ -385,22 +444,251 @@ def _load_agentic_arm(
     return arm, meta
 
 
+def _compact_story(story: Mapping[str, Any]) -> dict:
+    sections = []
+    for section in story.get("sections") or []:
+        sections.append(
+            {
+                "i": section["section_index"],
+                "h": heading_plain(section["heading"]) if section.get("heading") else None,
+                "pg": section.get("pages") or [],
+                "tt": section.get("tokens"),
+                "st": section["status"],
+                "cons": bool(section.get("llm_consulted")),
+                "rv": section.get("reverted"),
+                "vt": section.get("verdict_tiered"),
+                "sz": bool(section.get("size_traded")),
+                "std": section.get("standard_cuts_after") or [],
+                "det": section.get("deterministic_cuts_after") or [],
+                "fin": section.get("final_cuts_after") or [],
+                "sm": section.get("smells") or {},
+                "gr": [
+                    {
+                        "u": group["unit_ids"],
+                        "sc": group["standard_cuts_after"],
+                        "fc": group["final_cuts_after"],
+                        "rm": group["removed_smells"],
+                        "in": group["introduced_smells"],
+                        "or": group["origin"],
+                        "se": {
+                            k: group["size_effect"][k] for k in ("below_min", "above_soft_max")
+                        } if group.get("size_effect") else None,
+                    }
+                    for group in section.get("change_groups") or []
+                ],
+                "pr": [
+                    {"k": p.get("group_key"), "a": bool(p.get("accepted")), "r": p.get("reason"), "u": p.get("unit_ids") or []}
+                    for p in section.get("llm_proposals") or []
+                ],
+            }
+        )
+    return {"counts": story.get("counts") or {}, "sections": sections}
+
+
+def _sum_chars(path: Path, key: str) -> int:
+    if not path.is_file():
+        return 0
+    total = 0
+    for row in _load_jsonl(path):
+        value = row.get(key)
+        total += len(value) if isinstance(value, str) else int(value or 0)
+    return total
+
+
+def _load_deep_arm(
+    deep_dir: Path, expected_sha: str | None, units_by_id: Mapping[str, dict]
+) -> tuple[dict, dict | None, dict, dict]:
+    """The Deep Analysis arm from a packaged ``amsc.deep_run`` tree.
+
+    Returns (agentic arm, standard arm or None, deep meta, compact story).
+    """
+    deep_dir = Path(deep_dir)
+    arm_dir = deep_dir / "arm"
+    for name in REQUIRED_DEEP_ARM_FILES:
+        _require(arm_dir / name)
+    manifest = _load_json(arm_dir / "manifest.json")
+    if manifest.get("arm_kind") != "deep_analysis":
+        raise ValueError(f"{arm_dir} is not a packaged Deep Analysis arm (run amsc.deep_arm)")
+    if expected_sha and manifest.get("canonical_sha256") != expected_sha:
+        raise ValueError(
+            f"{deep_dir} was packaged from a different canonical corpus than "
+            "the benchmark tree; the viewer refuses to pair them"
+        )
+    summary = _load_json(deep_dir / "summary.json")
+    story_raw = _load_json(deep_dir / "boundary-decisions.json")
+    quality = _load_json(deep_dir / "quality-vs-standard.json")
+
+    arm, _rows = _load_arm_dir(
+        arm_dir, kind="deep_analysis", units_by_id=units_by_id, require_retrieval=False
+    )
+    standard_arm: dict | None = None
+    if (deep_dir / "standard" / "chunks.jsonl").is_file():
+        standard_arm, _srows = _load_arm_dir(
+            deep_dir / "standard", kind="structure_first", units_by_id=units_by_id, require_retrieval=False
+        )
+
+    by_cut_after = story_raw.get("by_cut_after") or {}
+    merged_at: dict[str, dict] = {}
+    std_changed: dict[str, dict] = {}
+    for key, record in by_cut_after.items():
+        if key.startswith("merge:"):
+            merged_at[key[len("merge:"):]] = record
+        for cut in record.get("standard_cuts_after") or []:
+            std_changed[cut] = {
+                "status": "std_changed",
+                "removed_smells": record.get("removed_smells") or [],
+                "origin": "llm" if record.get("status") in ("llm_accepted", "llm_merged") else "deterministic",
+                "size_effect": record.get("size_effect"),
+            }
+    chunks = arm["chunks"]
+    for index, chunk in enumerate(chunks):
+        if index >= 1 and chunks[index - 1]["u"]:
+            decision = by_cut_after.get(chunks[index - 1]["u"][-1])
+            if decision is not None:
+                chunk["dec"] = {
+                    k: v for k, v in decision.items()
+                    if k in ("status", "removed_smells", "introduced_smells", "size_effect",
+                             "llm_reverted", "verifier", "inside_unit", "section_index", "smells")
+                }
+        merged = [merged_at[u] for u in chunk["u"] if u in merged_at]
+        if merged:
+            chunk["mg"] = [
+                {k: v for k, v in record.items() if k in ("status", "removed_smells", "size_effect", "standard_cuts_after")}
+                for record in merged
+            ]
+    section_of: dict[str, int] = {}
+    for section in story_raw.get("sections") or []:
+        for unit_id in section.get("piece_unit_ids") or []:
+            section_of[_base(unit_id)] = section["section_index"]
+    for chunk in chunks:
+        if chunk["u"]:
+            chunk["si"] = section_of.get(_base(chunk["u"][0]))
+
+    story = _compact_story(story_raw)
+    story["sectionOf"] = section_of
+    story["stdChanged"] = std_changed
+
+    proposer_calls = deep_dir / "proposer" / "calls.jsonl"
+    verifier_calls = deep_dir / "verifier" / "calls.jsonl"
+    prompt_chars = _sum_chars(proposer_calls, "prompt_chars") + _sum_chars(verifier_calls, "prompt_chars")
+    response_chars = _sum_chars(deep_dir / "proposer" / "responses.jsonl", "response") + _sum_chars(
+        deep_dir / "verifier" / "responses.jsonl", "response"
+    )
+    est_prompt = round(prompt_chars / CHARS_PER_TOKEN)
+    est_completion = round(response_chars / CHARS_PER_TOKEN)
+    proposer = summary.get("proposer") or {}
+    verifier = summary.get("verifier") or {}
+    call_counts = {
+        "proposer": int(proposer.get("call_count") or 0),
+        "verifier": 2 * int(verifier.get("group_count") or 0),
+    }
+    call_counts["total"] = call_counts["proposer"] + call_counts["verifier"]
+    meta = {
+        "mode": summary.get("mode"),
+        "status": summary.get("status"),
+        "model": summary.get("model_id") or manifest.get("model_id"),
+        "verifierModel": summary.get("verifier_model_id") or manifest.get("verifier_model_id"),
+        "promptVersion": summary.get("prompt_template_version"),
+        "config": summary.get("config") or {},
+        "chunkCount": summary.get("chunk_count") or {},
+        "smellTotal": summary.get("smell_total") or {},
+        "totals": summary.get("totals") or {},
+        "verdictsTiered": summary.get("verdicts_tiered") or {},
+        "regressions": summary.get("structural_regression_count"),
+        "strictRegressions": summary.get("strict_regression_count"),
+        "sizeTrades": summary.get("size_trade_count"),
+        "changeGroups": summary.get("change_group_count"),
+        "selection": summary.get("selection") or {},
+        "llmEffect": summary.get("llm_effect") or {},
+        "proposer": proposer,
+        "verifier": verifier,
+        "timing": summary.get("timing_seconds") or {},
+        "calls": call_counts,
+        "chars": {"prompt": prompt_chars, "response": response_chars},
+        "estTokens": {"prompt": est_prompt, "completion": est_completion},
+        "estCostUsd": round(
+            est_prompt / 1e6 * REFERENCE_PRICE_PER_M["prompt"]
+            + est_completion / 1e6 * REFERENCE_PRICE_PER_M["completion"],
+            4,
+        ),
+        "storyCounts": story_raw.get("counts") or {},
+        "sectionCount": quality.get("section_count"),
+        "retrieval": {
+            "deep": arm["ret"],
+            "standard": standard_arm["ret"] if standard_arm else None,
+        },
+        "hasRetrieval": bool(manifest.get("has_retrieval")),
+        "frozenTree": manifest.get("frozen_tree"),
+        "tuning": (summary.get("claim_discipline") or {}).get("tuning_status"),
+    }
+    return arm, standard_arm, meta, story
+
+
+def _parser_findings(units_raw: Sequence[dict]) -> list[dict]:
+    from .structural_qa import lint
+
+    report = lint(list(units_raw), [])
+    return [
+        {
+            "r": finding.rule,
+            "c": finding.confidence,
+            "t": finding.target_id,
+            "p": finding.page,
+            "why": finding.reason,
+            "ev": (finding.evidence or "")[:160],
+        }
+        for finding in sorted(report.findings, key=lambda f: f.sort_key())
+    ]
+
+
+def _oversized_units(units_raw: Sequence[dict], hard_max_tokens: int) -> dict[str, int]:
+    """Units no partition can keep whole: token count above the hard cap."""
+    candidates = [unit for unit in units_raw if len(unit["text"]) > hard_max_tokens]
+    if not candidates:
+        return {}
+    from .tokenization import TiktokenTokenCounter
+
+    counter = TiktokenTokenCounter("cl100k_base")
+    oversized: dict[str, int] = {}
+    for unit in candidates:
+        tokens = counter.count(unit["text"])
+        if tokens > hard_max_tokens:
+            oversized[unit["unit_id"]] = tokens
+    return oversized
+
+
 def load_corpus(
-    benchmark_dir: Path, root: Path, agentic_dir: Path | None = None
+    benchmark_dir: Path | None,
+    root: Path,
+    agentic_dir: Path | None = None,
+    deep_dir: Path | None = None,
+    label: str | None = None,
 ) -> dict:
-    """Read one benchmark tree plus its pinned canonical into viewer data."""
-    benchmark_dir = Path(benchmark_dir)
-    for name in REQUIRED_TREE_FILES:
-        _require(benchmark_dir / name)
+    """Read one document's trees plus its pinned canonical into viewer data."""
+    if benchmark_dir is None and deep_dir is None:
+        raise ValueError("a document needs a benchmark tree or a packaged deep tree")
+    if agentic_dir is not None and deep_dir is not None:
+        raise ValueError("--agentic and --deep cannot both fill the fourth arm of one document")
 
-    config = _load_json(benchmark_dir / "resolved-config.json")
-    manifest = _load_json(benchmark_dir / "manifest.json")
-    summary = _load_json(benchmark_dir / "benchmark-summary.json")
-    source = config["source"]
-
-    units_path = _require(root / source["units"])
+    config: dict = {}
+    manifest: dict = {}
+    summary: dict = {}
+    if benchmark_dir is not None:
+        benchmark_dir = Path(benchmark_dir)
+        for name in REQUIRED_TREE_FILES:
+            _require(benchmark_dir / name)
+        config = _load_json(benchmark_dir / "resolved-config.json")
+        manifest = _load_json(benchmark_dir / "manifest.json")
+        summary = _load_json(benchmark_dir / "benchmark-summary.json")
+        source = config["source"]
+        units_path = _require(root / source["units"])
+        pinned = source.get("units_sha256") or manifest.get("canonical_sha256")
+    else:
+        deep_manifest = _load_json(Path(deep_dir) / "arm" / "manifest.json")
+        units_path = _require(root / deep_manifest["units_file"])
+        pinned = deep_manifest.get("canonical_sha256")
+        source = {}
     digest = hashlib.sha256(units_path.read_bytes()).hexdigest()
-    pinned = source.get("units_sha256") or manifest.get("canonical_sha256")
     if pinned and digest != pinned:
         raise ValueError(
             f"{units_path} hashes {digest[:16]}... but the benchmark was run "
@@ -430,148 +718,123 @@ def load_corpus(
         units.append(entry)
         units_by_id[entry["i"]] = entry
 
-    gold_path = _require(root / source["gold_queries"])
-    gold_raw = _load_json(gold_path)
-    gold = [
-        {
-            "id": q["query_id"],
-            "q": q["question"],
-            "a": q.get("expected_answer"),
-            "ev": q.get("evidence_unit_ids") or [],
-            "pg": q.get("evidence_pages") or [],
-            "ty": q.get("evidence_type"),
-            "df": q.get("difficulty"),
-        }
-        for q in gold_raw["queries"]
-    ]
-
-    arm_kinds = {arm: config["arms"][arm]["kind"] for arm in ARM_ORDER}
-    arms: dict[str, dict] = {}
-    for arm in ARM_ORDER:
-        arm_dir = benchmark_dir / arm
-        for name in REQUIRED_ARM_FILES:
-            _require(arm_dir / name)
-        chunks_raw = _load_jsonl(arm_dir / "chunks.jsonl")
-        mapping = _load_json(arm_dir / "mapping.json")
-
-        chunk_index = {chunk["chunk_id"]: i for i, chunk in enumerate(chunks_raw)}
-        segments: dict[str, list] = {}
-        for row in mapping["chunks"]:
-            target = chunk_index.get(row["chunk_id"])
-            if target is None:
-                continue
-            for seg in row["segments"]:
-                segments.setdefault(seg["unit_id"], []).append(
-                    [target, seg["unit_start"], seg["unit_end"], seg["method"]]
-                )
-        for rows in segments.values():
-            rows.sort(key=lambda r: (r[0], r[1]))
-
-        chunks = [
+    gold: list[dict] = []
+    if source.get("gold_queries"):
+        gold_raw = _load_json(_require(root / source["gold_queries"]))
+        gold = [
             {
-                "id": chunk["chunk_id"],
-                "num": _chunk_number(chunk["chunk_id"]),
-                "n": chunk["token_count"],
-                "pg": chunk.get("pages") or [],
-                "hd": chunk.get("heading"),
-                "hh": html.escape(heading_plain(chunk["heading"]), quote=False)
-                if chunk.get("heading")
-                else None,
-                "sp": chunk.get("section_paths") or [],
-                "sd": _clean_path((chunk.get("section_paths") or [[]])[0]),
-                "st": chunk.get("split_strategies") or [],
-                "u": chunk["unit_ids"],
+                "id": q["query_id"],
+                "q": q["question"],
+                "a": q.get("expected_answer"),
+                "ev": q.get("evidence_unit_ids") or [],
+                "pg": q.get("evidence_pages") or [],
+                "ty": q.get("evidence_type"),
+                "df": q.get("difficulty"),
             }
-            for chunk in chunks_raw
+            for q in gold_raw["queries"]
         ]
-        for index, chunk in enumerate(chunks):
-            chunk["rs"] = _boundary_reason(
-                arm_kinds[arm], chunks, index, units_by_id, segments
+
+    arms: dict[str, dict] = {}
+    arm_kinds: dict[str, str] = {}
+    if benchmark_dir is not None:
+        arm_kinds = {arm: config["arms"][arm]["kind"] for arm in ARM_ORDER}
+        for arm in ARM_ORDER:
+            arms[arm], _rows = _load_arm_dir(
+                benchmark_dir / arm, kind=arm_kinds[arm], units_by_id=units_by_id, require_retrieval=True
             )
 
-        # Continuation links -- the derived relationship layer, computed by
-        # amsc.chunk_relations (single source of truth) over the same frozen
-        # rows. ``cp``/``cn`` carry every same-section link so the detail panel
-        # can name its type; ``g`` (the expansion-chain group) is built from
-        # TOKEN_BUDGET_CONTINUATION links only, because only those are walked
-        # by the local expansion.
-        links = derive_continuations(chunks_raw, kind=arm_kinds[arm])
-        budget_links = [
-            link for link in links
-            if link["relation_type"] == "TOKEN_BUDGET_CONTINUATION"
-        ]
-        groups = continuation_groups(len(chunks_raw), budget_links)
-        forward = {link["from_index"]: link["to_index"] for link in links}
-        backward = {link["to_index"]: link["from_index"] for link in links}
-        relation_in = {link["to_index"]: link["relation_type"] for link in links}
-        for index, chunk in enumerate(chunks):
-            chunk["cp"] = backward.get(index)
-            chunk["cn"] = forward.get(index)
-            chunk["g"] = groups[index]
-            chunk["rt"] = relation_in.get(index)
-
-        queries: dict[str, dict] = {}
-        for row in _load_jsonl(arm_dir / "query-results.jsonl"):
-            queries[row["query_id"]] = {
-                "f": row.get("first_relevant_rank"),
-                "cov": row.get("source_evidence_coverage"),
-                "res": [
-                    {
-                        "r": result["rank"],
-                        "c": chunk_index.get(result["chunk_id"]),
-                        "m": result.get("matched_evidence_unit_ids") or [],
-                        "pg": result.get("pages") or [],
-                        "tk": result.get("token_count"),
-                    }
-                    for result in row.get("results") or []
-                ],
+    budgets = dict(config.get("tokens") or {})
+    deep_meta: dict | None = None
+    story: dict | None = None
+    agentic_meta: dict | None = None
+    if deep_dir is not None:
+        deep_arm, standard_arm, deep_meta, story = _load_deep_arm(Path(deep_dir), digest, units_by_id)
+        arms["agentic"] = deep_arm
+        if "structure-only" not in arms:
+            if standard_arm is None:
+                raise ValueError(f"{deep_dir} carries no standard/ arm and no benchmark tree was given")
+            arms["structure-only"] = standard_arm
+        if not budgets:
+            budgets = {
+                key: deep_meta["config"].get(key)
+                for key in ("min_tokens", "target_tokens", "soft_max_tokens", "hard_max_tokens")
+                if deep_meta["config"].get(key) is not None
             }
+        # The Standard arm gains the symmetric story: which of its cuts Deep
+        # removed or moved, and what that fixed.
+        std_chunks = arms["structure-only"]["chunks"]
+        for index in range(1, len(std_chunks)):
+            previous = std_chunks[index - 1]
+            if previous["u"] and previous["u"][-1] in story["stdChanged"]:
+                std_chunks[index]["dec"] = story["stdChanged"][previous["u"][-1]]
+        for chunk in std_chunks:
+            if chunk["u"]:
+                chunk["si"] = story["sectionOf"].get(_base(chunk["u"][0]))
+    elif agentic_dir is not None:
+        # The fourth arm rides in ``arms`` so every arm-indexed renderer works
+        # unchanged, but it never enters ARM_ORDER: the frozen dashboard
+        # tables and the three-arm difference definition stay untouched, and
+        # a build without an agentic tree is byte-identical to today's.
+        agentic_arm, agentic_meta = _load_agentic_arm(Path(agentic_dir), digest, units_by_id)
+        arms["agentic"] = agentic_arm
 
-        arms[arm] = {
-            "kind": arm_kinds[arm],
-            "chunks": chunks,
-            "m": _membership(chunks_raw),
-            "seg": segments,
-            "q": queries,
-            "ret": _load_json(arm_dir / "retrieval.json"),
-            "sq": _load_json(arm_dir / "structural_quality.json"),
-            "tim": _load_json(arm_dir / "timing.json"),
-            "health": mapping.get("health") or {},
-        }
+    diffs = _difference_points(units, arms) if all(arm in arms for arm in ARM_ORDER) else []
+    deep_diff_pages: list[int] = []
+    if story is not None:
+        deep_diff_pages = sorted(
+            {
+                page
+                for section in story["sections"]
+                if section["st"] != "standard_kept" and section["gr"]
+                for page in section["pg"]
+            }
+        )
 
-    diffs = _difference_points(units, arms)
+    hard_max = int(budgets.get("hard_max_tokens") or 1126)
+    oversized = _oversized_units(units_raw, hard_max)
+    findings = _parser_findings(units_raw)
+    findings_by_unit: dict[str, list[str]] = {}
+    for finding in findings:
+        findings_by_unit.setdefault(finding["t"], []).append(finding["r"])
+    for unit in units:
+        if unit["i"] in oversized:
+            unit["big"] = oversized[unit["i"]]
+        if unit["i"] in findings_by_unit:
+            unit["pf"] = sorted(set(findings_by_unit[unit["i"]]))
 
+    doc_id = (benchmark_dir.name if benchmark_dir is not None else units_raw[0]["document_id"])
     result = {
-        "label": DOC_LABELS.get(benchmark_dir.name, benchmark_dir.name),
+        "label": label or DOC_LABELS.get(doc_id, doc_id),
+        "id": units_raw[0]["document_id"],
+        "kind": "benchmark" if benchmark_dir is not None else "deep-only",
         "units": units,
         "arms": arms,
         "gold": gold,
         "diffs": diffs,
         "diffPages": sorted({point["p"] for point in diffs}),
+        "deepDiffPages": deep_diff_pages,
         "pages": sorted({unit["p"] for unit in units}),
+        "parser": {"count": len(findings), "findings": findings},
         "meta": {
             "diag": summary.get("arm_diagnostics") or {},
             "guard": summary.get("interpretation_guardrail"),
             "etypes": summary.get("evidence_type_hit_at_5") or {},
             "qcomp": summary.get("query_comparison") or {},
-            "parserFindings": summary.get("parser_baseline_finding_count"),
+            "parserFindings": summary.get("parser_baseline_finding_count", len(findings)),
             "secondary": summary.get("secondary_gold"),
             "timing": summary.get("timing") or {},
-            "budgets": config.get("tokens") or {},
-            "canonicalSha": manifest.get("canonical_sha256"),
-            "status": summary.get("status"),
+            "budgets": budgets,
+            "canonicalSha": manifest.get("canonical_sha256") or digest,
+            "status": summary.get("status") or ("deep_analysis_run" if deep_dir else None),
             "queryCount": summary.get("query_count") or len(gold),
+            "unitCount": len(units),
+            "pageCount": len({unit["p"] for unit in units}),
+            "deep": deep_meta,
         },
     }
-    if agentic_dir is not None:
-        # The fourth arm rides in ``arms`` so every arm-indexed renderer works
-        # unchanged, but it never enters ARM_ORDER: the frozen dashboard
-        # tables and the three-arm difference definition stay untouched, and
-        # a build without an agentic tree is byte-identical to today's.
-        agentic_arm, agentic_meta = _load_agentic_arm(
-            Path(agentic_dir), digest, units_by_id
-        )
-        result["arms"]["agentic"] = agentic_arm
+    if story is not None:
+        result["story"] = story
+    if agentic_meta is not None:
         result["agenticMeta"] = agentic_meta
     return result
 
@@ -611,21 +874,95 @@ def _difference_points(units: Sequence[dict], arms: Mapping[str, dict]) -> list[
 # --------------------------------------------------------------------------
 
 
+def _relative(path: Path, root: Path) -> str:
+    try:
+        return Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
+    except ValueError:
+        return Path(path).as_posix()
+
+
+def _catalog(
+    docs: Mapping[str, dict],
+    benchmarks: Mapping[str, Path],
+    deep: Mapping[str, Path],
+    agentic: Mapping[str, Path],
+    root: Path,
+) -> dict:
+    """What the chat server serves: exactly the arms the HTML shows."""
+    documents: dict[str, dict] = {}
+    for doc, data in docs.items():
+        arms: dict[str, dict] = {}
+        if doc in benchmarks:
+            config = _load_json(Path(benchmarks[doc]) / "resolved-config.json")
+            units = config["source"]["units"]
+            for arm in ARM_ORDER:
+                arms[arm] = {
+                    "kind": data["arms"][arm]["kind"],
+                    "label": ARM_LABELS[arm],
+                    "chunks": _relative(Path(benchmarks[doc]) / arm / "chunks.jsonl", root),
+                }
+        else:
+            units = _load_json(Path(deep[doc]) / "arm" / "manifest.json")["units_file"]
+            arms["structure-only"] = {
+                "kind": "structure_first",
+                "label": ARM_LABELS["structure-only"],
+                "chunks": _relative(Path(deep[doc]) / "standard" / "chunks.jsonl", root),
+            }
+        if doc in deep:
+            arms["agentic"] = {
+                "kind": "deep_analysis",
+                "label": ARM_LABELS["agentic"],
+                "chunks": _relative(Path(deep[doc]) / "arm" / "chunks.jsonl", root),
+            }
+        elif doc in agentic:
+            arms["agentic"] = {
+                "kind": "agentic_structure_llm",
+                "label": ARM_LABELS["agentic"],
+                "chunks": _relative(Path(agentic[doc]) / "agentic" / "chunks.jsonl", root),
+            }
+        documents[doc] = {
+            "label": data["label"],
+            "units": units if isinstance(units, str) else str(units),
+            "canonical_sha256": data["meta"]["canonicalSha"],
+            "arms": arms,
+        }
+    # The build inputs, so the published page can be rebuilt from its own
+    # catalog and held byte-identical to a fresh build.
+    build = {
+        "benchmarks": {doc: _relative(path, root) for doc, path in benchmarks.items()},
+        "deep": {doc: _relative(path, root) for doc, path in deep.items()},
+        "agentic": {doc: _relative(path, root) for doc, path in agentic.items()},
+        "labels": {doc: data["label"] for doc, data in docs.items()},
+        "document_order": list(docs),
+    }
+    return {"generator": "amsc.viewer_v2", "documents": documents, "build": build}
+
+
 def build_viewer(
     benchmarks: Mapping[str, Path],
     output: Path,
     root: Path = Path("."),
     agentic: Mapping[str, Path] | None = None,
+    deep: Mapping[str, Path] | None = None,
+    labels: Mapping[str, str] | None = None,
+    write_catalog: bool = True,
 ) -> Path:
-    """Build the single-file viewer for the given benchmark trees.
+    """Build the single-file viewer for the given trees.
 
-    ``agentic`` optionally maps a document id to an ``amsc.agentic_chunker``
-    tree; that document gains the fourth arm. Without it the output is
-    byte-identical to a three-arm build.
+    ``benchmarks`` maps a document id to a frozen chunk-benchmark tree;
+    ``deep`` maps a document id to a packaged Deep Analysis tree (a document
+    may appear only there); ``agentic`` maps a document id to the earlier
+    research tree. Without ``deep``/``agentic`` the output is byte-identical
+    to a three-arm build.
     """
-    if not benchmarks:
-        raise ValueError("at least one benchmark tree is required")
     agentic = dict(agentic or {})
+    deep = dict(deep or {})
+    labels = dict(labels or {})
+    # Benchmark-backed documents first, in the order given, then the
+    # deep-only ones: the page opens on the richest document.
+    documents = list(benchmarks) + [doc for doc in deep if doc not in benchmarks]
+    if not documents:
+        raise ValueError("at least one benchmark tree or packaged deep tree is required")
     unknown = sorted(set(agentic) - set(benchmarks))
     if unknown:
         raise ValueError(
@@ -638,1050 +975,112 @@ def build_viewer(
 
     docs = {
         doc: load_corpus(
-            Path(directory),
+            Path(benchmarks[doc]) if doc in benchmarks else None,
             Path(root),
             agentic_dir=agentic.get(doc),
+            deep_dir=deep.get(doc),
+            label=labels.get(doc),
         )
-        for doc, directory in sorted(benchmarks.items())
+        for doc in documents
     }
     data = {
         "docs": docs,
+        "docOrder": documents,
         "armOrder": list(ARM_ORDER),
         "armLabels": ARM_LABELS,
+        "productArmOrder": list(PRODUCT_ARM_ORDER),
+        "price": {**REFERENCE_PRICE_PER_M, "note": "list prices observed 2026-08-29; approximate"},
         "generator": "amsc.viewer_v2",
     }
     payload = json.dumps(
         data, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).replace("</", "<\\/")
 
-    document = _TEMPLATE.replace("__VIEWER_DATA__", payload)
+    document = TEMPLATE.replace("__VIEWER_DATA__", payload)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(document, encoding="utf-8", newline="\n")
+    if write_catalog:
+        catalog = _catalog(docs, benchmarks, deep, agentic, Path(root))
+        (output.parent / "catalog.json").write_text(
+            json.dumps(catalog, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
     return output
+
+
+def _parse_specs(parser: argparse.ArgumentParser, specs: Sequence[str], flag: str) -> dict[str, Path]:
+    out: dict[str, Path] = {}
+    for spec in specs:
+        doc, _, directory = spec.partition("=")
+        if not directory:
+            parser.error(f"{flag} expects DOC=DIR, got {spec!r}")
+        out[doc] = Path(directory)
+    return out
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m amsc.viewer_v2",
         description=(
-            "Build the self-contained Viewer v2 HTML from completed "
-            "chunk-benchmark output trees"
+            "Build the self-contained Viewer v2 HTML (Sunum / Sorgu / Debug / "
+            "Benchmark) from completed artifact trees"
         ),
     )
     parser.add_argument(
         "--benchmark",
         action="append",
-        required=True,
+        default=[],
         metavar="DOC=DIR",
-        help="document id and its benchmark output tree, e.g. "
+        help="document id and its frozen chunk-benchmark tree, e.g. "
         "kkb-2024=artifacts/chunk-benchmark-v5/kkb-2024 (repeatable)",
+    )
+    parser.add_argument(
+        "--deep",
+        action="append",
+        default=[],
+        metavar="DOC=DIR",
+        help="packaged Deep Analysis tree for a document, e.g. "
+        "kkb-2024=artifacts/deep-analysis/kkb-2024-final (repeatable)",
     )
     parser.add_argument(
         "--agentic",
         action="append",
         default=[],
         metavar="DOC=DIR",
-        help="optional agentic-chunker tree for a document, e.g. "
-        "kkb-2024=artifacts/agentic-chunker/kkb-2024 (repeatable)",
+        help="earlier agentic-chunker research tree for a document (repeatable)",
+    )
+    parser.add_argument(
+        "--label",
+        action="append",
+        default=[],
+        metavar="DOC=LABEL",
+        help="display label for a document (repeatable)",
     )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--root", type=Path, default=Path("."))
+    parser.add_argument("--no-catalog", action="store_true", help="do not write catalog.json")
     args = parser.parse_args(argv)
 
-    benchmarks: dict[str, Path] = {}
-    for spec in args.benchmark:
-        doc, _, directory = spec.partition("=")
-        if not directory:
-            parser.error(f"--benchmark expects DOC=DIR, got {spec!r}")
-        benchmarks[doc] = Path(directory)
-    agentic: dict[str, Path] = {}
-    for spec in args.agentic:
-        doc, _, directory = spec.partition("=")
-        if not directory:
-            parser.error(f"--agentic expects DOC=DIR, got {spec!r}")
-        agentic[doc] = Path(directory)
+    benchmarks = _parse_specs(parser, args.benchmark, "--benchmark")
+    deep = _parse_specs(parser, args.deep, "--deep")
+    agentic = _parse_specs(parser, args.agentic, "--agentic")
+    labels: dict[str, str] = {}
+    for spec in args.label:
+        doc, _, text = spec.partition("=")
+        if not text:
+            parser.error(f"--label expects DOC=LABEL, got {spec!r}")
+        labels[doc] = text
+    if not benchmarks and not deep:
+        parser.error("at least one --benchmark or --deep is required")
 
     destination = build_viewer(
-        benchmarks, args.output, root=args.root, agentic=agentic
+        benchmarks, args.output, root=args.root, agentic=agentic, deep=deep,
+        labels=labels, write_catalog=not args.no_catalog,
     )
-    print(json.dumps({"output": str(destination), "documents": sorted(benchmarks)}))
+    documents = list(benchmarks) + [doc for doc in deep if doc not in benchmarks]
+    print(json.dumps({"output": str(destination), "documents": documents}))
     return 0
-
-
-# --------------------------------------------------------------------------
-# template
-# --------------------------------------------------------------------------
-
-_TEMPLATE = r"""<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="utf-8">
-<title>AMSC Chunking Viewer v2</title>
-<style>
-:root{
-  --paper:#fbfaf7; --panel:#ffffff; --ink:#22262b; --muted:#6b7280;
-  --line:#e4e2dc; --accent:#2757ad; --accent-soft:#e8eefb;
-  --good:#1a7f37; --warn:#b45309; --bad:#b42318;
-  --tintA:#f2f6fd; --tintB:#faf4ea; --mark:#fff3b0;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--paper);color:var(--ink);
-  font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif}
-button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-select{font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
-.topbar{position:sticky;top:0;z-index:40;background:var(--panel);
-  border-bottom:1px solid var(--line);padding:10px 22px;
-  display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-.brand{font-weight:600;letter-spacing:.2px}
-.brand small{color:var(--muted);font-weight:400;margin-left:8px}
-.tabs{display:flex;gap:4px;background:#f0efe9;border-radius:9px;padding:3px}
-.tabs button{padding:6px 16px;border-radius:7px;color:var(--muted);font-weight:500}
-.tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.seg{display:flex;gap:4px;background:#f0efe9;border-radius:9px;padding:3px}
-.seg button{padding:5px 13px;border-radius:7px;color:var(--muted)}
-.seg button.on{background:var(--accent);color:#fff}
-.bar-right{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.filterseg button.on{background:#3d3f43;color:#fff}
-.diffnav button{border:1px solid var(--line);border-radius:6px;padding:4px 10px;background:#fff}
-.diffnav button:disabled{opacity:.4;cursor:default}
-.diffcount{color:var(--muted);font-size:13px}
-main{max-width:1720px;margin:0 auto;padding:22px}
-.hidden{display:none!important}
-
-/* ---- presentation ---- */
-.pres-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:22px}
-.docpage{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-  padding:38px 46px;font-family:Georgia,"Times New Roman",serif;font-size:16px}
-.docpage .pagehead{font-family:"Segoe UI",system-ui,sans-serif;color:var(--muted);
-  font-size:13px;margin-bottom:18px;display:flex;justify-content:space-between}
-.chunkline{display:flex;align-items:center;gap:10px;margin:20px 0 12px;
-  font-family:"Segoe UI",system-ui,sans-serif}
-.chunkline .rule{flex:1;border-top:3px solid var(--accent);opacity:.5}
-.chunkline.tech .rule{border-top:2px dashed #c9a24b;opacity:.75}
-.chunkline .kind{font-size:11.5px;font-weight:700;letter-spacing:.6px;color:var(--accent);
-  text-transform:uppercase;white-space:nowrap}
-.chunkline.tech .kind{color:#8a5a09}
-.chunkpill{background:var(--accent-soft);color:var(--accent);border:1px solid #c8d8f2;
-  border-radius:999px;padding:3px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
-.chunkline.tech .chunkpill{background:#fdf6e7;color:#8a5a09;border-color:#ecd9ab}
-.chunkpill .why{font-weight:400;color:#41537a}
-.chunkline.tech .chunkpill .why{color:#8a6a2f}
-.u.contedge{border-left:3px solid #e4c988}
-.u.expmember{border-left:3px solid #c9861b;background:#fdf6e7}
-.conttoggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
-.modehint{font-size:12px;color:var(--muted);width:100%;padding-left:2px}
-.seg button small{display:block;font-size:10.5px;font-weight:400;line-height:1.1;opacity:.75}
-.detail-links button{color:var(--accent);text-decoration:underline;padding:0;font-size:13px}
-.diffbadge{background:#fdecc8;color:var(--warn);border:1px solid #f2d9a4;border-radius:999px;
-  padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
-.diffbadge .glyphs{font-weight:400;margin-left:6px}
-.u{padding:2px 10px;border-left:3px solid transparent;border-radius:4px}
-.u.tintA{background:var(--tintA)}
-.u.tintB{background:var(--tintB)}
-.u.evflash{outline:3px solid var(--warn);outline-offset:2px}
-.u h1,.u h2,.u h3,.u h4,.u h5,.u h6{font-family:"Segoe UI",system-ui,sans-serif;
-  line-height:1.3;margin:14px 0 6px}
-.u h1{font-size:24px}.u h2{font-size:21px}.u h3{font-size:18px}
-.u h4{font-size:16px}.u h5{font-size:15px}.u h6{font-size:14px;color:#3c4046}
-.u p{margin:7px 0}
-.u ul{margin:7px 0 7px 22px}
-.u li{margin:3px 0}
-.tblwrap{overflow-x:auto;margin:10px 0}
-.tblwrap table{border-collapse:collapse;font-size:13.5px;font-family:"Segoe UI",system-ui,sans-serif}
-.tblwrap th,.tblwrap td{border:1px solid var(--line);padding:4px 9px;text-align:left}
-.tblwrap th{background:#f4f3ee}
-.sidecard{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-  padding:18px;position:sticky;top:74px;max-height:calc(100vh - 96px);overflow:auto}
-.sidecard h3{font-size:15px;margin-bottom:10px}
-.sidecard .kv{display:grid;grid-template-columns:96px 1fr;gap:5px 10px;font-size:13.5px}
-.sidecard .kv dt{color:var(--muted)}
-.sidecard .empty{color:var(--muted);font-size:13.5px}
-.reason-sent{margin-top:12px;padding:10px 12px;background:#f6f5f0;border-radius:8px;font-size:13.5px}
-.arminfo{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;
-  font-size:12.5px;color:var(--muted)}
-
-/* ---- query ---- */
-.qhead{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin-bottom:18px}
-.qhead .qq{font-size:19px;font-weight:600;margin-bottom:6px}
-.qhead .qa{color:#374151;margin-bottom:10px}
-.qhead .qmeta{color:var(--muted);font-size:13px;margin-bottom:10px}
-.evbox{border-left:3px solid var(--warn);background:#fdf9ef;padding:10px 14px;border-radius:0 8px 8px 0;
-  font-family:Georgia,serif;font-size:14.5px;max-height:210px;overflow:auto}
-.evbox .evlabel{font-family:"Segoe UI",system-ui,sans-serif;font-size:12px;color:var(--warn);
-  font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
-.qcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.qcol{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
-.qcol .armname{font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 11px;font-size:13px;font-weight:600}
-.status.ok{background:#e8f5ec;color:var(--good)}
-.status.mid{background:#fdf3e2;color:var(--warn)}
-.status.miss{background:#fbeae7;color:var(--bad)}
-.qcol .covline{color:var(--muted);font-size:12.5px;margin-bottom:10px}
-.rchunk{border:1px solid var(--line);border-radius:9px;padding:12px;font-family:Georgia,serif;
-  font-size:14px;max-height:330px;overflow:auto}
-.rchunk mark{background:var(--mark);padding:0 2px;border-radius:2px}
-.rchunk .rhead{font-family:"Segoe UI",system-ui,sans-serif;font-size:12.5px;color:var(--muted);margin-bottom:8px}
-.rchunk .piece{margin:6px 0}
-.top5{margin-top:12px}
-.top5 summary{cursor:pointer;color:var(--accent);font-size:13.5px}
-.top5 .row{display:flex;gap:8px;align-items:baseline;padding:6px 4px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
-.top5 .row .rk{font-weight:600;min-width:44px}
-.top5 .row .mt{color:var(--good)}
-.qlink{margin-top:10px;font-size:13px}
-.qlink button{color:var(--accent);text-decoration:underline;padding:0}
-.llmslot{margin-top:18px;border:1px dashed var(--line);border-radius:12px;padding:14px 18px;
-  color:var(--muted);font-size:13px;background:#fcfbf8}
-
-/* ---- debug ---- */
-.dbg{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px}
-.dbgunit{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;cursor:pointer}
-.dbgunit.sel{outline:2px solid var(--accent)}
-.dbgunit .head{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
-.chip{font:12px/1.4 Consolas,monospace;background:#f0efe9;border-radius:5px;padding:1px 8px}
-.chip.role{background:#e6e0f3}
-.chip.opens{background:#dcefe2}
-.chip.noopen{background:#f6e3e0}
-.dbgunit .path{font-size:12px;color:var(--muted);margin-bottom:6px;font-family:Consolas,monospace;word-break:break-all}
-.dbgunit .txt{font-size:13px;color:#374151;white-space:pre-wrap;max-height:80px;overflow:hidden}
-.dbgtable{width:100%;border-collapse:collapse;font:12px Consolas,monospace;margin-top:8px}
-.dbgtable th,.dbgtable td{border:1px solid var(--line);padding:2px 7px;text-align:left}
-.dbgtable th{background:#f4f3ee;font-family:"Segoe UI",system-ui,sans-serif}
-.inspector{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;
-  position:sticky;top:74px;max-height:calc(100vh - 96px);overflow:auto;font-size:13px}
-.inspector pre{white-space:pre-wrap;font:12.5px Consolas,monospace;background:#f6f5f0;
-  border-radius:8px;padding:10px;margin-top:8px;max-height:280px;overflow:auto}
-
-/* ---- benchmark ---- */
-.bench h2{margin:26px 0 10px;font-size:18px}
-.bench .note{color:var(--muted);font-size:13px;max-width:900px}
-.guard{border-left:3px solid var(--accent);background:var(--accent-soft);
-  padding:10px 16px;border-radius:0 8px 8px 0;font-size:13.5px;margin:12px 0 4px;max-width:900px}
-.cards{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 20px;min-width:150px}
-.card .v{font-size:23px;font-weight:600;font-variant-numeric:tabular-nums}
-.card .k{color:var(--muted);font-size:12.5px}
-.btable{border-collapse:collapse;background:var(--panel);border-radius:10px;overflow:hidden;
-  font-variant-numeric:tabular-nums;margin-top:8px}
-.btable th,.btable td{border:1px solid var(--line);padding:7px 16px;text-align:right;font-size:14px}
-.btable th:first-child,.btable td:first-child{text-align:left}
-.btable th{background:#f4f3ee;font-weight:600}
-.btable td.best{font-weight:700;color:var(--accent)}
-.btable td.best::after{content:" \25CF";font-size:9px;vertical-align:2px}
-.legend{color:var(--muted);font-size:12.5px;margin-top:6px}
-.pairlists{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
-.pairlists .pl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px}
-.pairlists .pl b{font-weight:600}
-.qidchip{font-family:Consolas,monospace;background:#f0efe9;border-radius:4px;padding:0 6px;font-size:12px;cursor:pointer}
-details.secgold{margin-top:14px}
-details.secgold summary{cursor:pointer;color:var(--accent)}
-footer{color:var(--muted);font-size:12px;padding:26px 22px;text-align:center}
-</style>
-</head>
-<body>
-<div class="topbar">
-  <span class="brand">AMSC Chunking<small>Viewer v2</small></span>
-  <select id="docsel" title="Doküman"></select>
-  <div class="tabs" id="modetabs">
-    <button data-mode="presentation">Sunum</button>
-    <button data-mode="query">Sorgu</button>
-    <button data-mode="debug">Debug</button>
-    <button data-mode="benchmark">Benchmark</button>
-  </div>
-  <div class="seg" id="armseg"></div>
-  <div class="bar-right">
-    <span id="pagectl">
-      Sayfa <select id="pagesel"></select>
-    </span>
-    <span class="seg filterseg" id="filterseg">
-      <button data-f="all">Tümü</button>
-      <button data-f="diff">Yalnız farklar</button>
-    </span>
-    <span class="diffnav" id="diffnav">
-      <button id="prevdiff">&#8592; Önceki fark</button>
-      <button id="nextdiff">Sonraki fark &#8594;</button>
-      <span class="diffcount" id="diffcount"></span>
-    </span>
-    <label class="conttoggle" id="conttoggle" title="Retrieval sonrası birlikte taşınabilecek devam chunk'larını görselleştirir; benchmark sonucunu değiştirmez">
-      <input type="checkbox" id="contchk"> Devam zinciri (local expansion)
-    </label>
-  </div>
-  <div class="modehint hidden" id="modehint"></div>
-</div>
-<main>
-  <div id="view-presentation" class="pres-layout" data-mode="presentation">
-    <div id="prespage"></div>
-    <aside class="sidecard" id="presdetail"></aside>
-  </div>
-  <div id="view-query" class="hidden" data-mode="query">
-    <div style="margin-bottom:14px">
-      Gold sorgu:
-      <select id="querysel" style="max-width:900px"></select>
-    </div>
-    <div id="queryhead"></div>
-    <div class="qcols" id="querycols"></div>
-    <div class="llmslot" id="llmslot">
-      LLM cevap karşılaştırması — gelecek aşama için ayrılmış alan. Bu turda üretim yok.
-    </div>
-  </div>
-  <div id="view-debug" class="dbg hidden" data-mode="debug">
-    <div id="dbglist"></div>
-    <aside class="inspector" id="inspector"></aside>
-  </div>
-  <div id="view-benchmark" class="bench hidden" data-mode="benchmark"></div>
-</main>
-<footer id="foot"></footer>
-<script id="viewer-data" type="application/json">__VIEWER_DATA__</script>
-<script>
-"use strict";
-const DATA = JSON.parse(document.getElementById("viewer-data").textContent);
-const ARMS = DATA.armOrder;
-const ARM_LABEL = DATA.armLabels;
-
-const REASONS = {
-  doc_start:   {label:"Doküman başlangıcı",
-                sent:"Bu, dokümanın ilk chunk'ı."},
-  new_section: {label:"Yeni bölüm başladı",
-                sent:"Bir önceki chunk'ın bölümü kapandı; bu chunk yeni bir bölüm başlığıyla açılıyor."},
-  label_split: {label:"Ara başlıkta bölündü",
-                sent:"Aynı bölümün içinde, okuyucunun zaten duraksadığı bir ara başlıkta kesildi."},
-  budget_split:{label:"Token bütçesi doldu",
-                sent:"Bölüm hedef token bütçesini aştığı için bölündü; bölüm başlığı iki parçada da korunuyor."},
-  md_size:     {label:"Boyut tabanlı kesim",
-                sent:"Markdown yöntemi bölüm yapısına bakmaz; hedef boyuta ulaşıldığında keser."},
-  md_overlap:  {label:"Boyut tabanlı kesim + örtüşme",
-                sent:"Hedef boyuta ulaşıldı; önceki chunk'ın kuyruğu örtüşme (overlap) olarak bu chunk'a taşındı."},
-  md_heading:  {label:"Başlık sınırında kesim",
-                sent:"Kesim, markdown ayracının denk geldiği bir başlık sınırında gerçekleşti."}
-};
-
-// Continuation connector text, per boundary reason. Shown only when the
-// boundary carries a TOKEN_BUDGET_CONTINUATION link (same section, adjacent).
-const CONT_LABELS = {
-  budget_split: "Önceki chunk'ın devamı — boyut sınırı nedeniyle ayrıldı",
-  label_split:  "Önceki chunk'ın devamı — ara başlıkta bölündü",
-  md_size:      "Önceki chunk'ın devamı — boyut sınırı nedeniyle ayrıldı",
-  md_overlap:   "Önceki chunk'ın devamı — boyut sınırı (kuyruk örtüşme olarak taşındı)",
-  md_heading:   "Önceki chunk'ın devamı — başlık sınırında kesildi"
-};
-
-// Presentation-mode naming. Standard is the product's fast mode; the
-// embedding-assisted hybrid stays visible as a research arm, NOT a product
-// mode -- the product's Deep Analysis (Structure + LLM-assisted chunking)
-// runs a backend LLM boundary judge and has no measured data in this run.
-const MODE_NAMES = {
-  "structure-only": {top:"Standard", sub:"Structure-only · hızlı ve deterministic"},
-  "hybrid":         {top:"Hybrid", sub:"embedding-assisted · araştırma kolu"},
-  "markdown":       {top:"Markdown", sub:"baseline"},
-  "agentic":        {top:"Agentic Chunker", sub:"Structure + LLM · ayrı koşu"}
-};
-const MODE_ARM_ORDER = ["structure-only", "hybrid", "markdown"];
-// The fourth arm exists only for documents whose build carried an
-// agentic-chunker tree; the frozen three-arm order above never changes.
-const armLabel = a => ARM_LABEL[a] || (MODE_NAMES[a] && MODE_NAMES[a].top) || a;
-const hasAgentic = () => Boolean(D().arms.agentic);
-const armsList = () => hasAgentic() ? ARMS.concat(["agentic"]) : ARMS;
-const presArms = () => hasAgentic() ? MODE_ARM_ORDER.concat(["agentic"]) : MODE_ARM_ORDER;
-
-const MODE_HINTS = {
-  "structure-only": "Standard — Structure-only: hızlı ve deterministic. Ürünün " +
-    "Deep Analysis modu (Structure + LLM-assisted chunking) önemli dokümanlarda " +
-    "zor chunk sınırlarını backend'de LLM ile değerlendirir; yalnız ingest " +
-    "sırasında çalışır, retrieval'a ve cevaba karışmaz. Bu koşuda Deep Analysis " +
-    "verisi yoktur.",
-  "hybrid": "Hybrid — embedding-assisted araştırma kolu (ürün modu değildir): " +
-    "bütçeyi aşan bir bölümde kural birden fazla geçerli kesim adayı " +
-    "bıraktığında, kesim yeri semantik benzerlikle seçilir (H1 arbitration). " +
-    "Bir güven/belirsizlik dedektörü değildir.",
-  "markdown": null,
-  "agentic": "Agentic Chunker — Structure + LLM: yapısal kural aday sınırları " +
-    "belirler, generative model her adaya SPLIT/KEEP oyu verir; son seçim, " +
-    "fallback ve token limitleri deterministic kuralda kalır. Ayrı ve " +
-    "model-bağımlı bir koşudur; frozen üç kolun benchmark karşılaştırmasına " +
-    "dahil değildir, kazanan ilan edilmez."
-};
-
-const state = {
-  doc: Object.keys(DATA.docs)[0],
-  mode: "presentation",
-  arm: ARMS[2] || ARMS[0],
-  page: null,
-  filter: "all",
-  diffIdx: -1,
-  query: null,
-  selChunk: null,
-  selUnit: null,
-  contShow: false
-};
-
-const D = () => DATA.docs[state.doc];
-const A = () => D().arms[state.arm];
-const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-
-function unitById(id){ return D()._byId[id]; }
-function indexDocs(){
-  for (const doc of Object.values(DATA.docs)) {
-    doc._byId = {};
-    doc.units.forEach(u => { doc._byId[u.i] = u; });
-    doc._diffKey = new Set(doc.diffs.map(d => d.a + "|" + d.b));
-  }
-}
-indexDocs();
-
-/* -------- unit rendering (presentation-grade) -------- */
-function unitHtml(u){
-  if (u.h !== 0 && u.h !== null && u.h !== undefined) {
-    if (u.t === "heading") {
-      const lvl = Math.min(Math.max(u.l || 3, 1), 6);
-      return "<h" + lvl + ">" + u.h + "</h" + lvl + ">";
-    }
-    if (u.t === "table" || u.t === "list") return u.h;
-    return "<p>" + u.h + "</p>";
-  }
-  if (u.t === "heading") {
-    const lvl = Math.min(Math.max(u.l || 3, 1), 6);
-    return "<h" + lvl + ">" + esc(u.x) + "</h" + lvl + ">";
-  }
-  return "<p>" + esc(u.x) + "</p>";
-}
-
-/* -------- top bar -------- */
-function initBar(){
-  const docsel = $("docsel");
-  docsel.innerHTML = Object.entries(DATA.docs)
-    .map(([id, doc]) => `<option value="${id}">${esc(doc.label)}</option>`).join("");
-  docsel.value = state.doc;
-  docsel.onchange = () => { state.doc = docsel.value; state.page = null;
-    state.query = null; state.selChunk = null; state.selUnit = null; state.diffIdx = -1;
-    if (!D().arms[state.arm]) state.arm = ARMS[2] || ARMS[0];
-    render(); };
-
-  $("modetabs").querySelectorAll("button").forEach(b => {
-    b.onclick = () => { state.mode = b.dataset.mode; render(); };
-  });
-  $("contchk").onchange = () => { state.contShow = $("contchk").checked; render(); };
-  $("filterseg").querySelectorAll("button").forEach(b => {
-    b.onclick = () => { state.filter = b.dataset.f; state.diffIdx = -1; syncPage(); render(); };
-  });
-  $("prevdiff").onclick = () => stepDiff(-1);
-  $("nextdiff").onclick = () => stepDiff(1);
-}
-
-function pageList(){
-  return state.filter === "diff" && D().diffPages.length ? D().diffPages : D().pages;
-}
-function syncPage(){
-  const pages = pageList();
-  if (!pages.includes(state.page)) state.page = pages[0];
-}
-function stepDiff(delta){
-  const diffs = D().diffs;
-  if (!diffs.length) return;
-  state.diffIdx = (state.diffIdx + delta + diffs.length) % diffs.length;
-  const point = diffs[state.diffIdx];
-  state.filter = "diff";
-  state.page = point.p;
-  state.mode = "presentation";
-  render();
-  const el = document.querySelector(`[data-diff="${point.a}|${point.b}"]`);
-  if (el) { el.scrollIntoView({block:"center"}); el.style.boxShadow = "0 0 0 3px #f2d9a4"; }
-}
-
-function renderArmSeg(){
-  const seg = $("armseg");
-  if (state.mode === "presentation") {
-    seg.innerHTML = presArms().map(a => {
-      const naming = MODE_NAMES[a] || {top: armLabel(a), sub: ""};
-      return `<button data-arm="${a}">${esc(naming.top)}<small>${esc(naming.sub)}</small></button>`;
-    }).join("");
-  } else {
-    seg.innerHTML = armsList().map(a =>
-      `<button data-arm="${a}">${esc(armLabel(a))}</button>`).join("");
-  }
-  seg.querySelectorAll("button").forEach(b => {
-    b.onclick = () => { state.arm = b.dataset.arm; state.selChunk = null; render(); };
-  });
-}
-
-function syncBar(){
-  $("modetabs").querySelectorAll("button").forEach(b =>
-    b.classList.toggle("on", b.dataset.mode === state.mode));
-  renderArmSeg();
-  $("armseg").querySelectorAll("button").forEach(b =>
-    b.classList.toggle("on", b.dataset.arm === state.arm));
-  $("filterseg").querySelectorAll("button").forEach(b =>
-    b.classList.toggle("on", b.dataset.f === state.filter));
-  const inPage = state.mode === "presentation" || state.mode === "debug";
-  $("pagectl").style.display = inPage ? "" : "none";
-  $("armseg").style.display = (state.mode === "benchmark" || state.mode === "query") ? "none" : "";
-  $("filterseg").style.display = state.mode === "presentation" ? "" : "none";
-  $("diffnav").style.display = state.mode === "presentation" ? "" : "none";
-  $("conttoggle").style.display = state.mode === "presentation" ? "" : "none";
-  $("contchk").checked = state.contShow;
-  const hint = state.mode === "presentation" ? MODE_HINTS[state.arm] : null;
-  $("modehint").textContent = hint || "";
-  $("modehint").classList.toggle("hidden", !hint);
-  if (inPage) {
-    syncPage();
-    const sel = $("pagesel");
-    sel.innerHTML = pageList().map(p => `<option value="${p}">${p}</option>`).join("");
-    sel.value = state.page;
-    sel.onchange = () => { state.page = Number(sel.value); render(); };
-  }
-  const diffs = D().diffs;
-  $("diffcount").textContent = diffs.length
-    ? (state.diffIdx >= 0 ? (state.diffIdx + 1) + " / " : "") + diffs.length + " fark noktası"
-    : "fark yok";
-  $("prevdiff").disabled = $("nextdiff").disabled = !diffs.length;
-}
-
-/* -------- presentation -------- */
-function pageUnits(page){ return D().units.filter(u => u.p === page); }
-
-function boundaryPositions(units, arm){
-  // Boundary sits before the first unit of a new chunk; consecutive unmapped
-  // units (headings the arm keeps out of unit_ids) attach to the chunk below.
-  const m = D().arms[arm].m;
-  const marks = new Array(units.length).fill(null);
-  let previous;
-  for (let k = 0; k < units.length; k++) {
-    const at = m[units[k].i];
-    if (at === undefined) continue;
-    if (at !== previous) {
-      let pos = k;
-      while (pos > 0 && m[units[pos - 1].i] === undefined) pos--;
-      marks[pos] = at;
-      previous = at;
-    }
-  }
-  return marks;
-}
-
-function renderPresentation(){
-  const units = pageUnits(state.page);
-  const arm = state.arm, armData = A();
-  const marks = boundaryPositions(units, arm);
-  const m = armData.m;
-  const diffKey = D()._diffKey;
-  const diffByRight = {};
-  D().diffs.forEach(d => { diffByRight[d.b] = d; });
-
-  const expansion = state.contShow && state.selChunk !== null
-    ? simulateExpansion(armData, state.selChunk) : null;
-  const expMembers = expansion ? new Set(expansion.members) : null;
-
-  let htmlOut = `<div class="docpage"><div class="pagehead">` +
-    `<span>${esc(D().label)} — sayfa ${state.page}</span>` +
-    `<span>${esc(armLabel(arm))}</span></div>`;
-  let tint = 0;
-  for (let k = 0; k < units.length; k++) {
-    const u = units[k];
-    if (marks[k] !== null) {
-      const chunk = armData.chunks[marks[k]];
-      const isCont = chunk.cp !== null && chunk.cp !== undefined;
-      const why = isCont
-        ? (CONT_LABELS[chunk.rs] || "Önceki chunk'ın devamı")
-        : (REASONS[chunk.rs] || {label: chunk.rs}).label;
-      const kindText = isCont ? "· · · teknik sınır — içerik devam ediyor · · ·" : "yeni bölüm";
-      tint = marks[k] % 2;
-      htmlOut += `<div class="chunkline ${isCont ? "tech" : "struct"}">` +
-        `<span class="kind">${kindText}</span>` +
-        `<span class="chunkpill" data-chunk="${marks[k]}">` +
-        `Chunk ${chunk.num} · ${chunk.n} token · <span class="why">${esc(why)}</span>` +
-        (state.contShow && chunk.rt === "TOKEN_BUDGET_CONTINUATION" ? " ⟡" : "") + `</span>` +
-        `<span class="rule"></span>`;
-      const d = diffByRight[u.i];
-      if (state.filter === "diff" && d && diffKey.has(d.a + "|" + d.b)) {
-        const glyphs = ARMS.map(a =>
-          ARM_LABEL[a][0] + ":" + (d.s[a] ? "✂" : "—")).join(" ");
-        htmlOut += `<span class="diffbadge" data-diff="${d.a}|${d.b}">FARK` +
-          `<span class="glyphs">${glyphs}</span></span>`;
-      }
-      htmlOut += `</div>`;
-    }
-    const at = m[u.i];
-    let cls = at === undefined ? "" : (at % 2 === 0 ? "tintA" : "tintB");
-    if (at !== undefined && state.contShow) {
-      const chunk = armData.chunks[at];
-      if (expMembers && expMembers.has(at)) cls += " expmember";
-      else if (chunk.g !== null && chunk.g !== undefined) cls += " contedge";
-    }
-    htmlOut += `<div class="u ${cls}" data-uid="${u.i}"` +
-      (at !== undefined ? ` data-uchunk="${at}"` : "") + `>` + unitHtml(u) + `</div>`;
-  }
-  htmlOut += "</div>";
-  $("prespage").innerHTML = htmlOut;
-
-  $("prespage").querySelectorAll(".chunkpill").forEach(el => {
-    el.onclick = () => { state.selChunk = Number(el.dataset.chunk); renderPresDetail(); };
-  });
-  $("prespage").querySelectorAll(".u[data-uchunk]").forEach(el => {
-    el.onclick = () => { state.selChunk = Number(el.dataset.uchunk); renderPresDetail(); };
-  });
-  renderPresDetail();
-}
-
-function expansionBudget(){
-  const budgets = D().meta.budgets || {};
-  return budgets.hard_max_tokens || 1126;
-}
-
-// Mirror of amsc.chunk_relations.expand_context: nearest-first, previous
-// before next, hard budget, stop at any missing link (a real section
-// boundary). Visualization only -- retrieval ranks are untouched.
-function simulateExpansion(armData, seedIdx, budget){
-  budget = budget === undefined ? expansionBudget() : budget;
-  const chunks = armData.chunks;
-  if (!chunks[seedIdx]) return null;
-  let total = chunks[seedIdx].n;
-  const members = [seedIdx];
-  let before = seedIdx, after = seedIdx;
-  let beforeOpen = true, afterOpen = true;
-  while (beforeOpen || afterOpen) {
-    let moved = false;
-    if (beforeOpen) {
-      // The link INTO chunks[before] must itself be a token-budget cut.
-      const prev = chunks[before].rt === "TOKEN_BUDGET_CONTINUATION" ? chunks[before].cp : null;
-      if (prev === null || prev === undefined) beforeOpen = false;
-      else if (total + chunks[prev].n > budget) beforeOpen = false;
-      else { members.push(prev); total += chunks[prev].n; before = prev; moved = true; }
-    }
-    if (afterOpen) {
-      const nextRaw = chunks[after].cn;
-      const next = (nextRaw !== null && nextRaw !== undefined &&
-        chunks[nextRaw].rt === "TOKEN_BUDGET_CONTINUATION") ? nextRaw : null;
-      if (next === null) afterOpen = false;
-      else if (total + chunks[next].n > budget) afterOpen = false;
-      else { members.push(next); total += chunks[next].n; after = next; moved = true; }
-    }
-    if (!moved) break;
-  }
-  members.sort((a, b) => a - b);
-  return {members, total, budget};
-}
-
-function jumpToChunk(idx){
-  const chunk = A().chunks[idx];
-  state.selChunk = idx;
-  if (chunk.pg.length && chunk.pg[0] !== state.page) state.page = chunk.pg[0];
-  render();
-}
-
-function renderPresDetail(){
-  const box = $("presdetail");
-  const armData = A();
-  const diag = D().meta.diag[state.arm] || {};
-  let armNote = "";
-  if (state.arm === "hybrid") {
-    armNote = `Hybrid kolu: büyük bölümlerin iç kesim noktaları semantik skorla seçilir. ` +
-      `Bu koşuda ${diag.arbitrated_boundary_count ?? "?"} bölüm-içi kesimin ` +
-      `${diag.arbitration_changed_boundary_count ?? "?"} tanesi açgözlü kesimden farklı seçildi; ` +
-      `${diag.h1_fallback_section_count ?? "?"} bölümde uygun aday yoktu. ` +
-      `Chunk başına hangi kesimin semantik seçim olduğu artifact'te kayıtlı değildir ve burada iddia edilmez.`;
-  } else if (state.arm === "markdown") {
-    armNote = `Markdown kolu bölüm yapısına bakmaz: ${diag.chunk_size_tokens ?? 700} token hedefi, ` +
-      `${diag.chunk_overlap_tokens ?? 140} token örtüşme.`;
-  } else if (state.arm === "agentic") {
-    const am = D().agenticMeta || {};
-    const s = am.summary || {}, bd = am.diff || {};
-    armNote = `Agentic Chunker: yapısal adaylar section başına tek çağrıda oylanır; ` +
-      `bu koşuda ${bd.decision_windows ?? s.decision_window_count ?? "?"} karar penceresinin ` +
-      `${bd.window_moved ?? s.window_moved_count ?? "?"} tanesinde LLM oyu greedy'den farklı kesim seçti; ` +
-      `final chunk sınırı olarak kalan: ${bd.final_boundary_moved ?? s.final_boundary_moved_count ?? "?"}` +
-      ` (rejoin ile geri birleşen: ${bd.rejoined_after_agentic_cut ?? s.rejoined_after_agentic_cut_count ?? 0})` +
-      (am.model ? ` (model: ${am.model})` : "") +
-      `. Ayrı, model-bağımlı bir koşudur; kazanan iddiası yoktur.`;
-  } else {
-    armNote = "Structure-only kolu her bölümü kendi başlığı altında tutar; yalnız hedef bütçeyi aşan bölümler bölünür.";
-  }
-  if (state.selChunk === null || !armData.chunks[state.selChunk]) {
-    box.innerHTML = `<h3>Chunk detayı</h3><div class="empty">Bir chunk şeridine ya da metnine tıklayın.</div>` +
-      `<div class="arminfo">${esc(armNote)}</div>`;
-    return;
-  }
-  const chunk = armData.chunks[state.selChunk];
-  const reason = REASONS[chunk.rs] || {label: chunk.rs, sent: ""};
-  const prev = chunk.cp, next = chunk.cn;
-  const hasLink = (prev !== null && prev !== undefined) || (next !== null && next !== undefined);
-  const link = idx => `<button data-jump="${idx}">Chunk ${armData.chunks[idx].num}</button>`;
-  const inType = chunk.rt;
-  const outType = (next !== null && next !== undefined) ? armData.chunks[next].rt : null;
-  const budgetNeighbor =
-    (inType === "TOKEN_BUDGET_CONTINUATION") || (outType === "TOKEN_BUDGET_CONTINUATION");
-  const expansion = simulateExpansion(armData, state.selChunk);
-  const expandable = expansion && expansion.members.length > 1;
-  let expLine;
-  if (expandable) {
-    expLine = `evet — ${expansion.members.map(i => "Chunk " + armData.chunks[i].num).join(" + ")} · ${expansion.total} token ≤ bütçe ${expansion.budget}`;
-  } else if (budgetNeighbor) {
-    expLine = `hayır — komşu devam chunk'ı bütçeye (${expansionBudget()}) sığmıyor`;
-  } else if (hasLink) {
-    expLine = `hayır — komşu sınır token-budget değil (${inType || outType})`;
-  } else {
-    expLine = "hayır — devam bağlantısı yok (bölüm sınırı)";
-  }
-  box.innerHTML = `<h3>Chunk ${chunk.num}</h3>
-    <dl class="kv">
-      <dt>Token</dt><dd>${chunk.n}</dd>
-      <dt>Başlık</dt><dd>${chunk.hh ? chunk.hh : "<span class='empty'>—</span>"}</dd>
-      <dt>Bölüm</dt><dd>${chunk.sd.length ? esc(chunk.sd.join(" › ")) : "<span class='empty'>—</span>"}</dd>
-      <dt>Sayfalar</dt><dd>${chunk.pg.join(", ")}</dd>
-      <dt>Önceki</dt><dd class="detail-links">${prev !== null && prev !== undefined ? link(prev) + " (devamı bu chunk)" : "<span class='empty'>—</span>"}</dd>
-      <dt>Sonraki</dt><dd class="detail-links">${next !== null && next !== undefined ? link(next) + " (bu chunk'ın devamı)" : "<span class='empty'>—</span>"}</dd>
-      <dt>İlişki</dt><dd>${inType ? esc(inType) : (outType ? esc(outType) + " (sonrakiyle)" : "<span class='empty'>—</span>")}</dd>
-      <dt>Aynı bölüm</dt><dd>${hasLink ? "evet" : "—"}</dd>
-      <dt>Sınır nedeni</dt><dd>${esc(reason.label)}</dd>
-      ${chunk.llm ? `<dt>LLM kararı</dt><dd>${chunk.llm.m
-        ? "sınır LLM oyu ile taşındı" + (chunk.llm.rc ? " (" + esc(chunk.llm.rc) + ")" : "")
-        : "pencere değerlendirildi; açgözlü kesim korundu"}</dd>` : ""}
-      <dt>Expansion adayı</dt><dd>${esc(expLine)}</dd>
-    </dl>
-    <div class="reason-sent"><b>${esc(reason.label)}.</b> ${esc(reason.sent || "")}</div>
-    <div class="arminfo">${esc(armNote)}</div>`;
-  box.querySelectorAll("button[data-jump]").forEach(b => {
-    b.onclick = () => jumpToChunk(Number(b.dataset.jump));
-  });
-}
-
-/* -------- query -------- */
-function statusOf(frr){
-  if (frr === 1) return {cls:"ok", glyph:"✓", text:"Rank 1"};
-  if (frr !== null && frr !== undefined && frr <= 5)
-    return {cls:"mid", glyph:"!", text:"Rank " + frr + " — top-5 içinde"};
-  return {cls:"miss", glyph:"×", text:"Top-5 dışında"};
-}
-
-function chunkPieces(chunkIdx, arm){
-  const armData = D().arms[arm];
-  const chunk = armData.chunks[chunkIdx];
-  const pieces = [];
-  const seen = new Set();
-  for (const raw of chunk.u) {
-    const baseId = raw.split("#")[0];
-    if (seen.has(baseId)) continue;
-    seen.add(baseId);
-    const u = unitById(baseId);
-    if (!u) continue;
-    const segs = (armData.seg[baseId] || []).filter(s => s[0] === chunkIdx);
-    if (!segs.length) { pieces.push({u, text:u.x}); continue; }
-    for (const s of segs) pieces.push({u, text:u.x.slice(s[1], s[2])});
-  }
-  return pieces;
-}
-
-function renderedChunk(chunkIdx, arm, evidence){
-  const chunk = D().arms[arm].chunks[chunkIdx];
-  const evSet = new Set(evidence);
-  let out = `<div class="rchunk"><div class="rhead">Chunk ${chunk.num} · ${chunk.n} token · sayfa ${chunk.pg.join(", ")}</div>`;
-  if (chunk.hh) out += `<div class="piece"><b>${chunk.hh}</b></div>`;
-  for (const piece of chunkPieces(chunkIdx, arm)) {
-    const body = piece.text === piece.u.x ? unitHtml(piece.u)
-      : "<p>" + esc(piece.text) + "</p>";
-    out += `<div class="piece">` + (evSet.has(piece.u.i) ? "<mark>" + body + "</mark>" : body) + `</div>`;
-  }
-  return out + "</div>";
-}
-
-function renderQuery(){
-  const gold = D().gold;
-  const sel = $("querysel");
-  // The agentic column appears only when its tree carries query results
-  // (after amsc.agentic_benchmark); the frozen three columns never move.
-  const qArms = ARMS.concat(
-    hasAgentic() && Object.keys(D().arms.agentic.q).length ? ["agentic"] : []);
-  if (state.query === null || !gold.some(g => g.id === state.query)) state.query = gold[0] && gold[0].id;
-  sel.innerHTML = gold.map(g => {
-    const worst = Math.max(...qArms.map(a => {
-      const f = (D().arms[a].q[g.id] || {}).f;
-      return f === null || f === undefined ? 9 : f;
-    }));
-    const mark = worst === 1 ? "✓" : worst <= 5 ? "!" : "×";
-    return `<option value="${g.id}">${mark} ${g.id} — ${esc(g.q)}</option>`;
-  }).join("");
-  sel.value = state.query;
-  sel.onchange = () => { state.query = sel.value; render(); };
-
-  const g = gold.find(x => x.id === state.query);
-  if (!g) { $("queryhead").innerHTML = ""; $("querycols").innerHTML = ""; return; }
-
-  const evHtml = g.ev.map(id => {
-    const u = unitById(id);
-    return u ? `<div>${unitHtml(u)}</div>` : "";
-  }).join("");
-  $("queryhead").innerHTML = `<div class="qhead">
-    <div class="qq">${esc(g.q)}</div>
-    ${g.a ? `<div class="qa">Beklenen cevap: ${esc(g.a)}</div>` : ""}
-    <div class="qmeta">${g.id} · kanıt türü: ${esc(g.ty || "—")} · zorluk: ${esc(g.df || "—")} · kanıt sayfaları: ${g.pg.join(", ")}</div>
-    <div class="evbox"><div class="evlabel">Gold kanıt (${g.ev.length} unit)</div>${evHtml}</div>
-  </div>`;
-
-  $("querycols").innerHTML = qArms.map(arm => {
-    const qres = D().arms[arm].q[g.id];
-    if (!qres) return `<div class="qcol"><div class="armname">${esc(armLabel(arm))}</div><div class="covline">sonuç yok</div></div>`;
-    const st = statusOf(qres.f);
-    const relevant = qres.res.find(r => r.r === qres.f && r.m.length);
-    let body = "";
-    if (relevant && relevant.c !== null) {
-      body = renderedChunk(relevant.c, arm, g.ev);
-    } else {
-      body = `<div class="rchunk"><div class="rhead">Top-5 içinde gold kanıt taşıyan chunk yok.</div></div>`;
-    }
-    const rows = qres.res.map(r => {
-      const chunk = r.c === null ? null : D().arms[arm].chunks[r.c];
-      const matched = r.m.length
-        ? `<span class="mt">✓ ${r.m.length} kanıt unit</span>` : "";
-      return `<div class="row"><span class="rk">#${r.r}</span>` +
-        `<span>${chunk ? "Chunk " + chunk.num : "—"}</span>` +
-        `<span>s.${r.pg.join(",")}</span><span>${r.tk} tok</span>${matched}</div>`;
-    }).join("");
-    return `<div class="qcol">
-      <div class="armname">${esc(armLabel(arm))} <span class="status ${st.cls}">${st.glyph} ${st.text}</span></div>
-      <div class="covline">kanıt kapsaması: ${qres.cov === null || qres.cov === undefined ? "—" : (qres.cov * 100).toFixed(0) + "%"}</div>
-      ${body}
-      <details class="top5"><summary>Top-5 listesi</summary>${rows}</details>
-      <div class="qlink"><button data-goto="${arm}">Bu kolun chunk sınırlarını sayfada gör →</button></div>
-    </div>`;
-  }).join("");
-
-  $("querycols").querySelectorAll("button[data-goto]").forEach(b => {
-    b.onclick = () => {
-      state.mode = "presentation";
-      state.arm = b.dataset.goto;
-      state.filter = "all";
-      state.page = g.pg[0] || D().pages[0];
-      render();
-      g.ev.forEach(id => {
-        const el = document.querySelector(`.u[data-uid="${id}"]`);
-        if (el) el.classList.add("evflash");
-      });
-      const first = document.querySelector(".u.evflash");
-      if (first) first.scrollIntoView({block:"center"});
-    };
-  });
-}
-
-/* -------- debug -------- */
-function renderDebug(){
-  const units = pageUnits(state.page);
-  $("dbglist").innerHTML = units.map(u => {
-    const chips = [
-      `<span class="chip">${u.i}</span>`,
-      `<span class="chip">${u.t}</span>`,
-      u.r ? `<span class="chip role">${u.r}</span>` : "",
-      u.o === true ? `<span class="chip opens">opens_section</span>` :
-        u.o === false ? `<span class="chip noopen">opens=false</span>` : "",
-      u.l !== null && u.l !== undefined ? `<span class="chip">level ${u.l}</span>` : "",
-      u.b !== null && u.b !== undefined ? `<span class="chip">block ${u.b}</span>` : "",
-      `<span class="chip">p.${u.p}</span>`
-    ].join("");
-    const rows = ARMS.map(arm => {
-      const armData = D().arms[arm];
-      const segs = armData.seg[u.i] || [];
-      if (!segs.length) return `<tr><td>${esc(ARM_LABEL[arm])}</td><td colspan="3">unmapped</td></tr>`;
-      return segs.map(s => {
-        const chunk = armData.chunks[s[0]];
-        const frag = chunk.u.find(x => x.split("#")[0] === u.i && x.includes("#"));
-        return `<tr><td>${esc(ARM_LABEL[arm])}</td><td>${chunk.id}${frag ? " · " + frag.split("#")[1] : ""}</td>` +
-          `<td>${s[1]}–${s[2]}</td><td>${s[3]}</td></tr>`;
-      }).join("");
-    }).join("");
-    return `<div class="dbgunit${state.selUnit === u.i ? " sel" : ""}" data-uid="${u.i}">
-      <div class="head">${chips}</div>
-      <div class="path">${esc(JSON.stringify(u.s))}</div>
-      <div class="txt">${esc(u.x)}</div>
-      <table class="dbgtable"><tr><th>arm</th><th>chunk · fragment</th><th>offset</th><th>method</th></tr>${rows}</table>
-    </div>`;
-  }).join("");
-  $("dbglist").querySelectorAll(".dbgunit").forEach(el => {
-    el.onclick = () => { state.selUnit = el.dataset.uid; renderInspector();
-      $("dbglist").querySelectorAll(".dbgunit").forEach(x =>
-        x.classList.toggle("sel", x.dataset.uid === state.selUnit)); };
-  });
-  renderInspector();
-}
-
-function renderInspector(){
-  const box = $("inspector");
-  const u = state.selUnit && unitById(state.selUnit);
-  if (!u) { box.innerHTML = "<b>Unit inspector</b><div style='color:var(--muted);margin-top:8px'>Bir unit'e tıklayın.</div>"; return; }
-  const fields = {
-    unit_id: u.i, type: u.t, page: u.p, semantic_role: u.r,
-    opens_section: u.o, heading_level: u.l, block: u.b, section_path: u.s
-  };
-  box.innerHTML = `<b>Unit inspector — ${esc(u.i)}</b>` +
-    `<pre>${esc(JSON.stringify(fields, null, 1))}</pre>` +
-    `<div style="margin-top:8px;font-weight:600">Ham metin</div><pre>${esc(u.x)}</pre>`;
-}
-
-/* -------- benchmark -------- */
-function fmt(v, digits){ return v === null || v === undefined ? "—" : Number(v).toFixed(digits === undefined ? 4 : digits); }
-function benchTable(title, rows, columns, higherBetter){
-  // rows: [{arm, values:{col:v}}]
-  const best = {};
-  for (const col of columns) {
-    const vals = rows.map(r => r.values[col.k]).filter(v => v !== null && v !== undefined);
-    if (vals.length) best[col.k] = higherBetter === false ? Math.min(...vals) : Math.max(...vals);
-  }
-  let out = `<h2>${esc(title)}</h2><div class="scroll" style="overflow-x:auto"><table class="btable"><tr><th>Yöntem</th>` +
-    columns.map(c => `<th>${esc(c.t)}</th>`).join("") + "</tr>";
-  for (const row of rows) {
-    out += `<tr><td>${esc(row.arm)}</td>` + columns.map(c => {
-      const v = row.values[c.k];
-      const cls = best[c.k] !== undefined && v === best[c.k] && rows.length > 1 ? "best" : "";
-      return `<td class="${cls}">${fmt(v, c.d)}</td>`;
-    }).join("") + "</tr>";
-  }
-  return out + "</table></div>";
-}
-
-function renderBenchmark(){
-  const doc = D(), meta = doc.meta;
-  const arms = doc.arms;
-  let out = "";
-
-  out += `<div class="guard">${esc(meta.guard || "")}</div>`;
-  out += `<div class="cards">
-    <div class="card"><div class="v">${meta.queryCount}</div><div class="k">gold sorgu</div></div>` +
-    ARMS.map(a => `<div class="card"><div class="v">${arms[a].ret.chunk_count}</div><div class="k">${esc(ARM_LABEL[a])} chunk</div></div>`).join("") +
-    `<div class="card"><div class="v">${meta.parserFindings ?? "—"}</div><div class="k">parser taban bulgusu (kola ait değil)</div></div>
-  </div>`;
-
-  const retCols = [
-    {k:"hit_at_1", t:"Hit@1"}, {k:"hit_at_3", t:"Hit@3"}, {k:"hit_at_5", t:"Hit@5"},
-    {k:"mrr", t:"MRR"}, {k:"evidence_coverage_at_5", t:"Kanıt kaps.@5"},
-    {k:"source_evidence_coverage", t:"Kaynak kapsama"}
-  ];
-  out += benchTable("Retrieval — birincil gold set", ARMS.map(a => ({
-    arm: ARM_LABEL[a], values: arms[a].ret
-  })), retCols);
-  out += `<div class="legend">● = en iyi gözlenen değer (bu koşuda). Tek bir yöntem her metrikte önde değildir; sonuçlar PoC parametreleriyle alınmıştır.</div>`;
-
-  const et = meta.etypes;
-  const etKeys = Object.keys(et).sort();
-  if (etKeys.length) {
-    out += `<h2>Kanıt türüne göre Hit@5</h2><div style="overflow-x:auto"><table class="btable"><tr><th>Tür</th><th>Sorgu</th>` +
-      ARMS.map(a => `<th>${esc(ARM_LABEL[a])}</th>`).join("") + "</tr>" +
-      etKeys.map(k => `<tr><td>${esc(k)}</td><td>${et[k].query_count}</td>` +
-        ARMS.map(a => `<td>${et[k][a] ?? "—"}</td>`).join("") + "</tr>").join("") +
-      "</table></div>";
-  }
-
-  const qc = meta.qcomp;
-  if (qc && qc.pairwise_hit_at_5) {
-    out += `<h2>Sorgu düzeyi karşılaştırma (Hit@5)</h2><div class="pairlists">`;
-    for (const [pair, sides] of Object.entries(qc.pairwise_hit_at_5)) {
-      const nice = pair.replace(/_vs_/, " ↔ ").replace(/_hit_at_5/, "");
-      out += `<div class="pl"><b>${esc(nice)}</b><br>kazanılan: ${sides.gained.length ? sides.gained.map(q => `<span class="qidchip" data-q="${q}">${q}</span>`).join(" ") : "—"}<br>` +
-        `kaybedilen: ${sides.lost.length ? sides.lost.map(q => `<span class="qidchip" data-q="${q}">${q}</span>`).join(" ") : "—"}</div>`;
-    }
-    out += `<div class="pl"><b>Üç yöntemin de kaçırdığı</b><br>` +
-      ((qc.missed_by_all_at_5 || []).map(q => `<span class="qidchip" data-q="${q}">${q}</span>`).join(" ") || "—") + `</div></div>`;
-  }
-
-  const sqCols = [
-    {k:"chunk_count", t:"Chunk", d:0}, {k:"tok_med", t:"Token medyan", d:1},
-    {k:"tok_p90", t:"p90", d:0}, {k:"tok_max", t:"maks", d:0},
-    {k:"below_min", t:"<160", d:0}, {k:"above_soft", t:">900", d:0},
-    {k:"heading_led", t:"Başlıkla açılan", d:4}, {k:"multi_sec", t:"Çok bölümlü", d:0},
-    {k:"mid_sent", t:"Cümle ortası kesim", d:0}, {k:"tab_frag", t:"Tablo bölünmesi", d:0},
-    {k:"list_frag", t:"Liste bölünmesi", d:0}, {k:"dup_mass", t:"Tekrarlanan kütle", d:4}
-  ];
-  out += benchTable("Yapısal kalite (chunk türevli)", ARMS.map(a => {
-    const s = arms[a].sq;
-    return {arm: ARM_LABEL[a], values: {
-      chunk_count: s.chunk_count,
-      tok_med: s.token_count && s.token_count.median,
-      tok_p90: s.token_count && s.token_count.p90_nearest_rank,
-      tok_max: s.token_count && s.token_count.max,
-      below_min: s.size_bands && s.size_bands.below_min_count,
-      above_soft: s.size_bands && s.size_bands.above_soft_max_count,
-      heading_led: s.structure && s.structure.heading_led_ratio,
-      multi_sec: s.structure && s.structure.multi_section_count,
-      mid_sent: s.fragmentation && s.fragmentation.mid_sentence_split_count,
-      tab_frag: s.fragmentation && s.fragmentation.table_units_fragmented,
-      list_frag: s.fragmentation && s.fragmentation.list_units_fragmented,
-      dup_mass: s.duplication && s.duplication.duplicate_token_mass_ratio
-    }};
-  }), sqCols.map(c => ({...c, t:c.t})), undefined);
-  out += `<div class="legend">Bu tabloda "en iyi" işareti yoktur: metriklerin bir kısmı yöntem tanımının sonucudur (örn. markdown örtüşmesi tekrarlanan kütleyi yapısal olarak yükseltir).</div>`;
-
-  const timing = meta.timing || {};
-  const timCols = [
-    {k:"chunk", t:"Chunking medyan (ms)", d:1}, {k:"index", t:"İndeks (ms)", d:1},
-    {k:"p50", t:"Arama p50 (ms)", d:2}, {k:"p90", t:"Arama p90 (ms)", d:2},
-    {k:"cold", t:"Cold embedding (ms)", d:0}
-  ];
-  out += benchTable("Zamanlama", ARMS.map(a => {
-    const t = timing[a] || arms[a].tim || {};
-    return {arm: ARM_LABEL[a], values: {
-      chunk: t.chunk_ms_median, index: t.index_build_ms,
-      p50: t.search_p50_ms, p90: t.search_p90_ms,
-      cold: t.cold ? t.cold.chunk_ms_cold : null
-    }};
-  }), timCols, false);
-  out += `<div class="legend">Cold sütunu yalnız Hybrid için anlamlıdır (boundary-embedding önbelleği boşken). Markdown ve Structure-only model yüklemez; cold ≡ warm.</div>`;
-
-  const sec = meta.secondary;
-  if (sec && sec.metrics) {
-    out += `<details class="secgold"><summary>İkincil gold set (${esc((sec.gold_queries || "").split("/").pop() || "v1")})</summary>`;
-    out += benchTable("Retrieval — ikincil set", ARMS.map(a => ({
-      arm: ARM_LABEL[a], values: sec.metrics[a] || {}
-    })), retCols) + "</details>";
-  }
-
-  // The agentic arm never enters the frozen tables above: it is a separate,
-  // model-dependent run and is shown in its own clearly-labelled panel.
-  const ag = arms.agentic;
-  if (ag) {
-    const am = doc.agenticMeta || {};
-    const s = am.summary || {}, bd = am.diff || {};
-    out += `<h2>Agentic Chunker — ayrı koşu</h2>`;
-    out += `<div class="guard">Model-bağımlı sonuç (yalnız replay-deterministic); ` +
-      `frozen üç kolun karşılaştırmasına dahil değildir ve kazanan ilan edilmez. ` +
-      `Model: ${esc(am.model || "—")} · mod: ${esc(am.mode || "—")}.</div>`;
-    out += `<div class="cards">
-      <div class="card"><div class="v">${ag.chunks.length}</div><div class="k">Agentic chunk</div></div>
-      <div class="card"><div class="v">${bd.decision_windows ?? s.decision_window_count ?? "—"}</div><div class="k">karar penceresi</div></div>
-      <div class="card"><div class="v">${bd.window_moved ?? s.window_moved_count ?? "—"}</div><div class="k">pencere düzeyinde farklı seçim</div></div>
-      <div class="card"><div class="v">${bd.final_boundary_moved ?? s.final_boundary_moved_count ?? "—"}</div><div class="k">final chunk sınırı taşınan</div></div>
-      <div class="card"><div class="v">${bd.rejoined_after_agentic_cut ?? s.rejoined_after_agentic_cut_count ?? "—"}</div><div class="k">rejoin ile geri birleşen</div></div>
-      <div class="card"><div class="v">${s.provider_call_count ?? "—"}</div><div class="k">provider çağrısı</div></div>
-    </div>`;
-    if (ag.ret) {
-      out += benchTable("Retrieval — Agentic (ayrı koşu, aynı gold + BM25 ayarları)",
-        [{arm: armLabel("agentic"), values: ag.ret}], retCols);
-      out += `<div class="legend">Bu tablo tek satırdır ve frozen üçlü tablodaki "en iyi" işaretlerine katılmaz; yan yana okuma yaparken model bağımlılığı ve tek koşu olduğu unutulmamalıdır.</div>`;
-    } else {
-      out += `<div class="legend">Bu ağaçta agentic retrieval değerlendirmesi yok — amsc.agentic_benchmark henüz koşulmamış.</div>`;
-    }
-  }
-
-  $("view-benchmark").innerHTML = out;
-  $("view-benchmark").querySelectorAll(".qidchip[data-q]").forEach(el => {
-    el.onclick = () => { state.mode = "query"; state.query = el.dataset.q; render(); };
-  });
-}
-
-/* -------- shell -------- */
-function render(){
-  syncBar();
-  for (const mode of ["presentation","query","debug","benchmark"]) {
-    $("view-" + mode).classList.toggle("hidden", state.mode !== mode);
-  }
-  if (state.mode === "presentation") renderPresentation();
-  else if (state.mode === "query") renderQuery();
-  else if (state.mode === "debug") renderDebug();
-  else renderBenchmark();
-  $("foot").textContent = D().label + " · canonical " +
-    (D().meta.canonicalSha || "").slice(0, 16) + "… · " + (D().meta.status || "") +
-    " · fark tanımı: ardışık iki içerik unit'i arasında chunk sınırı olup olmadığında üç yöntemin uyuşmadığı noktalar";
-}
-initBar();
-render();
-</script>
-</body>
-</html>
-"""
 
 
 if __name__ == "__main__":  # pragma: no cover
