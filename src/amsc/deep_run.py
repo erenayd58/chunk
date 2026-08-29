@@ -8,9 +8,9 @@ where the votes come from:
     --model ID          live calls through an OpenAI-compatible endpoint
 
 All three write the same tree, so a report never has to ask which one produced
-it. The comparison against Standard is computed here with the same
-``boundary_quality`` functions the selector optimises, and the artifact records
-both the tiered verdicts and the strict ones.
+it. The pipeline itself lives in :mod:`amsc.deep_pipeline`; this module only
+reads the units, builds the providers and writes the artifacts, so the file
+layout is the one thing it owns.
 
 Artifacts never contain prompt text or an API key -- ``calls.jsonl`` carries
 ``prompt_sha256`` and the boundary plan, ``responses.jsonl`` the raw model
@@ -24,24 +24,23 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from . import boundary_quality as bq
 from . import deep_analysis as da
-from . import deep_proposer as dp
-from . import deep_verifier as dv
-from .agentic_chunker import CallOutcome, load_response_cache
+from .agentic_chunker import load_response_cache
+from .deep_pipeline import (
+    DEFAULT_ENDPOINT,
+    REFERENCE_MODEL,
+    DeepAnalysisResult,
+    DeepAnalysisSettings,
+    run_deep_analysis,
+)
 from .io import load_jsonl_units
 from .llm_boundary_judge import OpenAICompatibleJudgeProvider
-from .structural_chunker import _sections
-from .structural_chunker import chunk_units as structural_chunk_units
 from .tokenization import TiktokenTokenCounter
 
-DEFAULT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-#: Self-hostable reference candidate. Nothing in the architecture depends on it.
-REFERENCE_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
+__all__ = ["DEFAULT_ENDPOINT", "REFERENCE_MODEL", "refuse_output", "run", "write_tree", "main"]
 
 
 def refuse_output(output: Path) -> None:
@@ -68,98 +67,64 @@ def _write_jsonl(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
 
 
-def run(
-    units_path: Path,
+def write_tree(
+    result: DeepAnalysisResult,
     output: Path,
     *,
-    config: da.DeepConfig,
-    encoding: str = "cl100k_base",
+    units_path: Path | None = None,
     provider: Any | None = None,
-    cache: Mapping[str, str] | None = None,
-    use_llm: bool = True,
-    verify: bool = False,
     verifier_provider: Any | None = None,
-    verifier_cache: Mapping[str, str] | None = None,
-    concurrency: int = 8,
 ) -> dict[str, Any]:
-    refuse_output(output)
-    counter = TiktokenTokenCounter(encoding)
-    units = load_jsonl_units(units_path)
-
-    standard = structural_chunk_units(
-        units,
-        counter=counter,
-        min_tokens=config.min_tokens,
-        target_tokens=config.target_tokens,
-        soft_max_tokens=config.soft_max_tokens,
-        hard_max_tokens=config.hard_max_tokens,
-        respect_semantic_roles=config.respect_semantic_roles,
-    )
-
-    plans: list[dp.PlannedProposal] = []
-    outcomes: list[CallOutcome] = []
-    votes: dict[str, da.BoundaryVote] = {}
-    proposer_audit: list[dp.ProposalOutcome] = []
-    call_seconds = 0.0
-    if use_llm:
-        plans = dp.plan_calls(units, counter=counter, config=config)
-        started = time.perf_counter()
-        outcomes = dp.collect(plans, provider=provider, cache=cache, concurrency=concurrency)
-        call_seconds = time.perf_counter() - started
-        votes, proposer_audit = dp.votes_from_outcomes(plans, outcomes)
-
-    started = time.perf_counter()
-    rows, audit = da.chunk_units(units, counter=counter, config=config, votes=votes)
-    select_seconds = time.perf_counter() - started
-
-    verifier_summary: dict[str, Any] | None = None
-    verify_seconds = 0.0
-    if verify and votes:
-        # The deterministic partition is the baseline every proposal is judged
-        # against, and the fallback for every group the verifier does not keep.
-        _base_rows, base_audit = da.chunk_units(units, counter=counter, config=config)
-        sections = _sections(
-            units, counter, config.hard_max_tokens, config.respect_semantic_roles
+    """Write one run's artifacts under ``output``; return the summary written."""
+    summary = dict(result.summary)
+    if units_path is not None:
+        summary["units_file"] = str(units_path)
+    _write_jsonl(output / "chunks.jsonl", result.rows)
+    _write_json(output / "selection-audit.json", result.audit)
+    _write_json(output / "quality-vs-standard.json", result.quality)
+    _write_json(output / "summary.json", summary)
+    if result.mode != "deterministic":
+        plans, outcomes = result.proposer_plans, result.proposer_outcomes
+        _write_jsonl(
+            output / "proposer" / "calls.jsonl",
+            [
+                {
+                    "call_id": plan.call_id,
+                    "section_index": plan.section_index,
+                    "prompt_sha256": plan.prompt_sha256,
+                    "prompt_chars": plan.prompt_chars,
+                    "boundaries": [
+                        {
+                            "label": boundary.label,
+                            "cut_after_unit_id": boundary.cut_after_unit_id,
+                            "cut_before_unit_id": boundary.cut_before_unit_id,
+                        }
+                        for boundary in plan.boundaries
+                    ],
+                }
+                for plan in plans
+            ],
         )
-        base_cuts = {int(k): tuple(v) for k, v in base_audit["cuts_by_section"].items()}
-        proposed_cuts = {int(k): tuple(v) for k, v in audit["cuts_by_section"].items()}
-        groups: list[dv.ChangeGroup] = []
-        for index, section in enumerate(sections):
-            groups.extend(
-                dv.change_groups(
-                    base_cuts.get(index, ()),
-                    proposed_cuts.get(index, ()),
-                    len(section.pieces),
-                    section_index=index,
-                    heading=section.heading,
-                )
-            )
-        checks = dv.plan_comparisons(sections, groups, config=config)
-        started = time.perf_counter()
-        check_outcomes = dv.collect(
-            checks,
-            provider=verifier_provider,
-            cache=verifier_cache,
-            concurrency=concurrency,
+        _write_jsonl(
+            output / "proposer" / "responses.jsonl",
+            [
+                {
+                    "prompt_sha256": plan.prompt_sha256,
+                    "call_id": plan.call_id,
+                    "model_id": getattr(provider, "model_id", None),
+                    "status": outcome.status,
+                    "response": outcome.response,
+                }
+                for plan, outcome in zip(plans, outcomes)
+                if outcome.response is not None
+            ],
         )
-        verify_seconds = time.perf_counter() - started
-        verdicts = dv.decide(groups, checks, check_outcomes)
-        accepted = {verdict.group_key: verdict.accepted for verdict in verdicts}
-        override = {
-            index: dv.merge_cuts(
-                base_cuts.get(index, ()),
-                proposed_cuts.get(index, ()),
-                [group for group in groups if group.section_index == index],
-                accepted,
-            )
-            for index in {group.section_index for group in groups}
-        }
-        started = time.perf_counter()
-        rows, audit = da.chunk_units(
-            units, counter=counter, config=config, votes=votes, cut_override=override
+        _write_jsonl(
+            output / "proposer" / "audit.jsonl",
+            [entry.__dict__ for entry in result.proposer_audit],
         )
-        select_seconds += time.perf_counter() - started
-        verifier_summary = dv.summarise(verdicts)
+    if result.verifier_checks:
+        checks, check_outcomes = result.verifier_checks, result.verifier_outcomes
         _write_jsonl(
             output / "verifier" / "calls.jsonl",
             [
@@ -198,104 +163,54 @@ def run(
                     "reason": verdict.reason,
                     "votes": list(verdict.votes),
                 }
-                for verdict in verdicts
+                for verdict in result.verifier_verdicts
             ],
-        )
-
-    report = bq.compare(units, standard, rows, counter=counter, config=config.quality())
-    smells = lambda totals: sum(totals[key] for key in bq.SMELL_TYPES)  # noqa: E731
-
-    summary = {
-        "document_id": units[0].document_id,
-        "units_file": str(units_path),
-        "unit_count": len(units),
-        "mode": "deterministic" if not use_llm else ("live" if provider else "replay"),
-        "model_id": getattr(provider, "model_id", None),
-        "prompt_template_version": dp.PROMPT_TEMPLATE_VERSION,
-        "config": {**config.__dict__},
-        "chunk_count": {"standard": len(standard), "deep": len(rows)},
-        "smell_total": {
-            "standard": smells(report["totals"]["standard"]),
-            "deep": smells(report["totals"]["deep"]),
-        },
-        "totals": report["totals"],
-        "verdicts_tiered": report["verdicts_tiered"],
-        "structural_regression_count": report["structural_regression_count"],
-        "strict_regression_count": report["strict_regression_count"],
-        "size_trade_count": report["size_trade_count"],
-        "change_group_count": report["change_group_count"],
-        "selection": {
-            key: audit[key]
-            for key in (
-                "sections_moved", "sections_reverted", "revert_reasons",
-                "size_trade_count", "vote_count", "forbidden_vote_count",
-            )
-        },
-        "proposer": dp.summarise(proposer_audit) if use_llm else None,
-        "verifier": verifier_summary,
-        "verifier_model_id": getattr(verifier_provider, "model_id", None),
-        "timing_seconds": {
-            "llm_calls": round(call_seconds, 3),
-            "verifier_calls": round(verify_seconds, 3),
-            "selection": round(select_seconds, 3),
-        },
-        "claim_discipline": {
-            "tuning_status": da.TUNING_STATUS,
-            "note": "Results are model-dependent and replay-deterministic only; "
-            "no production winner is declared.",
-        },
-    }
-
-    _write_jsonl(output / "chunks.jsonl", rows)
-    _write_json(output / "selection-audit.json", audit)
-    _write_json(output / "quality-vs-standard.json", report)
-    _write_json(output / "summary.json", summary)
-    if use_llm:
-        _write_jsonl(
-            output / "proposer" / "calls.jsonl",
-            [
-                {
-                    "call_id": plan.call_id,
-                    "section_index": plan.section_index,
-                    "prompt_sha256": plan.prompt_sha256,
-                    "prompt_chars": plan.prompt_chars,
-                    "boundaries": [
-                        {
-                            "label": boundary.label,
-                            "cut_after_unit_id": boundary.cut_after_unit_id,
-                            "cut_before_unit_id": boundary.cut_before_unit_id,
-                        }
-                        for boundary in plan.boundaries
-                    ],
-                }
-                for plan in plans
-            ],
-        )
-        _write_jsonl(
-            output / "proposer" / "responses.jsonl",
-            [
-                {
-                    "prompt_sha256": plan.prompt_sha256,
-                    "call_id": plan.call_id,
-                    "model_id": getattr(provider, "model_id", None),
-                    "status": outcome.status,
-                    "response": outcome.response,
-                }
-                for plan, outcome in zip(plans, outcomes)
-                if outcome.response is not None
-            ],
-        )
-        _write_jsonl(
-            output / "proposer" / "audit.jsonl",
-            [entry.__dict__ for entry in proposer_audit],
         )
     return summary
+
+
+def run(
+    units_path: Path,
+    output: Path,
+    *,
+    config: da.DeepConfig,
+    encoding: str = "cl100k_base",
+    provider: Any | None = None,
+    cache: Mapping[str, str] | None = None,
+    use_llm: bool = True,
+    verify: bool = False,
+    verifier_provider: Any | None = None,
+    verifier_cache: Mapping[str, str] | None = None,
+    concurrency: int = 8,
+) -> dict[str, Any]:
+    refuse_output(output)
+    counter = TiktokenTokenCounter(encoding)
+    units = load_jsonl_units(units_path)
+    settings = DeepAnalysisSettings(
+        config=config, use_llm=use_llm, verify=verify, concurrency=concurrency, encoding=encoding
+    )
+    result = run_deep_analysis(
+        units,
+        counter=counter,
+        settings=settings,
+        provider=provider,
+        verifier_provider=verifier_provider,
+        cache=cache,
+        verifier_cache=verifier_cache,
+    )
+    return write_tree(
+        result,
+        output,
+        units_path=units_path,
+        provider=provider,
+        verifier_provider=verifier_provider,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m amsc.deep_run",
-        description="Run Deep Analysis over a canonical corpus and measure it.",
+        description="Deep Analysis: deterministic contract, optional proposer and verifier",
     )
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -370,7 +285,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         verifier_cache=verifier_cache,
         concurrency=args.concurrency,
     )
-    print(json.dumps({k: v for k, v in summary.items() if k != "totals"}, ensure_ascii=False))
+    print(json.dumps(summary, ensure_ascii=False))
     return 0
 
 
