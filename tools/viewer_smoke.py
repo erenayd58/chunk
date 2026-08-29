@@ -123,6 +123,8 @@ with sync_playwright() as p:
     page.locator("#dbglist .dbgunit").first.click()
     page.wait_for_timeout(200)
     check("Unit inspector" in page.locator("#inspector").inner_text(), "inspector not populated")
+    page.locator("#secpanel details > summary").click()
+    page.wait_for_timeout(200)
     check(page.locator("#secpanel .sectable tr").count() > 1, "section decision table empty")
     page.screenshot(path=str(outdir / "08-debug.png"), full_page=False)
     page.locator("#secpanel tr.clk").first.click()
@@ -135,7 +137,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(500)
     text = page.locator("#view-benchmark").inner_text()
     check("Kalite özeti" in text, "benchmark summary section missing")
-    check("Ne düzeldi?" in text, "improvement list missing")
+    check("Sınır kalitesi" in text, "the per-defect contract table is missing")
     check("frozen benchmark v5" in text, "frozen benchmark section missing")
     check("Deep Analysis ölçüm paneli" in text, "deep panel missing")
     check("Dokümanlar arası" in text, "cross-document table missing")
@@ -158,21 +160,25 @@ with sync_playwright() as p:
     page.wait_for_timeout(500)
     check(page.locator("#qsubtabs button[data-sub='gold']").is_hidden(), "gold sub-tab should be hidden without gold")
 
-    # --- workspace strip (the RAG console bridge) ---
+    # --- the RAG console bridge: one button, and a dialog on demand ---
     page.locator("#modetabs button[data-mode='presentation']").click()
     page.wait_for_timeout(400)
+    check(page.locator("#wsopen").is_visible(), "the console button is missing from the top bar")
+    check(page.locator("#wspanel").count() == 0,
+          "the workspace must not occupy the content area")
+    page.locator("#wsopen").click()
+    page.wait_for_selector("#modal .box", timeout=15000)
+    dialog = page.locator("#modal .box").inner_text()
+    check("RAG Console" in dialog, "the console dialog does not name the console")
     if live:
-        page.wait_for_selector("#wsbar:not(.hidden)", timeout=15000)
-        bar = page.locator("#wsbar").inner_text()
-        check("RAG Console" in bar, "workspace strip does not name the console")
-        if "bilgi taban" in bar:
-            page.locator("#wstoggle").click()
-            page.wait_for_timeout(300)
-            check(page.locator("#wspanel .wskb").count() > 0, "workspace panel opened empty")
-            page.screenshot(path=str(outdir / "13-workspace.png"), full_page=False)
+        check("bilgi taban" in dialog or "ba\u011flan\u0131lam" in dialog,
+              f"the dialog reports neither counts nor a failure: {dialog[:120]!r}")
+        page.screenshot(path=str(outdir / "13-workspace.png"), full_page=False)
     else:
-        check("hidden" in (page.locator("#wsbar").get_attribute("class") or ""),
-              "the workspace strip must stay hidden in the standalone file")
+        check("ba\u011flan\u0131lam" in dialog,
+              "a standalone file cannot reach a console and must say so")
+    page.locator("#mclose").click()
+    page.wait_for_timeout(200)
 
     # --- responsive ---
     page.set_viewport_size({"width": 820, "height": 900})

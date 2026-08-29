@@ -65,9 +65,13 @@ Bu tarafta iki uç nokta bunu taşır:
     GET  /api/live-document?doc=<id>   payload'ı konsoldan alır (sayfa kendi origin'ine sorar)
     POST /api/live-prepare  {doc}      konsola "bu dokümanın analizini hazırla" der
 
-Sayfa payload'ı `DATA.docs` içine **canlı** işaretiyle katar: doküman seçicide ayrı bir
-`optgroup` altında durur, Sunum ve Debug tam çalışır, Benchmark'ta kendi "Bu dokümanda kalite"
-bölümünü alır. Frozen benchmark tabloları, üç kol karşılaştırması ve dokümanlar arası tablo
+Sayfa payload'ı `DATA.docs` içine **canlı** işaretiyle katar. Analizi hazır olan her konsol
+dokümanı ana doküman seçicide, `RAG Console — canlı dokümanlar` grubunda görünür ve oradan
+doğrudan seçilebilir; sayfa henüz yüklemediyse seçim anında payload'ı çeker. Hazır olmayan
+doküman listede *devre dışı* durur ve nedenini söyler (`analiz hazırlanıyor…`). Üst bardaki
+**RAG Console** düğmesi aynı listeyi bir diyalogda ayrıntısıyla verir; ana içerikte yer
+kaplamaz. Seçildiğinde Sunum ve Debug tam çalışır, Benchmark'ta doküman kendi "Bu dokümanda
+kalite" bölümünü alır. Frozen benchmark tabloları, üç kol karşılaştırması ve dokümanlar arası tablo
 bu dokümanlar için **hiç render edilmez**: gold sorgu setleri olmadığı için Hit@k/MRR
 üretilmez ve uydurulmaz. Sorgu sekmesi de dokümanın RAG Console'da sorgulandığını söyler —
 canlı doküman viewer sunucusunun demo korpusunda indeksli değildir.

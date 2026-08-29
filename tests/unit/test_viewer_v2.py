@@ -545,7 +545,8 @@ def test_technical_and_structural_boundaries_render_differently(tmp_path):
 def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     html_text = build(tmp_path)
     assert 'id="contchk"' in html_text
-    assert "Devam zinciri (local expansion)" in html_text
+    assert "Devam zinciri" in html_text
+    assert "local expansion" in html_text, "the technical name stays, as the toggle's tooltip"
     assert "TOKEN_BUDGET_CONTINUATION" in html_text
     # Presentation-mode product naming for the chunking mode switch.
     assert "Standard" in html_text and "Structure-only" in html_text
@@ -554,7 +555,13 @@ def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     # product's LLM mode is described without being a measured arm.
     assert "araştırma kolu" in html_text
     assert "Deep Analysis" in html_text
-    assert "zor chunk sınırlarını backend'de LLM ile değerlendirir" in html_text
+    # Deep Analysis is described as an ingest-time preparation mode whose model
+    # only advises. The sentence moved out of the top bar's hint line and into
+    # the comparison itself, but the claim it makes has to survive the move.
+    assert "premium hazırlama modu" in html_text
+    assert "Yalnız yükleme sırasında çalışır" in html_text
+    assert "Parçaları model belirlemez" in html_text
+    assert "iki ayrı sırada doğrulanır" in html_text
     # The old product framing is gone, and no confidence-detector language
     # or key-bearing call ever reaches the client.
     assert "Enhanced" not in html_text

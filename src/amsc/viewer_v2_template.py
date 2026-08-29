@@ -58,7 +58,6 @@ a{color:var(--accent)}
 .diffnav button:disabled{opacity:.4;cursor:default}
 .diffcount{color:var(--muted);font-size:13.5px}
 .conttoggle{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);cursor:pointer}
-.modehint{font-size:13.5px;color:var(--muted);width:100%;padding-left:2px}
 main{max-width:1760px;margin:0 auto;padding:20px 22px 40px}
 
 /* ---- shared cards ---- */
@@ -108,7 +107,7 @@ table.t td.deepcol{background:#faf7ff}
 .linkbtn{color:var(--accent);text-decoration:underline;padding:0}
 
 /* ---- Sunum: methods + results ---- */
-.methods{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:16px}
+.methods{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:8px}
 .method{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;
   position:relative;transition:box-shadow .12s,border-color .12s}
 .method:hover{box-shadow:0 2px 10px rgba(0,0,0,.06)}
@@ -296,6 +295,39 @@ details.secgold summary{cursor:pointer;color:var(--accent)}
 .interp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;font-size:15px;line-height:1.6;max-width:1040px;margin-top:12px}
 .interp b{font-weight:650}
 
+/* ---- Sunum: the product story, in the order a first-time reader needs it ---- */
+/* One sentence, before any number: what happened on this document. */
+#results,#methodhead,#readerhead{max-width:1480px}
+.verdict{background:linear-gradient(135deg,var(--deep-soft) 0%,var(--panel) 58%);border:1px solid #ded4f4;
+  border-radius:12px;padding:16px 20px;font-size:17px;line-height:1.5;display:flex;align-items:baseline;
+  gap:10px;flex-wrap:wrap}
+.verdict .who{font-size:13px;color:var(--muted);white-space:nowrap}
+.verdict b{font-weight:650}
+/* Standard and Deep side by side, two sentences each -- not two lists. */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
+.vs .side{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 18px}
+.vs .side.std{border-top:3px solid var(--accent)}
+.vs .side.deep{border-top:3px solid var(--deep)}
+.vs .side h4{font-size:15px;font-weight:650;display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.vs .side p{font-size:14.5px;line-height:1.55;color:#3f4750}
+.vs .side .facts{color:var(--muted);font-size:13px;margin-top:9px}
+/* The two sentences that stop a reader mis-reading what the model does. */
+.guards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
+.guards .g{border-left:3px solid var(--line-strong);padding:2px 0 2px 14px;font-size:14px;line-height:1.5;color:#3f4750}
+.guards .g b{color:var(--ink);font-weight:650;display:block;margin-bottom:2px}
+.guards .g.llm{border-left-color:var(--deep)}
+.guards .g.rule{border-left-color:var(--good)}
+/* "When is it worth it" as one row, not three boxes of bullets. */
+.when{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 22px;margin-top:12px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+.when .w{font-size:14px;line-height:1.5;color:#3f4750}
+.when .w b{display:block;color:var(--ink);font-weight:650;font-size:13.5px;margin-bottom:2px}
+/* Reader controls, beside the reader they control. */
+.readertools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.readertools+.readerbar{margin-top:-6px}
+.readertools .diffnav button{padding:4px 9px}
+.toolstash{display:none}
+
 /* ---- explainer layer: the plain-language skin over the technical numbers ---- */
 .sechead{margin:32px 0 10px;max-width:1040px}
 .sechead:first-child{margin-top:0}
@@ -327,43 +359,18 @@ details.secgold summary{cursor:pointer;color:var(--accent)}
 .kpi .delta.warn{background:var(--warn-soft);color:var(--warn)}
 .kpi.hero{background:linear-gradient(150deg,var(--deep-soft) 0%,var(--panel) 62%);border-color:#ded4f4}
 
-/* three-column "what it does / what it adds / what you get" story */
-.story{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:12px}
-.story .col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
-.story .col.std{border-top:3px solid var(--accent)}
-.story .col.deep{border-top:3px solid var(--deep)}
-.story .col.impact{border-top:3px solid var(--good)}
-.story .col h4{font-size:14.5px;font-weight:650;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-.story .col ul{margin:0 0 0 18px}
-.story .col li{font-size:14px;line-height:1.5;margin:5px 0;color:#3f4750}
-.story .col p{font-size:14px;line-height:1.55;color:#3f4750}
-
-/* "when is it worth it" decision box */
-.decide{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px}
-.decide .box{border:1px solid var(--line);border-radius:12px;padding:14px 17px;background:var(--panel)}
-.decide .box.yes{border-left:4px solid var(--good)}
-.decide .box.no{border-left:4px solid var(--line-strong)}
-.decide .box.cost{border-left:4px solid var(--warn)}
-.decide .box h4{font-size:14.5px;font-weight:650;margin-bottom:7px}
-.decide .box ul{margin:0 0 0 18px}
-.decide .box li{font-size:14px;line-height:1.5;margin:4px 0;color:#3f4750}
-
 /* improvement bars, plain-language labels */
 .fixlist{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 18px 14px;margin-top:12px}
-.fixrow{display:grid;grid-template-columns:minmax(220px,1.25fr) minmax(120px,2fr) 108px;gap:14px;align-items:center;
-  padding:11px 0;border-bottom:1px solid var(--line)}
+.fixrow{display:grid;grid-template-columns:minmax(210px,1fr) minmax(120px,2fr) 106px;gap:16px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line)}
 .fixrow:last-child{border-bottom:none}
 .fixrow .name{font-size:14px;font-weight:600;min-width:0}
-.fixrow .name .sub{display:block;font-weight:400;font-size:12.5px;color:var(--muted);line-height:1.4;margin-top:2px}
 .fixrow .bar{height:10px;background:#efedf7;border-radius:5px;position:relative;overflow:hidden}
 .fixrow .bar i{position:absolute;left:0;top:0;bottom:0;background:#cdbff0;border-radius:5px}
 .fixrow .bar b{position:absolute;left:0;top:0;bottom:0;background:var(--deep);border-radius:5px}
 .fixrow .n{text-align:right;font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap}
 .fixrow .n .to{color:var(--deep);font-weight:650}
 .fixrow .n .gone{color:var(--good);font-weight:650}
-.barkey{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:10px 0 2px}
-.barkey span{display:inline-flex;align-items:center;gap:6px}
-.barkey i{width:12px;height:9px;border-radius:3px;display:inline-block}
 
 /* glossary */
 .gloss{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 18px 12px;margin-top:10px}
@@ -378,26 +385,23 @@ details.deep-detail[open]>summary{border-bottom:1px solid var(--line);margin-bot
 details.deep-detail .inner{padding-bottom:16px}
 details.deep-detail .inner>h2:first-child,details.deep-detail .inner>.sechead:first-child{margin-top:14px}
 
-/* ---- workspace: the live RAG console state ---- */
-.wsbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
-  border-radius:12px;padding:10px 16px;margin-bottom:16px;font-size:13.5px}
-.wsbar .dot{width:9px;height:9px;border-radius:999px;background:var(--muted);flex:0 0 auto}
-.wsbar.live .dot{background:var(--good)}
-.wsbar.down .dot{background:var(--bad)}
-.wsbar .who{font-weight:650;font-size:14px}
-.wsbar .sum{color:var(--muted)}
-.wsbar .spacer{margin-left:auto}
-.wspanel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 18px 16px;margin:-8px 0 16px}
-.wsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px;align-items:start}
-.wskb details>summary{cursor:pointer;color:var(--accent);font-size:13px;margin-top:8px}
-.wskb{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fcfbf8;min-width:0}
-.wskb .kbname{font-weight:650;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.wskb .kbmeta{color:var(--muted);font-size:12.5px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
-.wskb .docs{margin-top:9px;display:flex;flex-direction:column;gap:6px}
-.wsdoc{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
+/* ---- workspace: an auxiliary panel, never the page's content ----
+   The console link is a navigation aid, so it lives as one button in the top
+   bar and opens on demand; the documents it lists reach the reader through
+   the document picker, which is where a reader already looks. */
+#wsopen{display:inline-flex;align-items:center;gap:7px}
+#wsopen .dot{width:8px;height:8px;border-radius:999px;background:var(--muted);flex:0 0 auto}
+#wsopen.live .dot{background:var(--good)}
+#wsopen.down .dot{background:var(--bad)}
+.wskb{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fcfbf8;min-width:0;margin-top:10px}
+.wskb .kbname{font-weight:650;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wskb .kbmeta{color:var(--muted);font-size:13px;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap}
+.wskb .docs{margin-top:8px;display:flex;flex-direction:column}
+.wskb details>summary{cursor:pointer;color:var(--accent);font-size:13.5px;margin-top:8px}
+.wsdoc{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;font-size:13.5px;padding:8px 0;border-top:1px solid var(--line)}
 .wsdoc .dname{font-weight:600;overflow-wrap:anywhere}
-.wsdoc .dmeta{color:var(--muted);font-size:12.5px}
-.wskb .none{color:var(--muted);font-size:13px;margin-top:8px}
+.wsdoc .dmeta{color:var(--muted);font-size:12.5px;margin-left:auto;white-space:nowrap}
+.wskb .none{color:var(--muted);font-size:13.5px;margin-top:8px}
 
 /* ---- modal ---- */
 .modal{position:fixed;inset:0;background:rgba(20,22,26,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -439,6 +443,11 @@ footer{color:var(--muted);font-size:12.5px;padding:26px 22px;text-align:center}
   </div>
   <div class="seg" id="armseg"></div>
   <div class="bar-right">
+    <button class="btn small" id="wsopen" title="RAG Console'daki bilgi tabanları ve dokümanlar"><span class="dot" id="wsdot"></span> <span id="wslabel">RAG Console</span></button>
+  </div>
+  <!-- Reader controls live with the reader, not in the global bar; they are
+       moved into the active view's toolbar by syncBar(). -->
+  <div class="toolstash" id="toolstash">
     <span id="pagectl">Sayfa <select id="pagesel"></select></span>
     <span class="seg filterseg" id="filterseg">
       <button data-f="all">Tümü</button>
@@ -446,22 +455,22 @@ footer{color:var(--muted);font-size:12.5px;padding:26px 22px;text-align:center}
       <button data-f="deep">Deep ≠ Standard</button>
     </span>
     <span class="diffnav" id="diffnav">
-      <button id="prevdiff">&#8592; Önceki fark</button>
-      <button id="nextdiff">Sonraki fark &#8594;</button>
+      <button id="prevdiff">&#8592;</button>
+      <button id="nextdiff">&#8594;</button>
       <span class="diffcount" id="diffcount"></span>
     </span>
-    <label class="conttoggle" id="conttoggle" title="Retrieval sonrası birlikte taşınabilecek devam chunk'larını görselleştirir; benchmark sonucunu değiştirmez">
-      <input type="checkbox" id="contchk"> Devam zinciri (local expansion)
+    <label class="conttoggle" id="conttoggle" title="Devam zinciri (local expansion): retrieval sonrası birlikte taşınabilecek devam chunk'larını görselleştirir; benchmark sonucunu değiştirmez">
+      <input type="checkbox" id="contchk"> Devam zinciri
     </label>
   </div>
-  <div class="modehint hidden" id="modehint"></div>
 </div>
 <main>
-  <div id="wsbar" class="wsbar hidden"></div>
-  <div id="wspanel" class="wspanel hidden"></div>
   <div id="view-presentation" data-mode="presentation">
+    <div class="sechead" id="methodhead"></div>
     <div id="methods" class="methods"></div>
     <div id="results"></div>
+    <div class="sechead" id="readerhead"></div>
+    <div class="readertools" id="readertools"></div>
     <div class="readerbar" id="readerbar"></div>
     <div class="pres-layout">
       <div id="prespage"></div>
@@ -501,6 +510,7 @@ footer{color:var(--muted);font-size:12.5px;padding:26px 22px;text-align:center}
     </div>
   </div>
   <div id="view-debug" class="hidden" data-mode="debug">
+    <div class="readertools" id="dbgtools"></div>
     <div class="dbgbar" id="dbgbar"></div>
     <div class="dbg">
       <div id="dbglist"></div>
@@ -603,31 +613,17 @@ const METHOD_DESC = {
   agentic: "Standard'ın üstüne bir kalite sözleşmesi koyar: yetim başlık, ayrılmış lead-in, bölünmüş liste gibi kötü sınırları deterministic kurallarla düzeltir; gerçekten belirsiz sınırlarda LLM'e danışır ve her öneriyi iki sırada doğrulatır. Hiçbir problem türünde Standard'dan kötü olamaz — ürünün Deep Analysis modu, ek gecikme ve maliyetle.",
   agentic_rules: "Bu dokümanda yalnız kalite sözleşmesinin deterministic katmanı çalıştı: yetim başlık, ayrılmış lead-in ve bölünmüş liste gibi kötü sınırlar kurallarla düzeltildi, hiçbir model çağrısı yapılmadı. Sonuç tekrarlanabilir ve ücretsizdir; model katmanı için dokümanı RAG Console'da Deep Analysis seçeneğiyle yükleyin."
 };
-const MODE_HINTS = {
-  "structure-only": "Standard — Structure-only: hızlı ve deterministic. Ürünün Deep Analysis modu (Agentic Chunker) " +
-    "önemli dokümanlarda zor chunk sınırlarını backend'de LLM ile değerlendirir; yalnız ingest sırasında çalışır, " +
-    "retrieval'a ve cevaba karışmaz.",
-  "hybrid": "Hybrid — embedding-assisted araştırma kolu (ürün modu değildir): bütçeyi aşan bir bölümde kural birden fazla geçerli kesim adayı " +
-    "bıraktığında, kesim yeri semantik benzerlikle seçilir (H1 arbitration). Bir güven/belirsizlik dedektörü değildir.",
-  "markdown": null,
-  "agentic": "Agentic Chunker — Deep Analysis: yapısal yürüyüş aynı; kalite kuralları kötü sınırları taşır, LLM yalnız gerçekten " +
-    "belirsiz sınırlarda öneri verir, çift sıralı verifier her öneriyi doğrular; final bölümleme deterministik sözleşmeden geçer. " +
-    "Model-bağımlı bir koşudur; kazanan ilan edilmez."
-};
 // One sentence per method, answering "bu benim için ne demek?" -- the product
 // layer over METHOD_DESC, which keeps the mechanism.
 const METHOD_IMPACT = {
   markdown: "Hızlıdır, ama başlığı içeriğinden, tabloyu satırlarından ayırabilir; cevap yarım gelebilir.",
   hybrid: "Araştırma için tutulur; üründe seçilecek bir mod değildir.",
   "structure-only": "Her bölüm kendi başlığı altında kalır. Anahtar teslim hız: ek maliyet yok, ek gecikme yok.",
-  agentic: "Standard'ın kaçırdığı kopmuş başlık, bölünmüş liste ve ikiye ayrılmış tabloları toplar; cevaplar daha bütün gelir. Karşılığı: ingest'te bir kerelik ek süre ve küçük bir LLM maliyeti."
+  agentic: "Standard'ın kaçırdığı kopmuş başlık, bölünmüş liste ve ikiye ayrılmış tabloları toplar; cevaplar daha bütün gelir. Karşılığı: yüklemede bir kerelik ek süre ve küçük bir model maliyeti.",
+  // The same mode on a document no model was consulted for. Promising a cost
+  // that was never paid would be as wrong as hiding one that was.
+  agentic_rules: "Standard'ın kaçırdığı kopmuş başlık, bölünmüş liste ve ikiye ayrılmış tabloları toplar. Bu dokümanda yalnız ücretsiz kalite kuralları çalıştı: model çağrısı yapılmadı."
 };
-const RULES_ONLY_HINT = "Agentic Chunker — Deep Analysis (kural tabanlı koşu): bu dokümanda model kullanılmadı. " +
-  "Yapısal yürüyüş aynı; kötü sınırları yalnız deterministic kalite kuralları taşıdı ve final bölümleme aynı sözleşmeden geçti. " +
-  "Sonuç tekrarlanabilir ve maliyetsizdir; LLM katmanının ekleyeceği kazanç bu koşuda yer almaz.";
-const LEGACY_HINT = "Agentic Chunker — Structure + LLM: yapısal kural aday sınırları belirler, generative model her adaya SPLIT/KEEP oyu verir; " +
-  "son seçim, fallback ve token limitleri deterministic kuralda kalır. Ayrı ve model-bağımlı bir koşudur; frozen üç kolun benchmark " +
-  "karşılaştırmasına dahil değildir, kazanan ilan edilmez.";
 
 // Two kinds of document share this page and must never be mixed. The frozen
 // corpus is the published benchmark set: fixed, gold-backed, comparable. A
@@ -684,6 +680,8 @@ function term(key, opts){
   const showTech = opts && opts.tech;
   return `${esc(t.label)}${showTech ? ` <span class="techname">${esc(t.tech)}</span>` : ""}${info(t.help)}`;
 }
+// The inside of a section head, for a host element that already is the wrapper.
+const inner = html => html.replace(/^<div class="sechead">/, "").replace(/<\/div>$/, "");
 function sectionHead(step, title, lead){
   return `<div class="sechead"><h2>${step ? `<span class="step">${step}</span>` : ""}${title}</h2>${lead ? `<div class="lead">${lead}</div>` : ""}</div>`;
 }
@@ -793,6 +791,7 @@ function initBar(){
   $("qsubtabs").querySelectorAll("button").forEach(b => {
     b.onclick = () => { state.qsub = b.dataset.sub; render(); };
   });
+  $("wsopen").onclick = openWorkspaceModal;
   $("modal").onclick = e => { if (e.target === $("modal")) closeModal(); };
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
   // Coming back to this tab after creating a knowledge base in the console is
@@ -869,17 +868,18 @@ function syncBar(){
     if (b.dataset.f === "deep") b.classList.toggle("hidden", !(D().deepDiffPages || []).length);
   });
   const inPage = state.mode === "presentation" || state.mode === "debug";
-  $("pagectl").style.display = inPage ? "" : "none";
-  $("armseg").style.display = (state.mode === "benchmark" || state.mode === "query") ? "none" : "";
-  $("filterseg").style.display = state.mode === "presentation" ? "" : "none";
+  // Page, filter, difference navigation and the continuation toggle all act on
+  // the reader below them, so they sit with it rather than in the global bar.
+  const host = state.mode === "presentation" ? $("readertools") : (state.mode === "debug" ? $("dbgtools") : null);
+  for (const id of ["pagectl", "filterseg", "diffnav", "conttoggle"]) {
+    const el = $(id);
+    const wanted = id === "pagectl" ? inPage : state.mode === "presentation";
+    if (wanted && host) host.appendChild(el); else $("toolstash").appendChild(el);
+    el.style.display = wanted ? "" : "none";
+  }
+  $("armseg").style.display = state.mode === "debug" ? "" : "none";
   $("diffnav").style.display = state.mode === "presentation" && D().diffs.length ? "" : "none";
-  $("conttoggle").style.display = state.mode === "presentation" ? "" : "none";
   $("contchk").checked = state.contShow;
-  let hint = state.mode === "presentation" ? MODE_HINTS[state.arm] : null;
-  if (state.mode === "presentation" && state.arm === "agentic" && isLegacyAgentic()) hint = LEGACY_HINT;
-  else if (state.mode === "presentation" && state.arm === "agentic" && isDeepArm("agentic") && !deepUsedLlm()) hint = RULES_ONLY_HINT;
-  $("modehint").textContent = hint || "";
-  $("modehint").classList.toggle("hidden", !hint);
   if (inPage) {
     syncPage();
     const sel = $("pagesel");
@@ -914,13 +914,13 @@ function renderMethods(){
     const desc = a === "agentic" && isLegacyAgentic()
       ? "Yapısal adaylar section başına tek çağrıda oylanır; final seçim ve limitler deterministic kuralda kalır. " + LEGACY_AGENTIC_SUB + "."
       : (a === "agentic" && isDeepArm(a) && !deepUsedLlm() ? METHOD_DESC.agentic_rules : METHOD_DESC[a]);
-    // Product language first, mechanism underneath: the card answers "bu bana
-    // ne kazandırır?" before it answers "nasıl çalışır?".
-    const impact = METHOD_IMPACT[a];
+    // One claim per card. The mechanism is a sentence a reader can ask for,
+    // not a paragraph four cards wide that has to be read before choosing.
+    const impact = (a === "agentic" && isDeepArm(a) && !deepUsedLlm()
+      ? METHOD_IMPACT.agentic_rules : METHOD_IMPACT[a]) || desc;
     return `<div class="method ${arm ? "" : "absent"} ${state.arm === a ? "on" : ""} ${a === "agentic" ? "deepm" : ""}" data-arm="${a}">
-      <div class="name">${esc(naming.top)} ${badge}</div>
-      ${impact ? `<div class="desc">${esc(impact)}</div>` : ""}
-      <div class="help">${esc(desc)}</div>
+      <div class="name">${esc(naming.top)} ${badge}${info(desc)}</div>
+      <div class="desc">${esc(impact)}</div>
       <div class="facts">${facts.map(f => `<span>${esc(f)}</span>`).join("")}</div>
     </div>`;
   }).join("");
@@ -950,80 +950,94 @@ function renderResults(){
   box.innerHTML = deepStory(dm, {heading: true});
 }
 
-// The Standard -> Deep Analysis story, in the order a reader needs it:
-// what each mode does, what actually got better, what it cost, and when it is
-// worth turning on. The numbers underneath are the same ones the Benchmark tab
-// audits -- only the wording changes, never the source.
+// The Standard -> Deep Analysis story, in the order a first-time reader needs
+// it: what happened, then what the two modes are, then what keeps the result
+// honest, then when it is worth choosing. Anything a reader would only ask
+// second is behind the disclosure at the bottom -- present, not in the way.
 function deepStory(dm, opts){
   const ts = dm.totals.standard || {}, td = dm.totals.deep || {};
   const sc = dm.storyCounts || {};
   const origin = sc.final_boundaries_by_origin || {};
   const secs = (dm.timing.llm_calls || 0) + (dm.timing.verifier_calls || 0) + (dm.timing.selection || 0);
   const retr = dm.retrieval || {};
-  const smellDrop = dm.smellTotal.standard - dm.smellTotal.deep;
-  const fixedCount = smellDrop > 0 ? smellDrop : 0;
-  const cost = `≈ $${dm.estCostUsd.toFixed(3)}`;
   const doc = D();
-
-  const head = opts && opts.heading ? `<div class="title"><span class="pill std">Standard</span><span class="muted" style="font-weight:400">→</span><span class="pill deep">Deep Analysis</span>
-      <span class="muted" style="font-weight:400;font-size:13.5px">${esc(doc.label)} · ${Math.max(...doc.pages)} sayfa · ${doc.meta.unitCount} canonical unit · model ${esc(dm.model || "—")}${dm.status && dm.status !== "ok" ? " · durum: " + esc(dm.status) : ""}</span></div>` : "";
-
-  // Two genuinely different runs share this panel: one where a model was
-  // consulted, and one where only the free deterministic contract ran. The
-  // numbers are read the same way; the sentences must not be.
   const llm = deepUsedLlm();
-  const story = `<div class="story">
-    <div class="col std"><h4><span class="pill std">Standard</span> ne yapar?</h4>
-      <ul><li>Dokümanın başlık ve bölüm yapısını takip eder; her bölüm kendi başlığı altında kalır.</li>
-      <li>Yalnız bütçeyi aşan bölümleri böler. Kural tabanlı, tekrarlanabilir, LLM kullanmaz.</li>
-      <li>Ek maliyeti ve ek gecikmesi yoktur.</li></ul></div>
-    <div class="col deep"><h4><span class="pill deep">Deep Analysis</span> ne ekler?</h4>
-      <ul><li>Kötü kalan sınırları arar: kopmuş başlık, bölünmüş liste, ikiye ayrılmış tablo.</li>
-      ${llm
-        ? `<li>Bunların çoğunu ücretsiz kalite kurallarıyla düzeltir; yalnız kuralın kararsız kaldığı ${sc.llm_consulted_sections ?? "—"} bölümde LLM'e danışır.</li>
-           <li>Her LLM önerisi iki ayrı sırada doğrulanır; doğrulanmayan öneri geri alınır.</li>`
-        : `<li>Bu koşuda yalnız <b>ücretsiz kalite kuralları</b> çalıştı: hiçbir model çağrısı yapılmadı.</li>
-           <li>Sonuç tamamen tekrarlanabilir. Model katmanını görmek için dokümanı RAG Console'da <b>Deep Analysis</b> seçeneğiyle yükleyin.</li>`}</ul></div>
-    <div class="col impact"><h4>Kullanıcıya etkisi ne?</h4>
-      <ul><li><b>${fixedCount}</b> yapısal kalite problemi ortadan kalktı — bunlar cevabın yarım gelmesine yol açan yerlerdi.</li>
-      <li>Hiçbir bölüm kötüleşmedi (<b>${dm.regressions}</b> kötüleşme); Deep hiçbir problem türünde Standard'ın gerisine düşemez.</li>
-      ${llm
-        ? `<li>Karşılığı ${cost} ve ${secs ? secs.toFixed(0) + " s" : "kısa"} ek süre — yalnız yükleme sırasında, bir kez.</li>`
-        : `<li>Bu kazanım <b>tamamen ücretsiz</b>: kural katmanının tek başına ne yaptığını gösterir.</li>`}</ul></div>
-  </div>`;
+  const fixed = Math.max(0, dm.smellTotal.standard - dm.smellTotal.deep);
+  const share = dm.smellTotal.standard ? Math.round(fixed / dm.smellTotal.standard * 100) : 0;
+  const cost = llm ? "≈ $" + dm.estCostUsd.toFixed(3) : "ücretsiz";
 
-  const cards = `<div class="kpis" style="margin-top:12px">
+  // The headline: one sentence a reader can repeat after looking once.
+  const verdict = fixed
+    ? `<b>Deep Analysis bu dokümanda ${fixed} yapısal kalite problemini giderdi</b> (%${share}), hiçbir bölümü kötüleştirmedi ve ${llm ? cost + " tutarında bir kerelik maliyetle çalıştı" : "hiç model kullanmadan çalıştı"}.`
+    : `<b>Bu dokümanda Standard bölümleme zaten temizdi:</b> Deep Analysis düzeltilecek yapısal kalite problemi bulmadı ve hiçbir sınırı kötüleştirmedi.`;
+
+  const kpis = `<div class="kpis" style="margin-top:12px">
     ${kpi(term("smell"), null, arrowValue(dm.smellTotal.standard, dm.smellTotal.deep),
       deltaPill(dm.smellTotal.standard, dm.smellTotal.deep, true), "hero")}
     ${kpi(term("regression"), null, `<span style="color:var(--good)">${dm.regressions}</span>`,
-      dm.regressions === 0 ? "Hiçbir bölüm Standard'ın gerisine düşmedi." : "Sözleşme ihlali — koşu incelenmeli.")}
-    ${kpi("Düzeltmeyi kim yaptı?", "Deep Analysis'in taşıdığı ya da eklediği chunk sınırlarının kaynağı. Ücretsiz kural katmanı, ücretli LLM katmanından çok daha fazla iş yapar.",
-      `${origin.deterministic || 0}<span class="unit">kural</span><span class="arrow">+</span><span class="to">${origin.llm || 0}</span><span class="unit">LLM</span>`,
-      "Kazanımın büyük kısmı LLM'siz gelir; LLM yalnız kalan zor sınırlara dokunur.")}
-    ${retr.deep && retr.standard ? kpi(term("hit"), null,
-      arrowValue(fmt(retr.standard.hit_at_5, 3), fmt(retr.deep.hit_at_5, 3)),
-      `${retr.deep.query_count} gold soruda, ilk 5 sonuç içinde. Fark bu örneklemde gürültü içindedir; iddiamız Deep'in <b>en az Standard kadar iyi</b> olduğudur.`)
-      : kpi(term("goldset"), null, `<span class="unit" style="font-size:16px">ölçülmedi</span>`,
-        "Bu dokümanın gold sorgu seti yok; retrieval karşılaştırması yapılmadı ve uydurulmadı.")}
+      dm.regressions === 0 ? "Hiçbir bölüm Standard'ın gerisine düşmedi." : "Sözleşme ihlali — bu koşu incelenmeli.")}
     ${llm
-      ? kpi("Ek maliyet", "Deep Analysis yalnız yükleme (ingest) sırasında çalışır; sorgu anında ne maliyet ne gecikme ekler.",
-          `${cost}`,
-          `${dm.calls.total} LLM çağrısı · ${secs ? secs.toFixed(0) + " s" : "—"} ek süre · yükleme sırasında tek sefer${dm.timing.standard ? ` (Standard ${fmt(dm.timing.standard, 2)} s)` : ""}`)
-      : kpi("Ek maliyet", "Bu koşuda model kullanılmadı: yalnız deterministik kalite sözleşmesi çalıştı.",
-          `<span style="color:var(--good)">yok</span>`,
-          `0 LLM çağrısı · yalnız kural katmanı · sonuç tekrarlanabilir`)}
-    ${kpi(term("chunk"), null, arrowValue(dm.chunkCount.standard, dm.chunkCount.deep),
-      "Parça sayısındaki değişim tek başına iyi ya da kötü değildir; önemli olan sınırların nereden geçtiğidir.")}
+      ? kpi("Bunun bedeli", "Deep Analysis yalnız yükleme sırasında çalışır; sorgu anında ne maliyet ne gecikme ekler.",
+          cost, `${dm.calls.total} model çağrısı · ${secs ? secs.toFixed(0) + " s" : "—"} · yüklemede tek sefer`)
+      : kpi("Bunun bedeli", "Bu koşuda model kullanılmadı: yalnız deterministik kalite kuralları çalıştı.",
+          `<span style="color:var(--good)">yok</span>`, "Model çağrısı yapılmadı · sonuç tekrarlanabilir")}
   </div>`;
 
-  return `<div class="results">${head}${story}${cards}${fixList(ts, td)}
-    <div class="note" style="margin-top:12px"><b>Bu sayılar neye dayanıyor?</b> Her problem türü, chunk sınırlarının şekline bakan deterministik bir sayaçtır — model yorumu değil. Deep Analysis, hiçbir problem türünde Standard'ın gerisine düşemeyecek bir sözleşmeyle çalışır. Geriye kalan problemler ${term("ceiling")} sayılır: tek bir tablonun ya da paragrafın kendisi bütçeden büyük olduğu için hiçbir yöntemin kaçınamayacağı yerlerdir. ${retr.deep && retr.standard ? `Arama sonucundaki fark ${doc.meta.queryCount} gold soruda gürültü içindedir; kazanan ilan edilmez.` : "Bu doküman için gold sorgu seti yok; arama karşılaştırması yapılmadı, uydurulmadı."}</div>
-    ${deepDecideBox(dm, secs, cost)}
+  const std = doc.arms["structure-only"], deep = doc.arms.agentic;
+  const compare = `<div class="vs">
+    <div class="side std"><h4><span class="pill std">Standard</span> temel yöntem</h4>
+      <p>Hızlı ve deterministik. Dokümanın kendi başlık yapısını takip eder: her bölüm kendi başlığı altında kalır, yalnız çok büyüyen bölümler bölünür. Ek maliyeti ve gecikmesi yoktur.</p>
+      ${std ? `<div class="facts">${std.chunks.length} parça${std.sq && std.sq.token_count ? " · medyan " + fmt(std.sq.token_count.median, 0) + " token" : ""}</div>` : ""}</div>
+    <div class="side deep"><h4><span class="pill deep">Deep Analysis</span> premium hazırlama modu</h4>
+      <p>Karmaşık dokümanlar için. Standard'ın geride bıraktığı kötü sınırları arar — kopmuş başlık, ikiye bölünmüş liste, ortadan ayrılmış tablo — ve bulduklarını düzeltir. Yalnız yükleme sırasında çalışır.</p>
+      ${deep ? `<div class="facts">${deep.chunks.length} parça${deep.sq && deep.sq.token_count ? " · medyan " + fmt(deep.sq.token_count.median, 0) + " token" : ""}${llm ? " · " + dm.calls.total + " model çağrısı" : " · model kullanılmadı"}</div>` : ""}</div>
+  </div>`;
+
+  // Two sentences that head off the two mis-readings this screen invites.
+  const guards = `<div class="guards">
+    <div class="g llm"><b>Modelin rolü sınırlı.</b> Parçaları model belirlemez. ${llm
+      ? "Yalnız kuralın kararsız kaldığı " + (sc.llm_consulted_sections ?? "birkaç") + " bölümde öneri verir; her öneri iki ayrı sırada doğrulanır ve doğrulanmayan öneri geri alınır."
+      : "Bu dokümanda modele hiç danışılmadı; sonucun tamamı kural katmanından geliyor."}</div>
+    <div class="g rule"><b>Kalite kuralları güvenlik katmanı.</b> Sonuç hiçbir problem türünde Standard'ın gerisine düşemez — bu bir hedef değil, koşunun geçmek zorunda olduğu bir sözleşme.</div>
+  </div>`;
+
+  const when = `<div class="when">
+    <div class="w"><b>Değer</b>Tablo, liste ve çok sayıda alt başlık içeren dokümanlarda; cevabın bir tablo satırını ya da madde listesini eksiksiz vermesi gerektiğinde.</div>
+    <div class="w"><b>Gerekmeyebilir</b>Düz, tablosuz, kısa metinlerde Standard zaten aynı sınırları bulur.</div>
+    <div class="w"><b>Maliyet mantığı</b>${llm ? "Bir kerelik " + cost + "; kazanç her sorguda tekrar eder. Sorgu anında ek maliyet ve gecikme yok." : "Bu koşuda model kullanılmadı; kural katmanının kazancı ücretsiz."}</div>
+  </div>`;
+
+  const detail = `<details class="deep-detail"><summary>Teknik ayrıntı — ölçüm, sınır kökeni ve iddia sınırları</summary><div class="inner">
+    <div class="kpis" style="margin-top:12px">
+      ${kpi("Düzeltmeyi kim yaptı?", "Deep Analysis'in taşıdığı ya da eklediği chunk sınırlarının kaynağı.",
+        `${origin.deterministic || 0}<span class="unit">kural</span><span class="arrow">+</span><span class="to">${origin.llm || 0}</span><span class="unit">model</span>`,
+        (origin.deterministic || origin.llm)
+          ? "Kazanımın büyük kısmı ücretsiz kural katmanından geliyor."
+          : "Deep Analysis hiçbir sınırı taşımadı: Standard zaten temiz kesmişti.")}
+      ${kpi(term("chunk"), null, arrowValue(dm.chunkCount.standard, dm.chunkCount.deep),
+        "Parça sayısı tek başına iyi ya da kötü değildir; önemli olan sınırların nereden geçtiğidir.")}
+      ${retr.deep && retr.standard
+        ? kpi(term("hit"), null, arrowValue(fmt(retr.standard.hit_at_5, 3), fmt(retr.deep.hit_at_5, 3)),
+            `${retr.deep.query_count} gold soruda. Fark bu örneklemde gürültü içindedir; iddia “daha iyi” değil, <b>“en az Standard kadar iyi”</b>dir.`)
+        : kpi(term("goldset"), null, `<span class="unit" style="font-size:17px">ölçülmedi</span>`,
+            "Bu dokümanın gold sorgu seti yok; arama karşılaştırması yapılmadı ve uydurulmadı.")}
+      ${kpi(term("ceiling"), null, `${sc.ceiling_boundaries ?? "—"}`,
+        "Tek bir tablo ya da paragraf bütçeden büyük olduğu için hiçbir yöntemin kaçınamayacağı kesim.")}
+    </div>
+    <div class="note" style="margin-top:12px">Her problem türü, chunk sınırlarının şekline bakan deterministik bir sayaçtır — model yorumu değil. ${llm
+      ? "Deep Analysis model kullanır; aynı koşu birebir tekrarlanmaz ve bir “kazanan yöntem” ilan edilmez."
+      : "Bu koşuda model kullanılmadı; model katmanının ekleyeceği kazanç bu tabloda yer almıyor."} Eşikler PoC seviyesindedir, optimize edilmemiştir.</div>
+  </div></details>`;
+
+  return `<div class="results" style="background:none;border:none;padding:0;margin:0">
+    ${sectionHead(2, "Standard → Deep Analysis", `<b>${esc(doc.label)}</b> · ${doc.meta.unitCount} birim · ${Math.max(...doc.pages)} sayfa${llm && dm.model ? " · model " + esc(dm.model) : ""}`)}
+    <div class="verdict">${verdict}</div>
+    ${kpis}${compare}${guards}${fixList(ts, td)}${when}${detail}
   </div>`;
 }
 
-// The improvement table: one row per defect type, plain label above the
-// technical key, Standard and Deep bars on the same scale.
+// The improvement list: one row per defect type, plain label, Standard and
+// Deep on the same scale. Silent when there was nothing to fix.
 function fixList(ts, td){
   const keys = ["orphan_label","lead_in_cut","continuation_cut","run_split_when_fits","table_split","fragment_cut"]
     .filter(k => (ts[k] || 0) + (td[k] || 0) > 0);
@@ -1033,37 +1047,13 @@ function fixList(ts, td){
     const s = ts[k] || 0, d = td[k] || 0;
     const gone = s > 0 && d === 0;
     return `<div class="fixrow">
-      <div class="name">${esc(SMELL_TEXT[k] || k)}<span class="sub">${esc(SMELL_HELP[k] || "")}</span></div>
+      <div class="name">${esc(SMELL_TEXT[k] || k)}${info(SMELL_HELP[k])}</div>
       <div class="bar" title="Standard ${s} · Deep ${d}"><i style="width:${Math.round(s / maxS * 100)}%"></i><b style="width:${Math.round(d / maxS * 100)}%"></b></div>
       <div class="n">${s} <span class="muted">→</span> <span class="${gone ? "gone" : "to"}">${d}</span>${gone ? " ✓" : ""}</div>
     </div>`;
   }).join("");
-  return `<h3 class="sub" style="margin-top:20px">Ne düzeldi?</h3>
-    <div class="help" style="margin-top:0">Her satır, chunk sınırının yanlış yerden geçtiği bir durumu sayar. Soldaki açık çubuk Standard, koyu çubuk Deep Analysis. Düşük olan iyidir.</div>
-    <div class="fixlist">${rows}
-      <div class="barkey"><span><i style="background:#cdbff0"></i> Standard</span><span><i style="background:var(--deep)"></i> Deep Analysis</span><span>✓ tamamen ortadan kalktı</span></div>
-    </div>`;
-}
-
-function deepDecideBox(dm, secs, cost){
-  return `<h3 class="sub" style="margin-top:20px">Deep Analysis ne zaman seçmeye değer?</h3>
-  <div class="decide">
-    <div class="box yes"><h4>Değer</h4><ul>
-      <li>Doküman tablo, liste ve çok sayıda alt başlık içeriyorsa — kopmaların çıktığı yerler buralar.</li>
-      <li>Cevabın bir tablo satırını ya da madde listesini eksiksiz vermesi gerekiyorsa.</li>
-      <li>Doküman bir kez yüklenip çok kez sorgulanacaksa: maliyet bir kerelik, kazanç her sorguda.</li></ul></div>
-    <div class="box no"><h4>Gerekmeyebilir</h4><ul>
-      <li>Düz, tablosuz, kısa metinlerde: Standard zaten aynı sınırları bulur.</li>
-      <li>Yükleme süresinin saniyeler içinde bitmesi gerektiği durumlarda.</li>
-      <li>Tek seferlik, atılacak bir doküman söz konusuysa.</li></ul></div>
-    <div class="box cost"><h4>Bedeli ne?</h4><ul>
-      ${dm.calls.total
-        ? `<li><b>${cost}</b> yaklaşık LLM maliyeti (liste fiyatı, ${dm.calls.total} çağrı).</li>
-           <li><b>${secs ? secs.toFixed(0) + " s" : "—"}</b> ek yükleme süresi.</li>`
-        : `<li>Bu koşuda <b>model kullanılmadı</b>: LLM maliyeti yok.</li>
-           <li>Yalnız deterministik kural katmanının ek süresi.</li>`}
-      <li>Sorgu anında <b>sıfır</b> ek maliyet ve gecikme: Deep yalnız yüklemede çalışır.</li></ul></div>
-  </div>`;
+  return `<h3 class="sub" style="margin-top:22px">Ne düzeldi?<span class="muted" style="font-weight:400;font-size:13.5px;margin-left:10px">açık çubuk Standard, koyu çubuk Deep Analysis — düşük olan iyi</span></h3>
+    <div class="fixlist">${rows}</div>`;
 }
 
 /* -------- Sunum: reader -------- */
@@ -1144,10 +1134,8 @@ function chunkLine(arm, idx, compact, unitId){
 function renderReaderBar(){
   const arms = docArms();
   const opts = a => arms.map(x => `<option value="${x}" ${x === a ? "selected" : ""}>${esc(modeName(x).top)}</option>`).join("");
-  $("readerbar").innerHTML = `<span>Sayfa okuyucu —</span>
-    <label><input type="checkbox" id="cmpchk" ${state.compare ? "checked" : ""}> Karşılaştır</label>
-    ${state.compare ? `<span>sol: <select id="armA">${opts(state.arm)}</select></span><span>sağ: <select id="armB">${opts(state.armB)}</select></span>` : `<span>gösterilen: <b>${esc(modeName(state.arm).top)}</b></span>`}
-    <span class="muted">· şeritler chunk sınırlarını, renk tonları chunk üyeliğini gösterir; bir şeride ya da metne tıklayın</span>`;
+  $("readerbar").innerHTML = `<label><input type="checkbox" id="cmpchk" ${state.compare ? "checked" : ""}> İki yöntemi yan yana karşılaştır</label>
+    ${state.compare ? `<span>sol: <select id="armA">${opts(state.arm)}</select></span><span>sağ: <select id="armB">${opts(state.armB)}</select></span>` : ""}`;
   $("cmpchk").onchange = () => { state.compare = $("cmpchk").checked; render(); };
   if (state.compare) {
     $("armA").onchange = () => { state.arm = $("armA").value; state.selChunk = null; render(); };
@@ -1156,6 +1144,10 @@ function renderReaderBar(){
 }
 
 function renderPresentation(){
+  $("methodhead").innerHTML = inner(sectionHead(1, "Yöntemler",
+    "Aynı doküman dört farklı şekilde parçalandı. Bir kart seçmek aşağıdaki okuyucuyu o yönteme geçirir; adın yanındaki <span class=\"info\">?</span> nasıl çalıştığını söyler."));
+  $("readerhead").innerHTML = inner(sectionHead(3, "Chunk'ları incele",
+    "Dokümanın kendisi, seçili yöntemin chunk sınırlarıyla. Bir şeride ya da metne tıklayın: o sınırın neden orada olduğunu sağdaki panel anlatır."));
   renderMethods();
   renderResults();
   renderReaderBar();
@@ -1167,7 +1159,7 @@ function renderPresentation(){
   const expansion = state.contShow && state.selChunk !== null ? simulateExpansion(armData, state.selChunk) : null;
   const expMembers = expansion ? new Set(expansion.members) : null;
 
-  let htmlOut = `<div class="docpage"><div class="pagehead"><span>${esc(D().label)} — sayfa ${state.page}</span><span>${esc(modeName(arm).top)} · ${esc(armLabel(arm))}</span></div>`;
+  let htmlOut = `<div class="docpage"><div class="pagehead"><span>${esc(D().label)} — sayfa ${state.page}</span><span>${esc(modeName(arm).top)}</span></div>`;
   for (let k = 0; k < units.length; k++) {
     const u = units[k];
     if (marks[k] !== null) htmlOut += chunkLine(arm, marks[k], false, u.i);
@@ -1759,8 +1751,8 @@ function renderSectionPanel(){
   const f = fellBack ? "all" : state.dbg.secStatus;
   const shown = all.filter(s => f === "all" || (f === "changed" ? s.st !== "standard_kept" : s.st === f));
   const counts = story.counts || {};
-  box.innerHTML = `<h2 class="sec">Bölüm kararları — Deep Analysis</h2>
-    ${fellBack ? `<div class="help" style="margin-top:0">Bu dokümanda Deep Analysis hiçbir bölümün sınırlarını değiştirmedi — Standard zaten temiz kesmişti. Aşağıda bölümlerin tamamı listeleniyor.</div>` : ""}
+  box.innerHTML = `<details class="deep-detail" style="margin-top:22px"><summary>Bölüm kararları — Deep Analysis her bölümde ne yaptı? (${all.length} bölüm${changedCount ? `, ${changedCount} tanesinde değişiklik` : ", değişiklik yok"})</summary><div class="inner">
+    ${fellBack ? `<div class="help" style="margin-top:10px">Bu dokümanda Deep Analysis hiçbir bölümün sınırlarını değiştirmedi — Standard zaten temiz kesmişti. Aşağıda bölümlerin tamamı listeleniyor.</div>` : ""}
     <div class="dbgbar"><span>Durum:</span><select id="secstatus">
       <option value="changed" ${f === "changed" ? "selected" : ""}>değişen bölümler (${all.filter(s => s.st !== "standard_kept").length})</option>
       <option value="all" ${f === "all" ? "selected" : ""}>tümü (${all.length})</option>
@@ -1768,7 +1760,7 @@ function renderSectionPanel(){
     </select><span class="muted">· LLM danışılan bölüm: ${counts.llm_consulted_sections ?? "—"} · final sınır kökeni: ${esc(JSON.stringify(counts.final_boundaries_by_origin || {}))} · temsil tavanı kesimi: ${counts.ceiling_boundaries ?? "—"}</span></div>
     <div class="scrollx"><table class="sectable"><tr><th>#</th><th>Bölüm</th><th>Sayfa</th><th>Durum</th><th>LLM</th><th>Standard → Final kesimler</th><th>Değişim grupları</th></tr>
     ${shown.map(s => `<tr class="clk" data-si="${s.i}"><td>${s.i}</td><td>${esc(s.h || "—")}</td><td>${s.pg.slice(0, 3).join(", ")}${s.pg.length > 3 ? "…" : ""}</td><td><span class="stpill ${s.st}">${esc(SECTION_STATUS[s.st] || s.st)}</span>${s.rv ? `<div class="muted" style="font-size:11.5px">${esc(s.rv)}</div>` : ""}</td><td>${s.cons ? (s.pr.length ? `${s.pr.filter(p => p.a).length}/${s.pr.length} kabul` : "danışıldı") : "—"}</td><td class="mono" style="font-size:11.5px">${esc(s.std.join(", ") || "—")} → ${esc(s.fin.join(", ") || "—")}</td><td style="font-size:12px">${s.gr.map(g => (g.or === "llm" ? "LLM" : "kural") + (g.rm.length ? ": " + g.rm.map(x => SMELL_FIXED[x] || x).join(", ") : (g.fc.length ? ": taşındı" : ": birleştirildi"))).join("<br>") || "—"}</td></tr>`).join("")}
-    </table></div>`;
+    </table></div></div></details>`;
   $("secstatus").onchange = e => { state.dbg.secStatus = e.target.value; renderSectionPanel(); };
   box.querySelectorAll("tr.clk").forEach(tr => {
     tr.onclick = () => {
@@ -1906,11 +1898,7 @@ function renderDeepPanel(doc){
     <div class="card stat"><div class="v">${dm.calls.total}</div><div class="k">LLM çağrısı</div></div>
     <div class="card stat"><div class="v">${dm.verifier ? dm.verifier.accepted : 0}<small>/ ${dm.verifier ? dm.verifier.group_count : 0}</small></div><div class="k">doğrulanan / gelen öneri</div></div>
   </div>`;
-  const smellRows = ["orphan_label","lead_in_cut","continuation_cut","run_split_when_fits","table_split","fragment_cut","below_min","above_soft_max"];
-  out += `<h2>Sınır kalitesi — bölüm bazında sözleşme<span class="techname"> boundary_quality</span></h2><div class="scrollx"><table class="t"><tr><th>Problem türü</th><th>Standard</th><th>Deep</th><th>Δ</th></tr>` +
-    smellRows.map(k => `<tr><td>${esc(SMELL_TEXT[k] || k)}${info(SMELL_HELP[k])} <span class="mono muted">${k}</span></td><td>${ts[k] ?? 0}</td><td class="deepcol">${td[k] ?? 0}</td><td>${(td[k] ?? 0) - (ts[k] ?? 0)}</td></tr>`).join("") +
-    `<tr><td><b>toplam</b></td><td><b>${dm.smellTotal.standard}</b></td><td class="deepcol"><b>${dm.smellTotal.deep}</b></td><td><b>${dm.smellTotal.deep - dm.smellTotal.standard}</b></td></tr></table></div>
-    <div class="legend"><b>Sözleşme:</b> her problem türü için Deep'in bölüm başına sayısı Standard'ı geçemez (count_D ≤ count_S). Boyut sayaçları yalnız toplam problem sayısı kesin azalırken büyüyebilir — bilinçli bir takas (tier 2). Kalan “tablo ortadan bölündü” / “paragraf ortasından kesildi” değerleri tek bir unit'in içine düşen zorunlu kesimlerdir; hiçbir bölümleme yöntemi bunlardan kaçınamaz (temsil tavanı). Bölüm verdict'leri: ${esc(JSON.stringify(dm.verdictsTiered))}.</div>`;
+  out += `<div class="legend" style="margin-top:14px"><b>Sözleşme:</b> her problem türü için Deep'in bölüm başına sayısı Standard'ı geçemez (count_D ≤ count_S). Boyut sayaçları yalnız toplam problem sayısı kesin azalırken büyüyebilir — bilinçli bir takas (tier 2). Kalan “tablo ortadan bölündü” / “paragraf ortasından kesildi” değerleri tek bir unit'in içine düşen zorunlu kesimlerdir; hiçbir bölümleme yöntemi bunlardan kaçınamaz (temsil tavanı). Bölüm verdict'leri: ${esc(JSON.stringify(dm.verdictsTiered))}.</div>`;
   const deepSet = new Set(["Agentic Chunker (Deep)"]);
   if (std && std.sq && deep && deep.sq) {
     out += benchTable("Yapısal kalite (chunk_quality, parser tabanı çıkarılmış)", [
@@ -1998,11 +1986,28 @@ function benchSummary(doc, dm, step){
     ${kpi(term("ceiling"), null, `${sc.ceiling_boundaries ?? "—"}`,
       `Tek bir tablo ya da paragraf bütçeden büyük olduğu için hiçbir yöntemin kaçınamayacağı kesim. Deep'te kalan ${dm.smellTotal.deep} problem ağırlıklı olarak buradan geliyor.`)}
   </div>`;
-  out += fixList(ts, td);
+  out += boundaryQualityTable(ts, td, dm);
   out += llm
     ? `<div class="guard deep" style="margin-top:16px"><b>Neyi iddia etmiyoruz.</b> Deep Analysis model kullanır; aynı koşu birebir tekrarlanmaz ve bir “kazanan yöntem” ilan edilmez. Ölçülen ve garanti edilen şey şudur: yapısal problemler azalır, hiçbir bölüm kötüleşmez, arama kalitesi en azından korunur. Eşikler PoC seviyesindedir, optimize edilmemiştir.</div>`
     : `<div class="guard deep" style="margin-top:16px"><b>Bu koşuda model kullanılmadı.</b> Karşılaştırmanın Deep tarafını yalnız deterministik kalite sözleşmesi üretti: sonuç tekrarlanabilir, maliyeti yok ve model katmanının ekleyeceği kazanç bu tabloda <b>yer almıyor</b>. Onu görmek için dokümanı RAG Console'da Deep Analysis seçeneğiyle yükleyin. Eşikler PoC seviyesindedir, optimize edilmemiştir.</div>`;
   return out;
+}
+
+// The per-type contract counters, at the top level of the tab that exists to
+// show them. The same six rows appear in Sunum as bars; here they carry the
+// delta and the counter's own name, because this is where they are audited.
+function boundaryQualityTable(ts, td, dm){
+  const rows = ["orphan_label","lead_in_cut","continuation_cut","run_split_when_fits",
+                "table_split","fragment_cut","below_min","above_soft_max"];
+  return `<h3 class="sub" style="margin-top:22px">Sınır kalitesi — problem türü başına<span class="muted" style="font-weight:400;font-size:13.5px;margin-left:10px">bölüm bazında sözleşme sayaçları</span></h3>
+    <div class="scrollx"><table class="t"><tr><th>Problem türü</th><th>Standard</th><th>Deep</th><th>Δ</th></tr>` +
+    rows.map(k => {
+      const s = ts[k] ?? 0, d = td[k] ?? 0, delta = d - s;
+      return `<tr><td>${esc(SMELL_TEXT[k] || k)}${info(SMELL_HELP[k])} <span class="mono muted">${k}</span></td>
+        <td>${s}</td><td class="deepcol">${d}</td><td${delta < 0 ? ' style="color:var(--good);font-weight:650"' : ""}>${delta > 0 ? "+" : ""}${delta || "—"}</td></tr>`;
+    }).join("") +
+    `<tr><td><b>toplam</b></td><td><b>${dm.smellTotal.standard}</b></td><td class="deepcol"><b>${dm.smellTotal.deep}</b></td><td><b>${dm.smellTotal.deep - dm.smellTotal.standard}</b></td></tr>
+    </table></div>`;
 }
 
 function benchMethods(doc, step){
@@ -2082,26 +2087,8 @@ function renderBenchmark(){
    asks its own server for it (/api/workspace proxies the console), so a
    knowledge base created over there shows up here on the next refresh with
    nothing to update by hand. */
-const workspace = {status: "idle", data: null, open: false, at: 0, error: null,
+const workspace = {status: "idle", data: null, modalOpen: false, at: 0, error: null,
   loading: null, preparing: new Set(), poll: null};
-
-// "Arçelik 2024" and "arcelikfaaliyet2024.pdf" are the same document to a
-// reader; fold the accents and punctuation away before comparing.
-const foldTr = s => String(s || "").toLocaleLowerCase("tr")
-  .replace(/ı/g, "i").replace(/İ/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g")
-  .replace(/ü/g, "u").replace(/ö/g, "o").replace(/ç/g, "c")
-  .replace(/[^a-z0-9]+/g, "");
-function viewerDocFor(fileName){
-  const hay = foldTr(fileName);
-  if (!hay) return null;
-  return DOC_ORDER.find(id => id.split(/[-_]/).filter(t => t.length >= 3).every(t => hay.includes(foldTr(t)))) || null;
-}
-function consoleDocsFor(docId){
-  const kbs = (workspace.data && workspace.data.knowledge_bases) || [];
-  const out = [];
-  for (const kb of kbs) for (const d of (kb.documents || [])) if (viewerDocFor(d.name) === docId) out.push({kb, doc: d});
-  return out;
-}
 
 // A live document's payload is built by the console from its own ingest and
 // relayed by this page's own server. It is merged into the same DATA.docs the
@@ -2109,6 +2096,7 @@ function consoleDocsFor(docId){
 // flagged, so nothing that belongs to the frozen benchmark can pick it up.
 async function openLiveDoc(docId, label){
   if (LIVE_LOADED.has(docId)) { selectDoc(docId); return; }
+  if (workspace.loading === docId) return;
   workspace.loading = docId;
   renderWorkspace();
   try {
@@ -2124,16 +2112,25 @@ async function openLiveDoc(docId, label){
     selectDoc(docId);
   } catch (e) {
     workspace.error = String(e.message || e);
+    syncDocOptions();
   } finally {
     workspace.loading = null;
     renderWorkspace();
   }
 }
 
-// Everything the document picker does when the document changes, in one place
-// so the picker, the workspace panel and a deep link cannot drift apart.
+// Everything that changes when the document changes, in one place, so the
+// picker, the workspace dialog and a jump from a table cannot drift apart.
 function selectDoc(docId){
-  if (!DATA.docs[docId]) return;
+  // A live document listed by the console but not yet fetched: get it first,
+  // so choosing it from the picker and opening it from the dialog are the
+  // same action to the reader and the same code path here.
+  if (!DATA.docs[docId]) {
+    const row = liveDocs().find(({doc}) => doc.doc_id === docId);
+    if (row) openLiveDoc(docId, row.doc.name);
+    else syncDocOptions();
+    return;
+  }
   state.doc = docId;
   state.page = null; state.query = null; state.selChunk = null; state.selUnit = null; state.diffIdx = -1;
   state.arm = defaultArm();
@@ -2199,40 +2196,115 @@ function liveDocs(){
 }
 const liveReady = () => liveDocs().filter(d => (d.doc.viewer || {}).status === "ready");
 
-// Two groups, never one list: the frozen corpus is the published benchmark
-// set, and a live document is this console's own ingest. Reading them as one
-// dataset is exactly the mistake the grouping prevents.
+// One picker for everything a reader can actually open. The frozen corpus and
+// the console's live documents are two groups inside it, not two places to
+// look -- and a live document appears here as soon as its analysis is ready,
+// whether or not this page has loaded it yet.
 function syncDocOptions(){
   const sel = $("docsel");
   if (!sel) return;
-  const option = id => {
-    const live = !isLive(id) && workspace.status === "live" ? consoleDocsFor(id).length : 0;
-    return `<option value="${esc(id)}">${esc(DATA.docs[id].label)}${live ? " · RAG Console'da da yüklü" : ""}</option>`;
-  };
-  const liveIds = DOC_ORDER.filter(isLive);
-  let html = `<optgroup label="Dondurulmuş karşılaştırma seti">${FROZEN_ORDER.map(option).join("")}</optgroup>`;
-  if (liveIds.length) {
-    html += `<optgroup label="Canlı çalışma alanı — RAG Console">${liveIds.map(option).join("")}</optgroup>`;
-  }
-  sel.innerHTML = html;
+  const frozen = FROZEN_ORDER.map(id =>
+    `<option value="${esc(id)}">${esc(DATA.docs[id].label)}</option>`).join("");
+  const rows = liveDocs();
+  const live = rows.map(({doc}) => {
+    const status = (doc.viewer || {}).status;
+    const name = doc.name || doc.doc_id;
+    if (status === "ready") return `<option value="${esc(doc.doc_id)}">${esc(name)}</option>`;
+    const note = (status === "pending" || status === "running") ? "analiz hazırlanıyor…"
+      : (status === "failed" ? "analiz hazırlanamadı" : "analiz yok");
+    return `<option value="${esc(doc.doc_id)}" disabled>${esc(name)} — ${note}</option>`;
+  }).join("");
+  // A document opened earlier but no longer listed by the console (deleted
+  // over there) stays selectable only while it is the one being shown.
+  const orphan = isLive() && !rows.some(({doc}) => doc.doc_id === state.doc)
+    ? `<option value="${esc(state.doc)}">${esc(DATA.docs[state.doc].label)}</option>` : "";
+  sel.innerHTML = `<optgroup label="Dondurulmuş karşılaştırma seti">${frozen}</optgroup>` +
+    (live || orphan ? `<optgroup label="RAG Console — canlı dokümanlar">${live}${orphan}</optgroup>` : "");
   sel.value = state.doc;
 }
 
-// One console document's row in the workspace panel: what the Viewer can do
-// with it right now, and the one action that moves it forward.
+// The button in the top bar is the whole resting state of the workspace: a
+// dot, a name and a count. Everything else waits behind a click.
+function renderWorkspace(){
+  const button = $("wsopen");
+  if (!button) return;
+  const data = workspace.data;
+  const live = workspace.status === "live";
+  button.className = "btn small" + (live ? " live" : (workspace.status === "down" ? " down" : ""));
+  const totals = (data && data.totals) || {};
+  let label = "RAG Console";
+  if (workspace.status === "loading") label = "RAG Console · okunuyor…";
+  else if (live) label = `RAG Console · ${totals.documents ?? 0} doküman`;
+  else if (workspace.status === "down") label = "RAG Console · bağlı değil";
+  $("wslabel").textContent = label;
+  button.title = live && data.url ? `${data.url} — bilgi tabanlarını ve dokümanları gör`
+    : (workspace.error || "RAG Console bağlantısı");
+  if (workspace.modalOpen) renderWorkspaceModal();
+}
+
+function openWorkspaceModal(){
+  workspace.modalOpen = true;
+  renderWorkspaceModal();
+  loadWorkspace();
+}
+
+function renderWorkspaceModal(){
+  const data = workspace.data;
+  const live = workspace.status === "live";
+  const totals = (data && data.totals) || {};
+  const facts = live
+    ? `<span>${totals.knowledge_bases ?? 0} bilgi tabanı</span><span>${totals.documents ?? 0} doküman</span><span>${(totals.chunks ?? 0).toLocaleString("tr-TR")} parça</span><span>${totals.viewer_ready ?? 0} tanesi Viewer'da hazır</span>`
+    : `<span>${workspace.status === "loading" ? "durum okunuyor…" : "bağlanılamadı"}</span>`;
+  let body;
+  if (!live) {
+    body = `<p>RAG Console'a ulaşılamıyor. Konsol kapalıysa bu sayfanın geri kalanı etkilenmez; dondurulmuş karşılaştırma seti çalışmaya devam eder.</p>
+      ${workspace.error ? `<p class="muted mono" style="font-size:12.5px">${esc(workspace.error)}</p>` : ""}`;
+  } else {
+    const kbs = data.knowledge_bases || [];
+    body = `<p style="font-size:14.5px">Konsola yüklediğiniz dokümanların analizi <b>kendiliğinden hazırlanır</b> — yüklemede üretilen parçalar ve kalite ölçümleri yeniden kullanılır, doküman ikinci kez ne ayrıştırılır ne de modele gönderilir. Hazır olanları üstteki <b>doküman seçiciden</b> de açabilirsiniz.</p>` +
+      kbs.map(kb => {
+        const docs = kb.documents || [];
+        const rows = docs.map(doc => liveDocRow({kb, doc})).join("");
+        return `<div class="wskb"${kb.orphan ? ' style="opacity:.72"' : ""}>
+          <div class="kbname">${kb.orphan ? "Bilgi tabanı silinmiş kayıtlar" : esc(kb.name)}</div>
+          <div class="kbmeta">${(kb.orphan ? ["bilgi tabanı silindi, doküman kayıtları duruyor"] : [kb.chunker ? "bölümleme: " + kb.chunker : "", kb.retrieval_method ? "arama: " + kb.retrieval_method : ""]).filter(Boolean).map(x => `<span>${esc(x)}</span>`).join("")}<span>${docs.length} doküman</span><span>${(kb.chunk_count || 0).toLocaleString("tr-TR")} parça</span></div>
+          ${docs.length
+            ? (kb.orphan
+              ? `<details><summary>${docs.length} doküman kaydını göster</summary><div class="docs">${rows}</div></details>`
+              : `<div class="docs">${rows}</div>`)
+            : `<div class="none">Henüz doküman yüklenmemiş.</div>`}
+        </div>`;
+      }).join("");
+  }
+  const actions = `<button class="btn small" id="wsrefresh">Yenile</button>` +
+    (live && data.url ? ` <a class="btn small" href="${esc(data.url)}" target="_blank" rel="noopener">Konsolu aç ↗</a>` : "");
+  openModal("RAG Console", facts, body, actions);
+  const previous = $("mclose").onclick;
+  $("mclose").onclick = () => { workspace.modalOpen = false; previous(); };
+  const refresh = $("wsrefresh");
+  if (refresh) refresh.onclick = loadWorkspace;
+  $("modal").querySelectorAll(".linkbtn[data-live]").forEach(el => {
+    el.onclick = () => { workspace.modalOpen = false; closeModal(); openLiveDoc(el.dataset.live, el.dataset.label); };
+  });
+  $("modal").querySelectorAll(".linkbtn[data-prepare]").forEach(el => {
+    el.onclick = () => prepareLiveDoc(el.dataset.prepare);
+  });
+}
+
+// One console document's row: what the Viewer can do with it, and the single
+// action that moves it forward.
 function liveDocRow(entry){
   const doc = entry.doc;
   const viewer = doc.viewer || {};
   const status = viewer.status || "missing";
   const id = doc.doc_id;
-  const loading = workspace.loading === id;
   const preparing = workspace.preparing.has(id);
   let action = "", note = "";
   if (status === "ready") {
-    action = `<button class="linkbtn" data-live="${esc(id)}" data-label="${esc(doc.name || id)}">${loading ? "açılıyor…" : "Viewer'da aç"}</button>`;
+    action = `<button class="linkbtn" data-live="${esc(id)}" data-label="${esc(doc.name || id)}">${workspace.loading === id ? "açılıyor…" : "Viewer'da aç"}</button>`;
     note = viewer.deep_source === "deterministic_contract"
-      ? `<span class="pill grey" title="Bu doküman Standard modda yüklendi. Karşılaştırmanın Deep tarafını ücretsiz, LLM'siz kalite sözleşmesi üretti — model çağrısı yapılmadı.">kural tabanlı karşılaştırma</span>`
-      : `<span class="pill deep" title="Yükleme sırasında çalışan Deep Analysis koşusu olduğu gibi paketlendi; Viewer için ikinci bir LLM çağrısı yapılmadı.">Deep Analysis koşusu</span>`;
+      ? `<span class="pill grey" title="Bu doküman Standard modda yüklendi. Karşılaştırmanın Deep tarafını ücretsiz, modelsiz kalite sözleşmesi üretti.">kural tabanlı</span>`
+      : `<span class="pill deep" title="Yükleme sırasında çalışan Deep Analysis koşusu olduğu gibi paketlendi; Viewer için ikinci bir model çağrısı yapılmadı.">Deep Analysis</span>`;
   } else if (status === "pending" || status === "running" || preparing) {
     action = `<span class="pill grey">Viewer analizi hazırlanıyor…</span>`;
   } else if (status === "failed") {
@@ -2242,57 +2314,7 @@ function liveDocRow(entry){
     action = `<button class="linkbtn" data-prepare="${esc(id)}">Viewer analizi hazırla</button>`;
   }
   return `<div class="wsdoc"><span class="dname">${esc(doc.name || id)}</span>${action}${note}
-    <span class="dmeta">${(doc.chunk_count || 0).toLocaleString("tr-TR")} parça${doc.chunking_mode ? " · " + esc(doc.chunking_mode) : ""}${doc.ingested_at ? " · " + esc(String(doc.ingested_at).slice(0, 10)) : ""}</span></div>`;
-}
-
-function renderWorkspace(){
-  const bar = $("wsbar"), panel = $("wspanel");
-  if (workspace.status === "standalone") { bar.classList.add("hidden"); panel.classList.add("hidden"); return; }
-  bar.classList.remove("hidden");
-  const data = workspace.data;
-  const totals = (data && data.totals) || {};
-  const live = workspace.status === "live";
-  bar.className = "wsbar" + (live ? " live" : (workspace.status === "down" ? " down" : ""));
-  let summary;
-  if (workspace.status === "loading") summary = "durum okunuyor…";
-  else if (live) {
-    const busy = liveDocs().filter(d => ["pending","running"].includes((d.doc.viewer || {}).status)).length;
-    summary = `${totals.knowledge_bases ?? 0} bilgi tabanı · ${totals.documents ?? 0} doküman · ${(totals.chunks ?? 0).toLocaleString("tr-TR")} parça` +
-      ` · ${totals.viewer_ready ?? liveReady().length} tanesi Viewer'da incelenebilir` +
-      (busy ? ` · ${busy} analiz hazırlanıyor…` : "") +
-      (workspace.status === "refreshing" ? " · yenileniyor…" : "");
-  }
-  else summary = `bağlanılamadı — konsol kapalı olabilir${workspace.error ? ` (${workspace.error})` : ""}`;
-  bar.innerHTML = `<span class="dot"></span><span class="who">RAG Console</span>
-    <span class="sum">${esc(summary)}</span>
-    ${live && data.url ? `<a href="${esc(data.url)}" target="_blank" rel="noopener">konsolu aç ↗</a>` : ""}
-    <span class="spacer"></span>
-    ${live ? `<button class="btn small" id="wstoggle">${workspace.open ? "Gizle" : "Yüklü dokümanları göster"}</button>` : ""}
-    <button class="btn small" id="wsrefresh">Yenile</button>`;
-  const refresh = $("wsrefresh");
-  if (refresh) refresh.onclick = loadWorkspace;
-  const toggle = $("wstoggle");
-  if (toggle) toggle.onclick = () => { workspace.open = !workspace.open; renderWorkspace(); };
-
-  if (!live || !workspace.open) { panel.classList.add("hidden"); panel.innerHTML = ""; return; }
-  panel.classList.remove("hidden");
-  const kbs = data.knowledge_bases || [];
-  panel.innerHTML = `<div class="help" style="margin-top:12px">RAG Console'daki güncel bilgi tabanları ve içlerine yüklenmiş dokümanlar. Konsola yeni bir doküman yüklediğinizde analizi <b>kendiliğinden hazırlanır</b> — yüklemede üretilen chunk'lar, sınır kararları ve kalite ölçümleri yeniden kullanılır, doküman ikinci kez ne ayrıştırılır ne de modele gönderilir. Hazır olduğunda <b>Viewer'da aç</b> ile Sunum ve Debug ekranlarında inceleyebilirsiniz. Bu dokümanlar dondurulmuş karşılaştırma setinin parçası değildir; gold sorguları olmadığı için arama metrikleri üretilmez.</div>
-    <div class="wsgrid">${kbs.map(kb => {
-      const docs = kb.documents || [];
-      return `<div class="wskb"${kb.orphan ? ' style="opacity:.72"' : ""}>
-        <div class="kbname">${kb.orphan ? "Bilgi tabanı silinmiş kayıtlar" : esc(kb.name)}</div>
-        <div class="kbmeta">${(kb.orphan ? ["bilgi tabanı silindi, doküman kayıtları duruyor"] : [kb.chunker ? "bölümleme: " + kb.chunker : "", kb.retrieval_method ? "arama: " + kb.retrieval_method : "", kb.vector_db_provider || ""]).filter(Boolean).map(x => `<span>${esc(x)}</span>`).join("")}</div>
-        <div class="kbmeta"><span>${docs.length} doküman</span><span>${(kb.chunk_count || 0).toLocaleString("tr-TR")} parça</span></div>
-        ${docs.length ? `${kb.orphan ? `<details><summary>${docs.length} doküman kaydını göster</summary>` : ""}<div class="docs">${docs.map(d => liveDocRow({kb, doc: d})).join("")}</div>${kb.orphan ? "</details>" : ""}` : `<div class="none">Henüz doküman yüklenmemiş.</div>`}
-      </div>`;
-    }).join("")}</div>`;
-  panel.querySelectorAll(".linkbtn[data-live]").forEach(el => {
-    el.onclick = () => openLiveDoc(el.dataset.live, el.dataset.label);
-  });
-  panel.querySelectorAll(".linkbtn[data-prepare]").forEach(el => {
-    el.onclick = () => prepareLiveDoc(el.dataset.prepare);
-  });
+    <span class="dmeta">${(doc.chunk_count || 0).toLocaleString("tr-TR")} parça${doc.chunking_mode ? " · " + esc(doc.chunking_mode) : ""}</span></div>`;
 }
 
 /* -------- shell -------- */
