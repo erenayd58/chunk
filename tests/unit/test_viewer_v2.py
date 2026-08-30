@@ -531,12 +531,29 @@ def test_continuation_links_are_embedded_per_chunk(tmp_path):
     assert hybrid[0]["g"] == hybrid[1]["g"] == 0
 
 
-def test_technical_and_structural_boundaries_render_differently(tmp_path):
+def test_the_comparison_board_is_one_grid_of_method_columns(tmp_path):
     html_text = build(tmp_path)
-    # Two visual classes exist and carry different treatments.
-    # A continuation cut draws its rail dashed; a structural one draws it solid.
-    assert ".rail.start.tech::before{background:repeating-linear-gradient" in html_text
-    assert ".rail.start::before{" in html_text and ".band.diff .msg{" in html_text
+    # One grid, one column per selected method, and the row -- not the cell --
+    # carries the row's state, which is what keeps the columns level.
+    assert ".board{--colmin" in html_text
+    assert "grid-template-columns:34px repeat(var(--n,2),minmax(var(--colmin),1fr))" in html_text
+    # A chunk opens on a boundary row and the method that did not cut runs a
+    # card straight through the same height.
+    assert ".cell.bd > .open{" in html_text and ".cell.bd > .thru{" in html_text
+    assert ".cell.bd.dv > .thru{background:repeating-linear-gradient" in html_text
+    # The divergence chrome is drawn in ink, because the four methods already
+    # own blue, violet, amber and teal.
+    assert ".gut.here .dvchip{background:var(--ink)" in html_text
+    # The rail reader it replaced leaves nothing behind.
+    assert ".rail" not in html_text and ".band.diff" not in html_text
+    assert 'id="scroller"' not in html_text
+    # A note that only one column draws would drop that column by a line, so
+    # the plan is a property of the row.
+    assert "rowPlan" in html_text and "plan.hasNote" in html_text
+
+
+def test_boundary_reasons_and_the_mode_switch_survive_the_board(tmp_path):
+    html_text = build(tmp_path)
     # The continuation label a technical boundary carries is still written out.
     assert "Önceki parçanın devamı — boyut sınırı nedeniyle ayrıldı" in html_text
     # One noun for a chunk in the reader's own copy: "parça". The engine name
@@ -545,14 +562,13 @@ def test_technical_and_structural_boundaries_render_differently(tmp_path):
     assert "Chunk ${" not in html_text
     assert "Bu, dokümanın ilk parçası." in html_text
     assert "Yeni bölüm başladı" in html_text
-
-
-def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
-    html_text = build(tmp_path)
-    assert 'id="contchk2"' in html_text
-    assert "Devam zinciri" in html_text
-    assert "o zinciri gösterir" in html_text, "the toggle must explain itself"
     assert "TOKEN_BUDGET_CONTINUATION" in html_text
+    # The section selector and the continuation-chain toggle are gone: page is
+    # the only navigation, and the chain simulation is no longer a screen.
+    assert 'id="secnav"' not in html_text
+    assert 'id="contchk2"' not in html_text
+    assert "Devam zinciri" not in html_text
+    assert "simulateExpansion" not in html_text
     # Presentation-mode product naming for the chunking mode switch.
     assert "Standard" in html_text and "Structure-only" in html_text
     assert "hızlı · deterministik" in html_text
@@ -574,8 +590,6 @@ def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     assert "güven/belirsizlik dedektörü değildir" in html_text
     assert "belirsiz yapısal sınırları" not in html_text
     assert "OPENROUTER" not in html_text and "api_key" not in html_text
-    # The expansion simulation is labelled as such and never re-ranks.
-    assert "ölçümleri değiştirmez" in html_text
 
 
 # --- the optional agentic arm ------------------------------------------------

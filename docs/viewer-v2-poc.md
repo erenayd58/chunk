@@ -9,7 +9,7 @@ ve ölçümler. Tek bir HTML dosyasıdır; yalnız canlı sohbet için yerel sun
 
 | Sekme | Soru | İçerik |
 |---|---|---|
-| **Sunum** | Ne yaptık, fark ne? | İlk ekran **Parçaları karşılaştır** sahnesidir: doküman metni bir kez basılır; seçilen her yöntem (Markdown / Hybrid / Standard / Deep Analysis, dokümanın gerçekten sahip oldukları) sol kenarda kendi renginde bir **ray** taşır, ray o yöntemin yeni parça açtığı yerde kopar ve parça numarası rozetiyle işaretlenir; raylar farklı karar verdiğinde metni sarı bir **ayrışma şeridi** keser: "Standard burada böldü · Parça 9 · … · Deep Analysis devam etti · Parça 8 sürüyor" ve varsa Deep'in bu sınırdaki kararı. Sahne ilk ayrışmada açılır; ← → (ya da n / p) ayrışmadan ayrışmaya gezer, bölüm ve sayfa seçicileri atlar, soldaki dikey harita bütün dokümandaki ayrışmaları ve açık sayfayı gösterir (tıklayınca gider), "Sadece ayrışmalar" aynı karar verilen blokları katlar. Sağ panel: seçili ayrışmanın iki tarafı ve tıklanan parçanın detayı. **Sonuç** bandı, "Ne düzeldi?" çubukları, yöntem kartları ve metodoloji sahnenin altındadır |
+| **Sunum** | Ne yaptık, fark ne? | İlk ekran **Parçaları karşılaştır** tezgâhıdır: seçilen her yöntem bir **kolon**dur ve kolonlar seçim sırasına göre dizilir (ilk seçilen solda). Paragraf ortak birimdir: aynı paragraf her kolonda aynı satırda basılır, böylece yalnız **parça sınırları** oynar. Bir parça karttır — bir sınır satırında numarası ve nedeniyle açılır (`Parça 74 · Boyut sınırına ulaşıldı · 371 tk`), sahip olduğu paragraf satırları boyunca sürer ve bir sonraki sınır satırında kapanır; **bölmeyen** kolon aynı yükseklikte kesiksiz akar ve `Parça 73 sürüyor` der. Bu iki kolonun ayrıştığı satır **ayrışma**dır: solundaki numaralı düğme oraya götürür, üstteki okuma satırı olayı cümleyle yazar ("Deep Analysis burada yeni parça açtı · Parça 74 · boyut sınırı — Standard bölmedi, devam etti · Parça 73 sürüyor") ve varsa Deep'in o sınırdaki kararını ekler. Ekran ilk ayrışmada açılır; ← → (ya da n / p) ayrışmadan ayrışmaya gezer ve ilgili parçaları görünür alana getirir; navigasyonda **yalnız sayfa** seçicisi vardır; soldaki dikey harita bütün dokümandaki ayrışmaları ve açık sayfayı gösterir. Metin *Tam / Kısa*, "Sadece ayrışmalar" aynı karar verilen blokları katlar, üç ya da dört kolonda "Yalnız Standard ↔ Deep" gezinmeyi ürünün kendi hikâyesiyle sınırlar. Sağ panel tıklanan parçanın detayıdır. **Sonuç** bandı, "Ne düzeldi?" çubukları, yöntem kartları ve metodoloji tezgâhın altındadır |
 | **Sorgu** | Kullanınca nasıl çalışıyor? | *Dokümana Sor*: doküman + yöntem seç, doğal dilde sor → dense + BM25 (RRF) retrieval → aynı bölümün devam parçalarıyla bağlam → kaynaklı cevap; kaynak kartları (başlık, bölüm, sayfa, yöntem, kullanıldı mı), karta tıklayınca chunk metni ve "Sunum'da göster"; "Tüm yöntemlerle karşılaştır" aynı soruyu dört yöntemle koşar. *Gold sorgular*: frozen benchmark'ın sorgu-bazlı görünümü (çevrimdışı) |
 | **Debug** | Sistem bu kararı neden verdi? | Canonical unit'ler (tip, rol, seviye, section path), her koldaki chunk/fragment/offset/method eşlemesi, parser bulguları, hard cap üstü unit'ler (temsil tavanı), unit inspector'da bölümün Deep karar izi (Standard → deterministik → final kesimler, kaldırılan kokular, LLM önerileri ve verifier kararları); bölüm kararları tablosu (durum filtresiyle) |
 | **Benchmark** | Ölçümlerde sonuç ne? | Frozen benchmark v5 (üç kol) değişmeden; ayrı **Deep Analysis paneli**: koku tablosu (S→D, Δ), chunk_quality tablosu, retrieval (frozen değer kopya, Deep yeniden skorlandı), sınır kökeni, LLM çağrısı/verifier/fallback, süre, token ve maliyet tahmini, dürüst yorum; dokümanlar arası sözleşme tablosu |
@@ -20,8 +20,16 @@ Dört sekme tek bir kabuğu paylaşır: üstte yapışkan bir başlık çubuğu 
 çizgili sekmeler, doküman seçici, RAG Console düğmesi) ve her ekranın başında aynı
 üç cevabı veren bir **sayfa başlığı** — hangi ekran (küçük etiket), hangi doküman
 (başlık) ve bu ekran ne işe yarar (bir cümle; Sunum'da başlık tek satıra iner, çünkü
-ilk ekran karşılaştırma sahnesinindir); sağında dokümanın bağlamı (set, Deep
-Analysis durumu, birim / sayfa / yöntem sayısı). Zemin soğuk nötr, yüzeyler beyaz;
+ilk ekran karşılaştırma tezgâhınındır); sağında dokümanın bağlamı (set, Deep
+Analysis durumu, birim / sayfa / yöntem sayısı).
+
+Tezgâhın hizası tek bir kuralla ayakta durur: **satır karar verir, hücre değil.**
+Pano tek bir CSS grid'idir, dolayısıyla bir "satır" bir eleman değil, kardeş
+hücrelerden oluşan bir dizidir; bir yöntem paragrafın *içinde* kesiyorsa metin
+bütün kolonlarda aynı ofsetlerden dilimlenir ve bir kolonun söyleyeceği bir not
+varsa o not satırı bütün kolonlarda çizilir (söyleyecek şeyi olmayanda boş).
+Genişliği değiştiren hiçbir işaret kullanılmaz — tek bir kolonda 11px'lik bir
+iç boşluk, o kolonu bir satır aşağı kaydırmaya yeter. Zemin soğuk nötr, yüzeyler beyaz;
 ürünün tek mavisi ve Deep Analysis'in tek moru dışında renk kullanılmaz. Her yöntem
 kartında, şerit çipinde ve kesim çizgisinde **aynı rengi** taşır (Markdown amber,
 Hybrid teal, Standard mavi, Deep Analysis mor). Sonuç bandı model çalıştıysa

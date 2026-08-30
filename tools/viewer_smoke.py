@@ -6,10 +6,11 @@ Not a pytest test -- it needs a built viewer and a real browser:
     py -3.11 tools/viewer_smoke.py artifacts/viewer-v2/index.html artifacts/local/smoke-offline
     py -3.11 tools/viewer_smoke.py http://127.0.0.1:8765/ artifacts/local/smoke-live --live
 
-The offline run drives Sunum (method cards, results strip, reader, compare
-grid, Deep≠Standard filter), the gold-query view, Debug (filters, inspector,
-section decision trail), Benchmark (frozen section, Deep panel,
-cross-document table), the deep-only holdout document and an 820px viewport.
+The offline run drives Sunum (the comparison board: aligned method columns,
+chunk cards, divergence stepping, adding a third column, picking a chunk),
+the gold-query view, Debug (filters, inspector, section decision trail),
+Benchmark (frozen section, Deep panel, cross-document table), the deep-only
+holdout document and an 820px viewport.
 ``--live`` additionally sends a question through the chat, opens a source
 card, and runs the four-arm comparison against ``amsc.viewer_server``.
 Reports console errors and failed checks; exit code 1 on any failure.
@@ -54,39 +55,66 @@ with sync_playwright() as p:
     methods = page.locator("#methods .method")
     check(methods.count() == 4, f"expected 4 method cards, got {methods.count()}")
     check(page.locator("#results .results").count() == 1, "results strip missing on the default doc")
-    # --- the comparison workbench: lanes, cuts, difference navigation ---
-    check(page.locator(".reader .u").count() > 0, "the comparison rendered no rows")
-    check(page.locator(".rail.start").count() > 0, "no chunk starts drawn on the rails")
-    check(page.locator(".band.diff").count() > 0, "the page opened without a disagreement band")
+    # --- the comparison board: columns, chunk cards, divergence walking ---
+    check(page.locator("#board .cell.ur").count() > 0, "the comparison rendered no rows")
+    check(page.locator("#board .cell.bd .open:not(.cont)").count() > 0, "no chunk starts on the board")
+    check(page.locator("#board .cell.bd.dv").count() > 0, "the board opened without a divergence")
     lanes = page.evaluate("() => laneList()")
-    check(len(lanes) == 2, f"expected the two product methods side by side, got {lanes}")
+    check(lanes == ["structure-only", "agentic"], f"expected Standard then Deep Analysis, got {lanes}")
+    # The paragraph is the atom: every row carries one cell per column, and
+    # the same paragraph starts at the same height in all of them.
+    align = page.evaluate("""() => {
+      const bd = document.getElementById('board');
+      const n = Number(getComputedStyle(bd).getPropertyValue('--n'));
+      const by = new Map();
+      for (const c of bd.querySelectorAll('.cell.ur')) {
+        if (!by.has(c.dataset.uid)) by.set(c.dataset.uid, []);
+        by.get(c.dataset.uid).push(c);
+      }
+      let bad = 0, worst = 0;
+      for (const [, g] of by) {
+        if (g.length !== n) { bad++; continue; }
+        const tops = g.map(c => {
+          const b = c.querySelector('.body, .miss');
+          return b ? Math.round(b.getBoundingClientRect().top) : null;
+        }).filter(v => v !== null);
+        if (tops.length > 1) worst = Math.max(worst, Math.max(...tops) - Math.min(...tops));
+      }
+      return {rows: by.size, n, bad, worst};
+    }""")
+    check(align["bad"] == 0, f"rows without one cell per column: {align}")
+    check(align["worst"] <= 1, f"the columns are {align['worst']}px out of true")
     page.screenshot(path=str(outdir / "01-sunum.png"), full_page=False)
 
-    # a cut opens the detail panel for the lane it belongs to
-    page.locator('.rail.start .badge[data-arm="agentic"]').first.click()
+    # a chunk card opens the detail panel for the column it belongs to
+    page.locator('#board .cell.bd .open[data-arm="agentic"]').first.click()
     page.wait_for_timeout(300)
     detail = page.locator("#presdetail").inner_text()
     check("Parça" in detail and "Deep Analysis kararı" in detail, "detail panel lacks the Deep decision sentence")
 
-    # a third method joins the comparison
+    # a third method joins as a third column, at the right-hand end
     page.locator('#cmpbar button[data-lane="markdown"]').click()
-    page.wait_for_timeout(400)
-    check(len(page.evaluate("() => laneList()")) == 3, "a third lane did not join the comparison")
-    check(page.locator(".reader .u").first.locator(".rail").count() == 3, "the rails did not follow")
+    page.wait_for_timeout(500)
+    check(page.evaluate("() => laneList()") == ["structure-only", "agentic", "markdown"],
+          "a third column did not join at the end")
+    check(page.evaluate("() => Number(getComputedStyle(document.getElementById('board')).getPropertyValue('--n'))") == 3,
+          "the board did not grow a third column")
     page.screenshot(path=str(outdir / "02-sunum-compare.png"), full_page=False)
-    page.locator('#cmpbar button[data-lane="markdown"]').click()
-    page.wait_for_timeout(300)
+    page.locator('#board .colhead .drop[data-drop="markdown"]').click()
+    page.wait_for_timeout(400)
+    check(len(page.evaluate("() => laneList()")) == 2, "the column head did not drop its method")
 
-    # walking to a difference moves the section and marks the spot
-    diffs = page.evaluate("() => laneDiffs().length")
+    # walking to a divergence moves the page and marks the spot
+    diffs = page.evaluate("() => stepDiffs().length")
     check(diffs > 0, "Standard and Deep are identical everywhere, which they are not")
-    # The screen opens on the first disagreement; one step moves to the next.
+    # The screen opens on the first divergence; one step moves to the next.
     at = page.evaluate("() => state.diffIdx")
-    check(at == 0, f"Sunum did not open on the first disagreement (diffIdx={at})")
+    check(at == 0, f"Sunum did not open on the first divergence (diffIdx={at})")
     page.locator("#nextdiff").click()
     page.wait_for_timeout(500)
-    check(page.locator(".band.diff.here").count() == 1, "no difference marker after stepping to one")
-    check(page.evaluate("() => state.diffIdx") == at + 1, "the difference walker did not advance")
+    check(page.locator("#board .gut.bd.dv.here").count() == 1, "no current divergence after stepping to one")
+    check(page.evaluate("() => state.diffIdx") == at + 1, "the divergence walker did not advance")
+    check("yeni parça açtı" in page.locator("#dvsum").inner_text(), "the readout does not say what happened")
     page.screenshot(path=str(outdir / "03-sunum-deepdiff.png"), full_page=False)
 
     # --- Sorgu ---
