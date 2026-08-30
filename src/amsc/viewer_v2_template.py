@@ -671,10 +671,7 @@ const state = {
   // The methods being compared, left to right. One lane is a reading view;
   // two or more is the comparison this product exists for.
   lanes: null,
-  scope: "section",
-  section: null,
   page: null,
-  filter: "all",
   diffIdx: -1,
   query: null,
   selChunk: null,
@@ -972,17 +969,6 @@ function docSections(){
   return out;
 }
 // Open on the first chapter that has something to read, not on a cover page.
-function firstContentSection(){
-  const sections = docSections();
-  const numbered = sections.findIndex(s => /^\s*\d+\s*[.)]/.test(s.title));
-  if (numbered >= 0) return numbered;
-  const prose = s => s.units.filter(u => u.t === "paragraph" && u.x.length > 240).length;
-  const at = sections.findIndex(s => prose(s) >= 2);
-  return at < 0 ? (sections.length > 1 ? 1 : 0) : at;
-}
-function sectionOfUnit(unitId){
-  return docSections().find(s => s.units.some(u => u.i === unitId));
-}
 
 // Which methods the reader is comparing. Defaults to the two that answer the
 // product's question -- the base method and the premium one -- when both are
@@ -1029,19 +1015,21 @@ function laneDiffs(){
   return points;
 }
 
-function pageList(){
-  if (state.filter === "diff" && D().diffPages.length) return D().diffPages;
-  if (state.filter === "deep" && (D().deepDiffPages || []).length) return D().deepDiffPages;
-  return D().pages;
-}
+function pageList(){ return D().pages; }
 function firstContentPage(){
-  // Open on the first page that carries a content unit, not a cover heading.
-  const unit = D().units.find(u => u.t !== "heading");
-  return unit ? unit.p : D().pages[0];
+  // Open on the first page with something to read: a cover, or a page holding
+  // one stray line, is a poor first view of a comparison.
+  const content = {};
+  for (const unit of D().units) {
+    if (unit.t !== "heading") content[unit.p] = (content[unit.p] || 0) + 1;
+  }
+  const pages = D().pages;
+  return pages.find(p => (content[p] || 0) >= 3)
+    || pages.find(p => content[p]) || pages[0];
 }
 function syncPage(){
   const pages = pageList();
-  if (state.page === null && state.filter === "all") state.page = firstContentPage();
+  if (state.page === null) state.page = firstContentPage();
   if (!pages.includes(state.page)) state.page = pages[0];
 }
 
@@ -1332,17 +1320,24 @@ function renderLanePicker(){
 // The navigator: sections first, differences second, pages last. A page is
 // where something was printed; a section is what it is about, and a difference
 // is what this screen is for.
+// Pages first: a reader following a printed document knows where they are by
+// its page number. The section this page belongs to rides along as the
+// secondary fact, because it is what tells you what you are reading.
 function renderNavigator(){
-  const sections = docSections();
-  const diffs = laneDiffs();
-  if (state.section === null || state.section >= sections.length) state.section = firstContentSection();
-  const options = sections.map((s, i) =>
-    `<option value="${i}" ${i === state.section ? "selected" : ""}>${i + 1}. ${esc(s.title)} — ${s.units.length} birim</option>`).join("");
   const pages = D().pages;
+  const diffs = laneDiffs();
+  if (state.page === null || !pages.includes(state.page)) state.page = firstContentPage();
+  const at = pages.indexOf(state.page);
+  const options = pages.map(p =>
+    `<option value="${p}" ${p === state.page ? "selected" : ""}>${p}</option>`).join("");
+  // Which section(s) this page falls in -- named, so the page number is not
+  // the only thing telling the reader where they are.
+  const here = docSections().filter(s => s.pages.includes(state.page)).map(s => s.title);
   $("navbar").innerHTML = `
-    <span>Bölüm</span><select id="secnav">${options}</select>
-    <span class="stepnav"><button id="prevsec" ${state.section === 0 ? "disabled" : ""}>&#8592;</button>
-      <button id="nextsec" ${state.section >= sections.length - 1 ? "disabled" : ""}>&#8594;</button></span>
+    <span>Sayfa</span><select id="pagenav">${options}</select>
+    <span class="stepnav"><button id="prevpage" ${at <= 0 ? "disabled" : ""}>&#8592;</button>
+      <button id="nextpage" ${at >= pages.length - 1 ? "disabled" : ""}>&#8594;</button></span>
+    <span class="muted">${at + 1} / ${pages.length}</span>
     ${diffs.length ? `<span class="stepnav" style="margin-left:8px">
       <button id="prevdiff2">&#8592;</button><button id="nextdiff2">&#8594;</button></span>
       <span>${diffs.length} ayrışma noktası${state.diffIdx >= 0 ? ` · ${state.diffIdx + 1}.` : ""}</span>`
@@ -1350,11 +1345,12 @@ function renderNavigator(){
     <span class="grow">
       <label class="conttoggle"><input type="checkbox" id="contchk2" ${state.contShow ? "checked" : ""}> Devam zinciri
         ${info("Bir parça aramada bulunduğunda aynı bölümün devamı olan komşu parçalar da cevaba taşınabilir. Bu kutu o zinciri gösterir; ölçümleri değiştirmez.")}</label>
-      <span class="muted" style="font-size:13px">sayfa ${sections[state.section] ? sections[state.section].pages.join(", ") : pages[0]}</span>
+      ${here.length ? `<span class="muted" style="font-size:13px;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+        title="${esc(here.join(" · "))}">${esc(here.join(" · "))}</span>` : ""}
     </span>`;
-  $("secnav").onchange = e => { state.section = Number(e.target.value); state.diffIdx = -1; render(); };
-  $("prevsec").onclick = () => { state.section = Math.max(0, state.section - 1); render(); };
-  $("nextsec").onclick = () => { state.section = Math.min(sections.length - 1, state.section + 1); render(); };
+  $("pagenav").onchange = e => { state.page = Number(e.target.value); state.diffIdx = -1; render(); };
+  $("prevpage").onclick = () => { state.page = pages[Math.max(0, at - 1)]; state.diffIdx = -1; render(); };
+  $("nextpage").onclick = () => { state.page = pages[Math.min(pages.length - 1, at + 1)]; state.diffIdx = -1; render(); };
   $("contchk2").onchange = e => { state.contShow = e.target.checked; render(); };
   if (diffs.length) {
     $("prevdiff2").onclick = () => stepLaneDiff(-1);
@@ -1364,13 +1360,15 @@ function renderNavigator(){
 
 // Move to the next place the compared methods disagree, wherever it is: the
 // section follows the difference, not the other way round.
+// Move to the next place the compared methods disagree, wherever it is: the
+// page follows the difference, not the other way round.
 function stepLaneDiff(delta){
   const diffs = laneDiffs();
   if (!diffs.length) return;
   state.diffIdx = (state.diffIdx + delta + diffs.length) % diffs.length;
   const point = diffs[state.diffIdx];
-  const section = sectionOfUnit(point.before);
-  if (section) state.section = section.i;
+  const unit = unitById(point.before);
+  if (unit) state.page = unit.p;
   render();
   const el = document.querySelector(`.rowmark[data-diff="${point.before}"]`);
   if (el) { el.scrollIntoView({block: "center"}); el.classList.add("here"); }
@@ -1385,7 +1383,7 @@ function renderPresentation(){
   renderMethods();
   renderResults({step: hasStory ? ++step : null});
   $("readerhead").innerHTML = inner(sectionHead(++step, "Parçaları karşılaştır",
-    "Aynı bölüm, seçtiğiniz yöntemlerin kesimleriyle yan yana. Renkli çizgi bir parçanın başladığı yerdir; sarı şerit, yöntemlerin farklı karar verdiği noktayı gösterir."));
+    "Aynı sayfa, seçtiğiniz yöntemlerin kesimleriyle yan yana. Renkli çizgi bir parçanın başladığı yerdir; sarı şerit, yöntemlerin farklı karar verdiği noktayı gösterir."));
   renderLanePicker();
   renderNavigator();
   renderLanes();
@@ -1397,8 +1395,7 @@ function renderPresentation(){
 // that exists in one method and not another needs no explanation.
 function renderLanes(){
   const lanes = laneList();
-  const section = docSections()[state.section] || docSections()[0];
-  const units = section ? section.units : pageUnits(state.page);
+  const units = pageUnits(state.page);
   const cols = `grid-template-columns:repeat(${lanes.length},minmax(0,1fr))`;
   const marks = {};
   for (const arm of lanes) marks[arm] = boundaryPositions(units, arm);
@@ -1501,8 +1498,7 @@ function jumpToChunk(idx, arm){
   state.selArm = state.arm;
   state.selChunk = idx;
   state.mode = "presentation";
-  const section = chunk.u.length ? sectionOfUnit(_baseId(chunk.u[0])) : null;
-  if (section) state.section = section.i;
+  if (chunk.pg.length) state.page = chunk.pg[0];
   render();
   const el = document.querySelector(`.cell.sel`);
   if (el) el.scrollIntoView({block:"center"});
@@ -1893,8 +1889,8 @@ function renderQuery(){
     b.onclick = () => {
       state.mode = "presentation";
       setLanes([b.dataset.goto]);
-      const section = g.ev.length ? sectionOfUnit(g.ev[0]) : null;
-      if (section) state.section = section.i;
+      const evidence = g.ev.length ? unitById(g.ev[0]) : null;
+      state.page = (evidence && evidence.p) || g.pg[0] || D().pages[0];
       render();
       g.ev.forEach(id => { const el = document.querySelector(`.cell[data-uid="${id}"]`); if (el) el.classList.add("evflash"); });
       const first = document.querySelector(".evflash");
@@ -2423,11 +2419,7 @@ function selectDoc(docId){
   state.armB = hasArm("structure-only") && state.arm !== "structure-only"
     ? "structure-only" : (docArms().find(a => a !== state.arm) || state.arm);
   state.chat.turns = []; state.chat.arm = null;
-  state.selArm = state.arm; state.lanes = null; state.section = null;
-  // A filter the new document cannot offer would leave the control showing
-  // nothing selected while still filtering, which reads as a broken button.
-  if ((state.filter === "diff" && !D().diffs.length) ||
-      (state.filter === "deep" && !(D().deepDiffPages || []).length)) state.filter = "all";
+  state.selArm = state.arm; state.lanes = null; state.page = null;
   if (isLive() && state.qsub === "gold") state.qsub = "chat";
   syncDocOptions();
   render();
