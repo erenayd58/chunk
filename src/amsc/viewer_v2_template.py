@@ -102,15 +102,22 @@ table.t td.deepcol{background:#faf7ff}
 .linkbtn{color:var(--accent);text-decoration:underline;padding:0}
 
 /* ---- Sunum: methods + results ---- */
-.methods{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:8px}
-.method{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;
-  position:relative;transition:box-shadow .12s,border-color .12s}
+.methods{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:6px;
+  max-width:1480px}
+.method{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 15px 13px;cursor:pointer;
+  position:relative;transition:box-shadow .12s,border-color .12s;border-top:3px solid var(--line-strong)}
 .method:hover{box-shadow:0 2px 10px rgba(0,0,0,.06)}
-.method.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
-.method.on.deepm{border-color:var(--deep);box-shadow:0 0 0 2px var(--deep-soft)}
-.method .name{font-weight:650;font-size:16.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.method .desc{color:#3f4750;font-size:14.5px;margin-top:7px;line-height:1.5}
-.method .facts{color:var(--muted);font-size:13px;margin-top:8px;display:flex;gap:10px;flex-wrap:wrap}
+.method.on{border-color:var(--accent);border-top-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.method.on.deepm{border-color:var(--deep);border-top-color:var(--deep);box-shadow:0 0 0 2px var(--deep-soft)}
+.method .name{font-weight:650;font-size:15.5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.method .desc{color:#4a525b;font-size:13.5px;margin-top:6px;line-height:1.45;min-height:39px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.method .facts{color:var(--muted);font-size:12.5px;margin-top:8px;display:flex;gap:9px;flex-wrap:wrap}
+/* The baselines are context, not choices: legible, but not competing with
+   the two modes a reader actually picks between. */
+.method.aside{background:#fbfaf7}
+.method.aside .name{font-size:14.5px;font-weight:600}
+.method.aside .desc{color:var(--muted);font-size:13px}
 .results{background:linear-gradient(135deg,#f4f0ff 0%,#fff 60%);border:1px solid #e3dcf5;border-radius:12px;padding:14px 18px;margin-bottom:16px}
 .results .title{font-weight:650;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .results .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
@@ -290,25 +297,51 @@ details.secgold summary{cursor:pointer;color:var(--accent)}
 .interp b{font-weight:650}
 
 /* ---- Sunum: the product story, in the order a first-time reader needs it ---- */
-/* One sentence, before any number: what happened on this document. */
 #results,#methodhead,#readerhead,#methodnote,#queryhead2,#dbghead{max-width:1480px}
 #methodnote .help{margin-top:2px}
 .guard.warn{border-left-color:var(--warn);background:var(--warn-soft)}
-.verdict{background:linear-gradient(135deg,var(--deep-soft) 0%,var(--panel) 58%);border:1px solid #ded4f4;
-  border-radius:12px;padding:16px 20px;font-size:17px;line-height:1.5;display:flex;align-items:baseline;
-  gap:10px;flex-wrap:wrap}
-.verdict .who{font-size:13px;color:var(--muted);white-space:nowrap}
-.verdict b{font-weight:650}
+
+/* ---- the result band: the one thing on this screen that is loud ---- */
+.hero{background:linear-gradient(135deg,#2c2450 0%,#43356f 46%,#5b3ea6 100%);color:#f3f0fb;
+  border-radius:14px;padding:16px 24px 17px;max-width:1480px;box-shadow:0 8px 26px rgba(58,42,108,.20)}
+.hero.flat{background:linear-gradient(135deg,#2b3140 0%,#3d4557 55%,#4c5568 100%);box-shadow:0 8px 26px rgba(43,49,64,.18)}
+.hero-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:13px}
+.hero-doc{font-size:19px;font-weight:650;letter-spacing:-.2px}
+.hero-facts{font-size:13px;color:#c3bbdf;display:flex;gap:9px;flex-wrap:wrap}
+.hero.flat .hero-facts{color:#b8bfcd}
+.hero-badge{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+.hero-badge .pill{background:rgba(255,255,255,.16);color:#fff}
+.hero-nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 30px}
+.hero-nums .n{min-width:0}
+.hero-nums .v{font-size:34px;font-weight:650;line-height:1.05;font-variant-numeric:tabular-nums;
+  display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.hero-nums .v .from{color:#a99ccb;font-size:26px;font-weight:600}
+.hero-nums .v .arrow{color:#a99ccb;font-size:23px;font-weight:400}
+.hero-nums .v .to{color:#fff}
+.hero.flat .v .from,.hero.flat .v .arrow{color:#98a2b5}
+.hero-nums .k{font-size:13.5px;color:#cfc7e6;margin-top:5px;display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.hero.flat .hero-nums .k{color:#c2c9d6}
+.hero-nums .k .info{border-color:rgba(255,255,255,.4);color:#e7e2f6}
+.hero-nums .k .info:hover{background:rgba(255,255,255,.16);border-color:#fff;color:#fff}
+.hero-nums .sub{font-size:12.5px;color:#b4a9d4;margin-top:3px}
+.hero.flat .hero-nums .sub{color:#aab2c1}
+.hero-nums .gain{display:inline-block;margin-top:6px;border-radius:999px;padding:2px 10px;font-size:12.5px;
+  font-weight:650;background:rgba(126,231,159,.18);color:#8ff0b4}
+.hero-line{margin-top:14px;padding-top:11px;border-top:1px solid rgba(255,255,255,.16);
+  font-size:14.5px;line-height:1.5;color:#ddd7ee}
+.hero.flat .hero-line{color:#d3d8e2}
+.hero-line b{color:#fff;font-weight:650}
 .guards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
 .guards .g{border-left:3px solid var(--line-strong);padding:2px 0 2px 14px;font-size:14px;line-height:1.5;color:#3f4750}
 .guards .g b{color:var(--ink);font-weight:650;display:block;margin-bottom:2px}
 .guards .g.llm{border-left-color:var(--deep)}
 .guards .g.rule{border-left-color:var(--good)}
-/* "When is it worth it" as one row, not three boxes of bullets. */
-.when{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 22px;margin-top:12px;
-  background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
-.when .w{font-size:14px;line-height:1.5;color:#3f4750}
-.when .w b{display:block;color:var(--ink);font-weight:650;font-size:13.5px;margin-bottom:2px}
+/* "When is it worth it": advice, so it reads as a note rather than as a
+   result competing with the band above it. */
+.when{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px 26px;margin-top:12px;
+  border-left:3px solid var(--line-strong);padding:2px 0 2px 16px;max-width:1480px}
+.when .w{font-size:13.5px;line-height:1.5;color:var(--muted)}
+.when .w b{display:block;color:#3f4750;font-weight:650;font-size:13px;margin-bottom:2px}
 /* ---- the comparison workbench ---- */
 .workbench{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;max-width:1480px}
 .wb-lanes{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -365,7 +398,7 @@ details.secgold summary{cursor:pointer;color:var(--accent)}
 .toolstash{display:none}
 
 /* ---- explainer layer: the plain-language skin over the technical numbers ---- */
-.sechead{margin:32px 0 10px;max-width:1040px}
+.sechead{margin:26px 0 9px;max-width:1040px}
 .sechead:first-child{margin-top:0}
 .sechead h2{font-size:20px;font-weight:650;letter-spacing:-.1px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .sechead .lead{color:var(--muted);font-size:14px;line-height:1.55;margin-top:5px}
@@ -397,18 +430,32 @@ details.secgold summary{cursor:pointer;color:var(--accent)}
 .kpi .delta.warn{background:var(--warn-soft);color:var(--warn)}
 .kpi.hero{background:linear-gradient(150deg,var(--deep-soft) 0%,var(--panel) 62%);border-color:#ded4f4}
 
-/* improvement bars, plain-language labels */
-.fixlist{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 18px 14px;margin-top:12px}
-.fixrow{display:grid;grid-template-columns:minmax(210px,1fr) minmax(120px,2fr) 106px;gap:16px;align-items:center;
-  padding:9px 0;border-bottom:1px solid var(--line)}
+/* ---- what improved: one row per defect, two bars on one scale ----
+   Standard on top, Deep below it. A shorter lower bar is the whole
+   message, and it reads without a legend. */
+.fixlist{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 20px 10px;margin-top:8px}
+.fixrow{display:grid;grid-template-columns:minmax(190px,300px) minmax(140px,1fr) 118px;gap:20px;align-items:center;
+  padding:7px 0;border-bottom:1px solid #f1efe9}
 .fixrow:last-child{border-bottom:none}
+.fixrow.flat{opacity:.72}
 .fixrow .name{font-size:14px;font-weight:600;min-width:0}
-.fixrow .bar{height:10px;background:#efedf7;border-radius:5px;position:relative;overflow:hidden}
-.fixrow .bar i{position:absolute;left:0;top:0;bottom:0;background:#cdbff0;border-radius:5px}
-.fixrow .bar b{position:absolute;left:0;top:0;bottom:0;background:var(--deep);border-radius:5px}
-.fixrow .n{text-align:right;font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap}
-.fixrow .n .to{color:var(--deep);font-weight:650}
-.fixrow .n .gone{color:var(--good);font-weight:650}
+.fixrow .bars{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fixrow .b{height:8px;border-radius:4px;background:#f0eef8;position:relative}
+.fixrow .b i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.fixrow .b.std i{background:#bcaee6}
+.fixrow .b.deep i{background:var(--deep)}
+.fixrow.gone .b.deep i{background:var(--good)}
+.fixrow .n{text-align:right;font-variant-numeric:tabular-nums;font-size:14.5px;white-space:nowrap;font-weight:600}
+.fixrow .n .to{color:var(--deep)}
+.fixrow.gone .n .to{color:var(--good)}
+.fixrow .n .kept{color:var(--muted);font-weight:500}
+.fixrow .n small{display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin-top:2px}
+.fixhead{display:grid;grid-template-columns:minmax(190px,300px) minmax(140px,1fr) 118px;gap:20px;
+  padding:9px 0 7px;font-size:12px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--line)}
+.fixhead .legend2{display:flex;gap:16px;text-transform:none;letter-spacing:0;font-size:12.5px}
+.fixhead .legend2 span{display:flex;align-items:center;gap:6px}
+.fixhead .swatch{width:16px;height:8px;border-radius:4px;display:inline-block}
 
 /* glossary */
 .gloss{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 18px 12px;margin-top:10px}
@@ -647,10 +694,10 @@ const METHOD_DESC = {
 // One sentence per method, answering "bu benim için ne demek?" -- the product
 // layer over METHOD_DESC, which keeps the mechanism.
 const METHOD_IMPACT = {
-  markdown: "Hızlıdır, ama başlığı içeriğinden, tabloyu satırlarından ayırabilir; cevap yarım gelebilir.",
+  markdown: "Hızlı, ama başlığı içeriğinden ayırabilir; cevap yarım gelebilir.",
   hybrid: "Araştırma için tutulur; üründe seçilecek bir mod değildir.",
-  "structure-only": "Her bölüm kendi başlığı altında kalır. Anahtar teslim hız: ek maliyet yok, ek gecikme yok.",
-  agentic: "Standard'ın kaçırdığı kopmuş başlık, bölünmüş liste ve ikiye ayrılmış tabloları toplar; cevaplar daha bütün gelir. Karşılığı: yüklemede bir kerelik ek süre ve küçük bir model maliyeti.",
+  "structure-only": "Her bölüm kendi başlığı altında kalır. Ek maliyet yok, ek gecikme yok.",
+  agentic: "Kopmuş başlık, bölünmüş liste ve ikiye ayrılmış tabloları toplar.",
   // The same mode on a document no model was consulted for. Promising a cost
   // that was never paid would be as wrong as hiding one that was.
   agentic_rules: "Standard'ın kaçırdığı kopmuş başlık, bölünmüş liste ve ikiye ayrılmış tabloları toplar. Bu dokümanda yalnız ücretsiz kalite kuralları çalıştı: model çağrısı yapılmadı."
@@ -1089,7 +1136,8 @@ function renderMethods(){
     // One claim per card. The mechanism is a sentence a reader can ask for,
     // not a paragraph four cards wide that has to be read before choosing.
     const impact = (a === "agentic" && isDeepArm(a) && an.impact ? an.impact : METHOD_IMPACT[a]) || desc;
-    return `<div class="method ${state.arm === a ? "on" : ""} ${a === "agentic" ? "deepm" : ""}" data-arm="${a}">
+    const aside = a === "markdown" || a === "hybrid";
+    return `<div class="method ${aside ? "aside" : ""} ${state.arm === a ? "on" : ""} ${a === "agentic" ? "deepm" : ""}" data-arm="${a}">
       <div class="name">${esc(naming.top)} ${badge}${info(desc)}</div>
       <div class="desc">${esc(impact)}</div>
       <div class="facts">${facts.map(f => `<span>${esc(f)}</span>`).join("")}</div>
@@ -1152,21 +1200,46 @@ function deepStory(dm, opts){
   const share = dm.smellTotal.standard ? Math.round(fixed / dm.smellTotal.standard * 100) : 0;
   const cost = llm ? "≈ $" + dm.estCostUsd.toFixed(3) : "ücretsiz";
 
-  // The headline: one sentence a reader can repeat after looking once.
-  const verdict = fixed
-    ? `<b>Deep Analysis bu dokümanda ${fixed} yapısal kalite problemini giderdi</b> (%${share}), hiçbir bölümü kötüleştirmedi ve ${llm ? cost + " tutarında bir kerelik maliyetle çalıştı" : (an.key === "rules" ? "hiç model kullanmadan çalıştı" : "yalnız kural katmanıyla tamamlandı")}.`
-    : `<b>Bu dokümanda Standard bölümleme zaten temizdi:</b> Deep Analysis düzeltilecek yapısal kalite problemi bulmadı ve hiçbir sınırı kötüleştirmedi.`;
-
-  const kpis = `<div class="kpis" style="margin-top:12px">
-    ${kpi(term("smell"), null, arrowValue(dm.smellTotal.standard, dm.smellTotal.deep),
-      deltaPill(dm.smellTotal.standard, dm.smellTotal.deep, true), "hero")}
-    ${kpi(term("regression"), null, `<span style="color:var(--good)">${dm.regressions}</span>`,
-      dm.regressions === 0 ? "Hiçbir bölüm Standard'ın gerisine düşmedi." : "Sözleşme ihlali — bu koşu incelenmeli.")}
-    ${llm
-      ? kpi("Bunun bedeli", "Deep Analysis yalnız yükleme sırasında çalışır; sorgu anında ne maliyet ne gecikme ekler.",
-          cost, `${dm.calls.total} model çağrısı · ${secs ? secs.toFixed(0) + " s" : "—"} · yüklemede tek sefer`)
-      : kpi("Bunun bedeli", an.help,
-          `<span style="color:var(--good)">yok</span>`, esc(an.short))}
+  // The result, as one object: what document, what happened, what it cost.
+  // Everything else on this screen supports it, so it is the only thing here
+  // that is loud.
+  const facts = [`${doc.meta.unitCount.toLocaleString("tr-TR")} birim`,
+                 `${Math.max(...doc.pages)} sayfa`,
+                 llm && dm.model ? esc(dm.model) : null].filter(Boolean);
+  const heroNums = `<div class="hero-nums">
+    <div class="n">
+      <div class="v">${arrowValue(dm.smellTotal.standard, dm.smellTotal.deep)}</div>
+      <div class="k">${term("smell")}</div>
+      ${fixed ? `<span class="gain">−${fixed} · %${share}</span>` : `<span class="sub">değişmedi — Standard zaten temizdi</span>`}
+    </div>
+    <div class="n">
+      <div class="v"><span class="to">${dm.regressions}</span></div>
+      <div class="k">${term("regression")}</div>
+      <div class="sub">${dm.regressions === 0 ? "hiçbir bölüm geriye gitmedi" : "sözleşme ihlali — incelenmeli"}</div>
+    </div>
+    <div class="n">
+      <div class="v"><span class="to">${llm ? esc(cost) : "yok"}</span></div>
+      <div class="k">bir kerelik maliyet${info(llm
+        ? "Deep Analysis yalnız yükleme sırasında çalışır; sorgu anında ne maliyet ne gecikme ekler."
+        : an.help)}</div>
+      <div class="sub">${llm
+        ? `${dm.calls.total} model çağrısı · ${secs ? secs.toFixed(0) + " s" : "—"} · yüklemede`
+        : esc(an.short)}</div>
+    </div>
+  </div>`;
+  const headline = fixed
+    ? `<b>${fixed} yapısal kalite problemi giderildi.</b> Hiçbir bölüm Standard'ın gerisine düşmedi.`
+    : `<b>Standard bölümleme bu dokümanda zaten temizdi.</b> Deep Analysis düzeltilecek problem bulmadı, hiçbir sınırı da kötüleştirmedi.`;
+  const hero = `<div class="hero ${llm ? "" : "flat"}">
+    <div class="hero-head">
+      <div>
+        <div class="hero-doc">${esc(doc.label)}</div>
+        <div class="hero-facts">${facts.map(f => `<span>${f}</span>`).join("")}</div>
+      </div>
+      <div class="hero-badge"><span class="pill">Deep Analysis</span>${an.tag ? `<span class="pill">${esc(an.tag)}</span>` : ""}</div>
+    </div>
+    ${heroNums}
+    <div class="hero-line">${headline}</div>
   </div>`;
 
   // When to prefer which method -- one line, because that is the only part of
@@ -1206,31 +1279,53 @@ function deepStory(dm, opts){
   </div></details>`;
 
   return `<div class="results" style="background:none;border:none;padding:0;margin:0">
-    ${sectionHead(opts && opts.step, "Standard → Deep Analysis", `<b>${esc(doc.label)}</b> · ${doc.meta.unitCount} birim · ${Math.max(...doc.pages)} sayfa${llm && dm.model ? " · model " + esc(dm.model) : ""}`)}
-    <div class="verdict">${verdict}</div>
-    ${an.warn ? `<div class="guard warn"><b>${esc(an.short)}</b> ${esc(an.help)}</div>` : ""}
-    ${kpis}${fixList(ts, td)}${when}${detail}
+    ${sectionHead(opts && opts.step, "Standard → Deep Analysis", null)}
+    ${hero}
+    ${an.warn ? `<div class="guard warn">${esc(an.short)} ${esc(an.help)}</div>` : ""}
+    ${fixList(ts, td)}${when}${detail}
   </div>`;
 }
 
 // The improvement list: one row per defect type, plain label, Standard and
 // Deep on the same scale. Silent when there was nothing to fix.
+// One row per defect type: Standard's count above Deep's, drawn on one
+// scale. A shorter lower bar is the message, so the rows that improved most
+// look like it -- the previous drawing overlaid both bars from the same
+// origin, which made an unchanged row the loudest thing in the chart.
 function fixList(ts, td){
   const keys = ["orphan_label","lead_in_cut","continuation_cut","run_split_when_fits","table_split","fragment_cut"]
     .filter(k => (ts[k] || 0) + (td[k] || 0) > 0);
   if (!keys.length) return "";
-  const maxS = Math.max(1, ...keys.map(k => Math.max(ts[k] || 0, td[k] || 0)));
-  const rows = keys.map(k => {
+  const max = Math.max(1, ...keys.map(k => Math.max(ts[k] || 0, td[k] || 0)));
+  // Biggest wins first, unchanged rows last: the chart tells the story in
+  // the order a reader would tell it.
+  const ordered = keys.slice().sort((a, b) =>
+    ((ts[b] || 0) - (td[b] || 0)) - ((ts[a] || 0) - (td[a] || 0)) || (ts[b] || 0) - (ts[a] || 0));
+  const rows = ordered.map(k => {
     const s = ts[k] || 0, d = td[k] || 0;
     const gone = s > 0 && d === 0;
-    return `<div class="fixrow">
+    const same = d >= s;
+    const pct = v => Math.round(v / max * 100);
+    return `<div class="fixrow ${gone ? "gone" : ""} ${same ? "flat" : ""}">
       <div class="name">${esc(SMELL_TEXT[k] || k)}${info(SMELL_HELP[k])}</div>
-      <div class="bar" title="Standard ${s} · Deep ${d}"><i style="width:${Math.round(s / maxS * 100)}%"></i><b style="width:${Math.round(d / maxS * 100)}%"></b></div>
-      <div class="n">${s} <span class="muted">→</span> <span class="${gone ? "gone" : "to"}">${d}</span>${gone ? " ✓" : ""}</div>
+      <div class="bars">
+        <div class="b std" title="Standard: ${s}">${s ? `<i style="width:${Math.max(2, pct(s))}%"></i>` : ""}</div>
+        <div class="b deep" title="Deep Analysis: ${d}">${d ? `<i style="width:${Math.max(2, pct(d))}%"></i>` : ""}</div>
+      </div>
+      <div class="n">${s} <span class="muted">→</span> <span class="${same ? "kept" : "to"}">${d}</span>
+        <small>${gone ? "tamamen giderildi" : same ? "değişmedi" : "−" + (s - d)}</small></div>
     </div>`;
   }).join("");
-  return `<h3 class="sub" style="margin-top:22px">Ne düzeldi?<span class="muted" style="font-weight:400;font-size:13.5px;margin-left:10px">açık çubuk Standard, koyu çubuk Deep Analysis — düşük olan iyi</span></h3>
-    <div class="fixlist">${rows}</div>`;
+  return `<h3 class="sub" style="margin-top:20px">Ne düzeldi?</h3>
+    <div class="fixlist">
+      <div class="fixhead"><span>Problem türü</span>
+        <span class="legend2">
+          <span><i class="swatch" style="background:#bcaee6"></i>Standard</span>
+          <span><i class="swatch" style="background:var(--deep)"></i>Deep Analysis</span>
+        </span>
+        <span style="text-align:right">Adet</span></div>
+      ${rows}
+    </div>`;
 }
 
 /* -------- Sunum: reader -------- */
