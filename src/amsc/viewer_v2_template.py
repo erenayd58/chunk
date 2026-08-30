@@ -243,63 +243,150 @@ table.t td.deepcol{background:#faf8ff}
 .method.aside{background:var(--well)}
 .method.aside .name{font-weight:600}
 .method.aside .desc{color:var(--muted)}
-#results,#methodhead,#readerhead,#methodnote{max-width:1480px}
+#results,#methodhead,#methodnote{max-width:1480px}
 #methodnote .help{margin-top:8px}
 
-/* ---- the comparison workbench ---- */
-.workbench{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;max-width:1480px;background:var(--surface);
-  border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;box-shadow:var(--shadow)}
-.wb-lanes{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.wb-lanes .lab{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+/* ---- the comparison stage: the first screen of Sunum ----
+   The text is printed once. Each selected method owns a rail; the rail
+   breaks where that method starts a chunk. Where rails disagree, an amber
+   band crosses the text and says so. */
+.pagehead.compact{margin-bottom:14px;padding-bottom:12px;align-items:center}
+.pagehead.compact .ph-main{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.pagehead.compact .eyebrow{margin:0}
+.pagehead.compact h1{font-size:22px}
+.cmpbar{background:var(--surface);border:1px solid var(--line);border-bottom:none;border-radius:var(--r) var(--r) 0 0;
+  padding:10px 16px 9px;display:flex;flex-direction:column;gap:8px}
+.cmpbar .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.cmpbar .title{display:flex;align-items:center;gap:10px;font-weight:650;font-size:16px;color:var(--ink);margin-right:8px}
+.cmpbar .title .step{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;
+  background:var(--ink);color:#fff;font-size:12.5px;font-weight:700}
+.cmpbar .lab{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cmpbar select{padding:5px 30px 5px 10px;font-size:13.5px;max-width:420px}
+.cmpbar .sep{width:1px;height:22px;background:var(--line)}
+.cmpbar .grow{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.cmpbar .legend{font-size:12.5px;color:var(--muted)}
 .lanechip{--c:var(--faint);--c-soft:var(--well-2);border:1px solid var(--line-2);border-radius:999px;padding:5px 13px 5px 10px;background:#fff;
   font-size:14px;font-weight:600;color:var(--ink-2);display:inline-flex;align-items:center;gap:7px;transition:border-color .12s,background .12s}
 .lanechip:hover{border-color:var(--c)}
 .lanechip .dot{width:10px;height:10px;border-radius:3px;background:var(--c);flex:0 0 auto}
 .lanechip.on{border-color:var(--c);background:var(--c-soft);color:var(--c)}
 .lanechip.off{opacity:.5;cursor:not-allowed;border-style:dashed}
-.wb-nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--muted);padding-top:10px;border-top:1px solid var(--line)}
-.wb-nav select{max-width:520px;padding:5px 30px 5px 10px}
+.lanechip .n{font-weight:400;font-size:12.5px;opacity:.8}
 .stepnav{display:inline-flex;gap:4px;align-items:center}
 .stepnav button{border:1px solid var(--line-2);border-radius:7px;padding:4px 11px;background:#fff;color:var(--ink-2);line-height:1.3}
 .stepnav button:hover{background:var(--well)}
 .stepnav button:disabled{opacity:.4;cursor:default;background:#fff}
-.wb-nav .grow{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.conttoggle{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);cursor:pointer}
-.pres-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px}
+.diffstep{display:inline-flex;align-items:center;gap:8px}
+.diffstep .count{font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.diffstep .count.none{font-weight:500;color:var(--muted)}
+.conttoggle{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.sonuc{border:1px solid var(--deep-line);background:var(--deep-soft);color:var(--deep-ink);border-radius:999px;padding:4px 12px;
+  font-size:13px;font-weight:600;white-space:nowrap}
+.sonuc:hover{background:#e6dcfb}
 
-/* Aligned lanes: one row per canonical unit, one column per method. Each
-   lane draws its cuts in its own method's colour -- the same colour the
-   method wears on its card and its chip. */
-.lanes{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
-.lanes .head{display:grid;position:sticky;top:var(--barh);z-index:5;background:var(--well);
-  border-bottom:1px solid var(--line-2);border-radius:var(--r) var(--r) 0 0}
-.lanes .head > div{padding:10px 16px;font-weight:650;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-left:1px solid var(--line)}
-.lanes .head > div:first-child{border-left:none}
-.lanes .head .n{font-weight:400;color:var(--muted);font-size:13px}
-.lanes .row{display:grid;border-bottom:1px solid var(--well-2)}
-.lanes .row:last-child{border-bottom:none}
-.lanes .cell{--c:var(--accent);--c-ink:var(--accent-ink);padding:0 16px;border-left:1px solid var(--line);min-width:0;position:relative}
-.lanes .cell[data-arm="markdown"]{--c:var(--amber);--c-ink:#92400e}
-.lanes .cell[data-arm="hybrid"]{--c:var(--teal);--c-ink:#115e59}
-.lanes .cell[data-arm="agentic"]{--c:var(--deep);--c-ink:var(--deep-ink)}
-.lanes .cell:first-child{border-left:none}
-.lanes .cell .body{font-family:var(--serif);font-size:15.5px;line-height:1.55;padding:6px 0}
-.lanes .cell.tintA{background:var(--tintA)}
-.lanes .cell.tintB{background:var(--tintB)}
-.lanes .cell.sel{box-shadow:inset 0 0 0 2px var(--accent)}
-.lanes .cut{display:flex;align-items:center;gap:9px;margin:0 -16px;padding:7px 16px;position:relative;z-index:1;
-  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 11%,transparent),transparent);border-top:2px solid var(--c);
-  scroll-margin-top:calc(var(--barh) + 70px)}
-.lanes .cut.deepcut{border-top-color:var(--deep)}
-.lanes .cut.techcut{border-top-style:dashed;border-top-color:color-mix(in srgb,var(--c) 55%,#fff);background:none}
-.lanes .cut button{font-size:13px;font-weight:650;color:var(--c-ink);white-space:nowrap}
-.lanes .cut.techcut button{color:var(--muted)}
-.lanes .cut .why{font-weight:400;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lanes .rowmark{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:6px 16px;position:relative;z-index:2;
-  background:#fef7e6;border-top:1px solid #f3dfae;border-bottom:1px solid #f3dfae;
-  font:13px/1.4 var(--font);color:#92400e;scroll-margin-top:calc(var(--barh) + 70px)}
-.lanes .rowmark b{font-weight:650}
-.lanes .rowmark.here{box-shadow:0 0 0 2px var(--warn)}
+.stage{display:grid;grid-template-columns:30px minmax(0,1fr) 360px;grid-template-rows:minmax(0,1fr);height:640px;background:var(--surface);
+  border:1px solid var(--line);border-radius:0 0 var(--r) var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:26px}
+.docmap{border-right:1px solid var(--line);background:var(--well);position:relative;cursor:pointer}
+.docmap svg{display:block;width:100%;height:100%}
+/* No smooth scrolling here: the stage is positioned in one step when a
+   disagreement is chosen, and an animation only fights the next click. */
+.scroller{overflow:auto;position:relative;min-width:0;min-height:0;scroll-padding-top:44px}
+.u,.band,.fold{scroll-margin-top:44px}
+.orient{position:sticky;top:0;z-index:3;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);
+  font-size:13px;color:var(--muted);min-height:34px;align-items:stretch}
+.orient .obody{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:7px 16px 7px 14px;min-width:0;border-left:1px solid var(--line)}
+.rhd{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.02em;color:#fff;
+  background:var(--c);margin:5px 3px;border-radius:4px;text-transform:uppercase}
+.orient b{color:var(--ink);font-weight:650}
+.orient .grow{margin-left:auto;display:flex;gap:10px;align-items:center}
+.orient button{color:var(--accent);font-weight:600;font-size:13px}
+.orient button:hover{text-decoration:underline}
+.reader{padding-bottom:48px}
+/* The reader is a plain block; every ROW is the grid, so the rails and the
+   text of one unit are always cells of the same row and cannot drift. */
+.u,.band,.fold,.edge,.orient{display:grid;grid-template-columns:var(--cols)}
+.u .txt{padding:5px 20px 5px 14px;font-family:var(--serif);font-size:15.5px;line-height:1.55;min-width:0;max-width:1040px;
+  position:relative;border-left:1px solid var(--line)}
+.u.ctx .txt{color:var(--faint)}
+.u.ctx .rail{opacity:.45}
+.u.sel .txt{background:var(--well)}
+.u.evflash .txt{outline:3px solid var(--warn);outline-offset:-3px}
+.u .txt.clk{cursor:pointer}
+/* the rail: one per selected method */
+.rail{--c:var(--faint);position:relative;min-width:0}
+.rail::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:3px;background:var(--c);opacity:.5}
+.rail.a{background:color-mix(in srgb,var(--c) 6%,white)}
+.rail.b{background:color-mix(in srgb,var(--c) 14%,white)}
+.rail.none{background:none}
+.rail.none::before,.rail.gap::before{display:none}
+.rail.start::before{top:19px;border-radius:2px 2px 0 0}
+.rail.start.tech::before{background:repeating-linear-gradient(to bottom,var(--c) 0 3px,transparent 3px 6px)}
+.rail .badge{position:absolute;left:1px;top:2px;width:26px;height:16px;border-radius:4px;background:var(--c);color:#fff;
+  font:700 10.5px/16px var(--font);text-align:center;padding:0;letter-spacing:-.3px;cursor:pointer;z-index:1}
+.rail.tech .badge{background:#fff;color:var(--c);border:1px solid var(--c);line-height:14px}
+.rail .badge:hover{box-shadow:0 0 0 2px var(--c-soft,#fff)}
+.rail.sel{background:color-mix(in srgb,var(--c) 22%,white)}
+.rail.sel::before{opacity:1;width:5px;left:11px}
+.rail.chain::before{opacity:1;background:repeating-linear-gradient(to bottom,var(--c) 0 5px,transparent 5px 9px)}
+.rail.fade::before{background:repeating-linear-gradient(to bottom,var(--c) 0 2px,transparent 2px 7px);opacity:.5}
+/* the cut lines into the text, one per cutting method */
+.cutline{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;gap:2px;pointer-events:none}
+.cutline i{display:block;height:2px}
+.u.hascut .txt{padding-top:10px}
+/* bands: where the compared methods agree loudly or disagree */
+.band .msg{min-width:0;font-family:var(--font);max-width:1040px}
+.band.diff .msg{background:#fff7e6;border-left:4px solid #d97706;padding:7px 14px 7px 12px;font-size:13.5px;line-height:1.45;color:#7c2d12;
+  display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline}
+.band.diff .msg .cnt{grid-row:1/3}
+.band.diff .side{display:flex;gap:8px;align-items:baseline;min-width:0}
+.band.diff .side .k{flex:0 0 68px;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:#a16207}
+.band.diff .side .v{min-width:0;display:flex;gap:14px;flex-wrap:wrap}
+.band.diff .ent{white-space:nowrap}
+.band.diff .ent b{color:var(--ink);font-weight:650}
+.band.diff .ent i{font-style:normal;color:#a16207}
+.band.diff .dec{grid-column:2}
+.band.diff.minor .msg{background:#fffcf3;border-left-color:#f1d08a;padding:4px 14px 4px 12px;font-size:12.5px}
+.band.diff.minor .side .k{color:#b98b3a}
+.band.diff.here .msg{outline:2px solid #d97706;outline-offset:-2px;background:#fdefcf}
+.band.diff.ctx .msg{opacity:.55}
+.band .cnt{display:inline-block;align-self:center;background:#d97706;color:#fff;border-radius:999px;padding:1px 8px;font-size:11.5px;
+  font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.band.minor .cnt{background:#e6b566}
+.band .who{font-weight:650;color:var(--ink);white-space:nowrap}
+.band .who .dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.band .verb{font-weight:650;color:#9a3412}
+.band .why{color:#92400e}
+.band .dec{display:block;margin-top:3px;color:#6b4a1f;font-size:12.5px}
+.band .dec b{color:var(--deep-ink)}
+.band.same .msg{padding:2px 20px 0 14px;font-size:11.5px;color:var(--faint);text-align:right;font-family:var(--font)}
+.fold .msg{margin:2px 0;padding:6px 14px;font-size:13px;color:var(--muted);background:var(--well);border-top:1px dashed var(--line-2);border-bottom:1px dashed var(--line-2)}
+.fold .msg{cursor:pointer}
+.fold .msg .open{color:var(--accent);font-weight:600}
+.fold .msg:hover{background:var(--well-2)}
+.fold .msg:hover .open{text-decoration:underline}
+.edge .msg{padding:4px 14px;font-size:12px;color:var(--faint);font-family:var(--font)}
+.edge .msg button{color:var(--accent);font-weight:600;font-size:12px}
+.edge .msg button:hover{text-decoration:underline}
+.stage .empty{padding:40px 24px;color:var(--muted);font-size:14.5px;line-height:1.6;max-width:620px}
+/* the panel beside the stage */
+.panel{border-left:1px solid var(--line);overflow:auto;min-height:0;padding:14px 16px;font-size:14px;background:var(--surface)}
+.panel h3{font-size:15px;margin-bottom:10px;font-weight:650}
+.panel .kv{display:grid;grid-template-columns:108px 1fr;gap:6px 10px;font-size:13.5px}
+.panel .kv dt{color:var(--muted)}
+.panel .empty{color:var(--muted);font-size:13.5px;line-height:1.5}
+.diffcard{background:#fff7e6;border:1px solid #f3dfae;border-radius:var(--r-sm);padding:11px 13px;margin-bottom:16px;font-size:13.5px;line-height:1.5}
+.diffcard .head{display:flex;align-items:center;gap:8px;font-weight:650;color:var(--ink);margin-bottom:6px;flex-wrap:wrap}
+.diffcard .head .cnt{background:#d97706;color:#fff;border-radius:999px;padding:0 8px;font-size:11.5px;font-weight:700}
+.diffcard .where{color:var(--muted);font-size:12.5px;margin:-2px 0 7px}
+.diffcard .line{display:flex;gap:8px;align-items:baseline;margin:4px 0}
+.diffcard .line .dot{width:9px;height:9px;border-radius:3px;flex:0 0 auto;margin-top:5px}
+.diffcard .line b{font-weight:650}
+.diffcard .line .m{color:var(--muted);font-size:12.5px}
+.diffcard .dec{margin-top:8px;padding-top:8px;border-top:1px solid #f3dfae;color:#6b4a1f;font-size:13px}
+.diffcard .dec b{color:var(--deep-ink)}
+.diffcard .nav{margin-top:8px;display:flex;gap:8px}
+.diffcard .nav button{border:1px solid #f3dfae;background:#fff;border-radius:6px;padding:3px 10px;font-size:12.5px;font-weight:600;color:#92400e}
+.diffcard .nav button:hover{background:#fdf3dc}
 .evflash{outline:3px solid var(--warn);outline-offset:-3px}
 
 /* Rendered document text, wherever a unit is shown. */
@@ -325,7 +412,7 @@ table.t td.deepcol{background:#faf8ff}
 .sidecard .kv{display:grid;grid-template-columns:108px 1fr;gap:6px 10px;font-size:14px}
 .sidecard .kv dt{color:var(--muted)}
 .sidecard .empty{color:var(--muted);font-size:14px}
-.reason-sent{margin-top:12px;padding:10px 12px;background:var(--well);border:1px solid var(--line);border-radius:var(--r-sm);font-size:14px;line-height:1.5}
+.reason-sent{margin-top:12px;padding:10px 12px;background:var(--well);border:1px solid var(--line);border-radius:var(--r-sm);font-size:13.5px;line-height:1.5}
 .reason-sent.deep{background:var(--deep-soft);border-color:var(--deep-line)}
 .arminfo{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:13px;color:var(--muted)}
 .detail-links button{color:var(--accent);font-weight:600;padding:0;font-size:13.5px}
@@ -520,8 +607,21 @@ details.deep-detail .inner>h2:first-child,details.deep-detail .inner>.sechead:fi
 .modal .box .mfacts{margin-bottom:12px}
 footer{color:var(--faint);font-size:12.5px;padding:28px 22px;text-align:center}
 
+@media (max-width:1500px){
+  .cmpbar .legend{display:none}
+  .cmpbar select#secnav{max-width:260px}
+  .sonuc .num{display:none}
+  .stage{grid-template-columns:30px minmax(0,1fr) 300px}
+}
+@media (min-width:2200px){
+  .u .txt,.band .msg{max-width:1180px}
+}
 @media (max-width:1100px){
-  .pres-layout,.dbg,.chatwrap{grid-template-columns:1fr}
+  .dbg,.chatwrap{grid-template-columns:1fr}
+  .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;height:auto!important;max-height:none}
+  .docmap{display:none}
+  .scroller{max-height:70vh}
+  .panel{grid-column:1/-1;border-left:none;border-top:1px solid var(--line);max-height:320px}
   .sidecard,.inspector{position:static;max-height:none}
   .fixrow,.fixhead{grid-template-columns:1fr;gap:6px}
   .fixrow .n{text-align:left}
@@ -555,19 +655,16 @@ footer{color:var(--faint);font-size:12.5px;padding:28px 22px;text-align:center}
 <main>
   <div class="pagehead" id="pagehead"></div>
   <div id="view-presentation" data-mode="presentation">
+    <div class="cmpbar" id="cmpbar"></div>
+    <div class="stage" id="stage">
+      <div class="docmap" id="docmap" title="Doküman haritası: sarı işaretler ayrışma noktaları, mavi pencere açık sayfa. Tıklayınca oraya gider."></div>
+      <div class="scroller" id="scroller"></div>
+      <aside class="panel" id="presdetail"><div id="diffcard"></div><div id="chunkdetail"></div></aside>
+    </div>
     <div id="results"></div>
     <div class="sechead" id="methodhead"></div>
     <div id="methods" class="methods"></div>
     <div id="methodnote"></div>
-    <div class="sechead" id="readerhead"></div>
-    <div class="workbench">
-      <div class="wb-lanes" id="lanepicker"></div>
-      <div class="wb-nav" id="navbar"></div>
-    </div>
-    <div class="pres-layout">
-      <div id="prespage"></div>
-      <aside class="sidecard" id="presdetail"></aside>
-    </div>
   </div>
   <div id="view-query" class="hidden" data-mode="query">
     <div class="subtabs" id="qsubtabs">
@@ -631,23 +728,25 @@ const LANE_COLOR = {markdown: "#b45309", hybrid: "#0f766e", "structure-only": "#
 const LANE_SOFT = {markdown: "#fdf1dc", hybrid: "#dcf3ef", "structure-only": "#e8effc", agentic: "#f1ebfd"};
 
 const REASONS = {
-  doc_start:   {label:"Doküman başlangıcı", sent:"Bu, dokümanın ilk chunk'ı."},
-  new_section: {label:"Yeni bölüm başladı", sent:"Bir önceki chunk'ın bölümü kapandı; bu chunk yeni bir bölüm başlığıyla açılıyor."},
-  label_split: {label:"Ara başlıkta bölündü", sent:"Aynı bölümün içinde, okuyucunun zaten duraksadığı bir ara başlıkta kesildi."},
-  budget_split:{label:"Token bütçesi doldu", sent:"Bölüm hedef token bütçesini aştığı için bölündü; bölüm başlığı iki parçada da korunuyor."},
-  md_size:     {label:"Boyut tabanlı kesim", sent:"Markdown yöntemi bölüm yapısına bakmaz; hedef boyuta ulaşıldığında keser."},
-  md_overlap:  {label:"Boyut tabanlı kesim + örtüşme", sent:"Hedef boyuta ulaşıldı; önceki chunk'ın kuyruğu örtüşme (overlap) olarak bu chunk'a taşındı."},
-  md_heading:  {label:"Başlık sınırında kesim", sent:"Kesim, markdown ayracının denk geldiği bir başlık sınırında gerçekleşti."}
+  doc_start:   {label:"Doküman başlangıcı", short:"doküman başı", sent:"Bu, dokümanın ilk parçası."},
+  new_section: {label:"Yeni bölüm başladı", short:"yeni bölüm", sent:"Bir önceki parçanın bölümü kapandı; bu parça yeni bir bölüm başlığıyla açılıyor."},
+  label_split: {label:"Ara başlıkta bölündü", short:"ara başlık", sent:"Aynı bölümün içinde, okuyucunun zaten duraksadığı bir ara başlıkta kesildi."},
+  budget_split:{label:"Boyut sınırına ulaşıldı", short:"boyut sınırı", sent:"Bölüm hedeflenen boyutu aştığı için bölündü; bölüm başlığı iki parçada da korunuyor."},
+  md_size:     {label:"Boyut tabanlı kesim", short:"boyut sınırı", sent:"Markdown yöntemi bölüm yapısına bakmaz; hedef boyuta ulaşıldığında keser."},
+  md_overlap:  {label:"Boyut tabanlı kesim (örtüşmeli)", short:"boyut sınırı · örtüşmeli", sent:"Hedef boyuta ulaşıldı; önceki parçanın kuyruğu örtüşme olarak bu parçaya taşındı."},
+  md_heading:  {label:"Başlık sınırında kesim", short:"başlık sınırı", sent:"Kesim, markdown ayracının denk geldiği bir başlık sınırında gerçekleşti."}
 };
 // Continuation connector text, per boundary reason. Shown only when the
 // boundary carries a TOKEN_BUDGET_CONTINUATION link (same section, adjacent).
 const CONT_LABELS = {
-  budget_split: "Önceki chunk'ın devamı — boyut sınırı nedeniyle ayrıldı",
-  label_split:  "Önceki chunk'ın devamı — ara başlıkta bölündü",
-  md_size:      "Önceki chunk'ın devamı — boyut sınırı nedeniyle ayrıldı",
-  md_overlap:   "Önceki chunk'ın devamı — boyut sınırı (kuyruk örtüşme olarak taşındı)",
-  md_heading:   "Önceki chunk'ın devamı — başlık sınırında kesildi"
+  budget_split: "Önceki parçanın devamı — boyut sınırı nedeniyle ayrıldı",
+  label_split:  "Önceki parçanın devamı — ara başlıkta bölündü",
+  md_size:      "Önceki parçanın devamı — boyut sınırı nedeniyle ayrıldı",
+  md_overlap:   "Önceki parçanın devamı — boyut sınırı (kuyruk örtüşme olarak taşındı)",
+  md_heading:   "Önceki parçanın devamı — başlık sınırında kesildi"
 };
+// The same reason in the two or three words a band has room for.
+const shortReason = chunk => (REASONS[chunk && chunk.rs] || {}).short || "";
 // Every structural defect the contract counts, in the words a reader who has
 // never seen the pipeline would use. The technical key stays visible next to
 // the label wherever the number is audited, so nothing is renamed away.
@@ -675,14 +774,14 @@ const SMELL_FIXED = {
 // anlatıyor?". Rendered as a label + hover note, and collected into the
 // glossary at the bottom of the Benchmark tab.
 const TERMS = {
-  smell:        {label:"Yapısal kalite problemi", tech:"boundary smell", help:"Chunk sınırının yanlış yerden geçtiği durumların sayısı: kopmuş başlık, bölünmüş liste, ortadan ikiye ayrılmış tablo. Deterministik olarak sayılır, tahmin değildir. Ne kadar düşükse o kadar iyi."},
+  smell:        {label:"Yapısal kalite problemi", tech:"boundary smell", help:"Parça sınırının yanlış yerden geçtiği durumların sayısı: kopmuş başlık, bölünmüş liste, ortadan ikiye ayrılmış tablo. Deterministik olarak sayılır, tahmin değildir. Ne kadar düşükse o kadar iyi."},
   regression:   {label:"Kötüleşen bölüm", tech:"tiered regression", help:"Deep Analysis'ten sonra herhangi bir problem türünde Standard'dan daha kötü hale gelen bölüm sayısı. Sözleşme gereği 0 olmak zorundadır."},
   sizetrade:    {label:"Boyut takası", tech:"strict regression", help:"Kalite problemi kesin azalırken parça boyutunun hedefin dışına taştığı bölüm sayısı. Bilinçli bir takastır, hata değildir."},
   ceiling:      {label:"Kaçınılmaz kesim", tech:"temsil tavanı / ceiling boundary", help:"Tek bir tablonun ya da paragrafın kendisi bütçeden büyük olduğu için hiçbir bölümleme yönteminin kaçınamayacağı kesim. Kalan problemlerin bu kısmı düzeltilebilir değildir."},
-  hit:          {label:"Doğru parçayı bulma oranı", tech:"Hit@1 / Hit@3 / Hit@5", help:"Gold soruların yüzde kaçında doğru cevabı içeren chunk ilk 1 / 3 / 5 sonuç arasında geldi. 1'e ne kadar yakınsa o kadar iyi."},
-  mrr:          {label:"Sıralama kalitesi", tech:"MRR", help:"Doğru chunk'ın sonuç listesindeki sırasının tersinin ortalaması. Doğru sonuç ne kadar üste çıkarsa o kadar yüksektir."},
-  coverage:     {label:"Kanıt kapsama", tech:"evidence coverage", help:"Cevabın dayandığı kanıt metninin, getirilen chunk'lar tarafından ne kadarının kapsandığı."},
-  goldset:      {label:"Gold sorgu seti", tech:"gold set", help:"Cevabı ve kanıt metni elle doğrulanmış soru listesi. Ölçüm bunun üzerinden yapılır; sorusu olmayan doküman için retrieval sayısı uydurulmaz."},
+  hit:          {label:"Doğru parçayı bulma oranı", tech:"Hit@1 / Hit@3 / Hit@5", help:"Gold soruların yüzde kaçında doğru cevabı içeren parça ilk 1 / 3 / 5 sonuç arasında geldi. 1'e ne kadar yakınsa o kadar iyi."},
+  mrr:          {label:"Sıralama kalitesi", tech:"MRR", help:"Doğru parçanın sonuç listesindeki sırasının tersinin ortalaması. Doğru sonuç ne kadar üste çıkarsa o kadar yüksektir."},
+  coverage:     {label:"Kanıt kapsama", tech:"evidence coverage", help:"Cevabın dayandığı kanıt metninin, getirilen parçalar tarafından ne kadarının kapsandığı."},
+  goldset:      {label:"Gold sorgu seti", tech:"gold set", help:"Cevabı ve kanıt metni elle doğrulanmış soru listesi. Ölçüm bunun üzerinden yapılır; sorusu olmayan doküman için arama sayısı uydurulmaz."},
   holdout:      {label:"Hiç ayar görmemiş doküman", tech:"holdout", help:"Eşiklerin ve kuralların ayarlanmasında kullanılmamış doküman. Sonuçların o dokümana özel ayarla şişirilmediğini gösterir."},
   llmrole:      {label:"LLM'in rolü", tech:"proposer + verifier", help:"LLM her sınıra karışmaz: yalnız kuralın kararsız kaldığı yerlerde öneri verir, her öneri iki farklı sırada ayrıca doğrulanır, doğrulanmayan öneri geri alınır."},
   chunk:        {label:"Parça (chunk)", tech:"chunk", help:"Dokümanın aramaya ve cevaba giren en küçük birimi. Sınırların doğru yerden geçmesi, cevabın bütün olup olmamasını belirler."},
@@ -741,6 +840,9 @@ const state = {
   lanes: null,
   page: null,
   diffIdx: -1,
+  // "Sadece ayrışmalar": runs the compared methods agree on fold away.
+  foldAgree: false,
+  unfolded: new Set(),
   query: null,
   selChunk: null,
   selArm: null,
@@ -985,14 +1087,22 @@ function initBar(){
   syncDocOptions();
   docsel.onchange = () => selectDoc(docsel.value);
   $("modetabs").querySelectorAll("button").forEach(b => {
-    b.onclick = () => { state.mode = b.dataset.mode; render(); window.scrollTo(0, 0); };
+    b.onclick = () => { state.mode = b.dataset.mode; render(); window.scrollTo(0, 0); fitStage(); };
   });
   $("qsubtabs").querySelectorAll("button").forEach(b => {
     b.onclick = () => { state.qsub = b.dataset.sub; render(); };
   });
   $("wsopen").onclick = openWorkspaceModal;
   $("modal").onclick = e => { if (e.target === $("modal")) closeModal(); };
-  document.addEventListener("keydown", e => { if (e.key === "Escape") { hideTip(); closeModal(); } });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { hideTip(); closeModal(); return; }
+    // Left / right (or p / n) walk the disagreements while Sunum is open.
+    if (state.mode !== "presentation" || $("modal").classList.contains("hidden") === false) return;
+    const tag = (e.target && e.target.tagName || "").toLowerCase();
+    if (["input", "select", "textarea"].includes(tag)) return;
+    if (e.key === "ArrowRight" || e.key === "n") { stepLaneDiff(1); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" || e.key === "p") { stepLaneDiff(-1); e.preventDefault(); }
+  });
   initTips();
   // Coming back to this tab after creating a knowledge base in the console is
   // the demo's natural gesture: re-read the console then, throttled so a busy
@@ -1001,7 +1111,7 @@ function initBar(){
     if (!document.hidden && Date.now() - workspace.at > 10000) loadWorkspace();
   });
   measureBar();
-  window.addEventListener("resize", measureBar);
+  window.addEventListener("resize", () => { measureBar(); fitStage(); });
   loadWorkspace();
 }
 
@@ -1062,8 +1172,14 @@ function toggleLane(arm){
   const lanes = laneList();
   const next = lanes.includes(arm) ? lanes.filter(a => a !== arm) : lanes.concat([arm]);
   if (!next.length) return;
+  // Adding a method must not move the reader: the boundary they were standing
+  // on stays the current one whenever it is still a disagreement.
+  const was = state.diffIdx >= 0 ? laneDiffs()[state.diffIdx] : null;
   setLanes(docArms().filter(a => next.includes(a)));
-  state.diffIdx = -1;
+  const now = laneDiffs();
+  state.diffIdx = was ? now.findIndex(d => d.before === was.before) : -1;
+  if (state.diffIdx < 0) state.diffIdx = now.findIndex(d => d.p === state.page);
+  state.unfolded = new Set();
   render();
 }
 
@@ -1073,7 +1189,11 @@ function toggleLane(arm){
 function laneDiffs(){
   const lanes = laneList();
   if (lanes.length < 2) return [];
-  const content = D().units.filter(u => u.t !== "heading");
+  const doc = D();
+  const key = lanes.join("|");
+  doc._diffs = doc._diffs || {};
+  if (doc._diffs[key]) return doc._diffs[key];
+  const content = doc.units.filter(u => u.t !== "heading");
   const points = [];
   for (let k = 1; k < content.length; k++) {
     const left = content[k - 1], right = content[k];
@@ -1090,7 +1210,14 @@ function laneDiffs(){
                    cut: lanes.filter((a, i) => cuts[i]), kept: lanes.filter((a, i) => !cuts[i])});
     }
   }
+  doc._diffs[key] = points;
   return points;
+}
+// Reading-order index of a unit id, built once per document.
+function uidx(id){
+  const doc = D();
+  if (!doc._uidx) { doc._uidx = new Map(); doc.units.forEach((u, i) => doc._uidx.set(u.i, i)); }
+  return doc._uidx.get(id);
 }
 
 function pageList(){ return D().pages; }
@@ -1350,190 +1477,437 @@ function fixList(ts, td){
 /* -------- Sunum: reader -------- */
 function pageUnits(page){ return D().units.filter(u => u.p === page); }
 
-function boundaryPositions(units, arm){
-  // Boundary sits before the first unit of a new chunk; consecutive unmapped
-  // units (headings the arm keeps out of unit_ids) attach to the chunk below.
-  const m = D().arms[arm].m;
-  const marks = new Array(units.length).fill(null);
-  let previous;
-  for (let k = 0; k < units.length; k++) {
-    const at = m[units[k].i];
-    if (at === undefined) continue;
-    if (at !== previous) {
-      let pos = k;
-      while (pos > 0 && m[units[pos - 1].i] === undefined) pos--;
-      marks[pos] = at;
-      previous = at;
-    }
-  }
-  return marks;
-}
 
 
 
-// The lane picker: which methods are on screen. Every method the document
-// actually has is offered; nothing else is, and nothing is faked.
-function renderLanePicker(){
-  const lanes = laneList();
-  const have = docArms();
-  if (!lanes.includes(state.arm)) { state.arm = lanes[0]; state.selArm = lanes[0]; state.selChunk = null; }
-  const absent = PRODUCT_ARMS.filter(a => !have.includes(a));
-  const chips = have.map(a => {
-    const on = lanes.includes(a);
-    const naming = modeName(a);
-    return `<button class="lanechip ${on ? "on" : ""}" data-lane="${a}" style="--c:${LANE_COLOR[a] || "#94a3b8"};--c-soft:${LANE_SOFT[a] || "#eef2f6"}"
-      aria-pressed="${on}"><span class="dot"></span>${esc(naming.top)}
-      <span class="muted" style="font-weight:400;font-size:12.5px">${D().arms[a].chunks.length}</span></button>`;
-  }).join("");
-  const off = absent.map(a =>
-    `<button class="lanechip off" disabled title="${esc(absentReason(a))}">${esc(modeName(a).top)}</button>`).join("");
-  $("lanepicker").innerHTML = `<span class="lab">Karşılaştır:</span>${chips}${off}` +
-    (lanes.length < 2 ? `<span class="muted" style="font-size:13px">— ikinci bir yöntem seçin</span>` : "");
-  $("lanepicker").querySelectorAll("button[data-lane]").forEach(el => {
-    el.onclick = () => toggleLane(el.dataset.lane);
-  });
-}
-
-// The navigator: sections first, differences second, pages last. A page is
-// where something was printed; a section is what it is about, and a difference
-// is what this screen is for.
-// Pages first: a reader following a printed document knows where they are by
-// its page number. The section this page belongs to rides along as the
-// secondary fact, because it is what tells you what you are reading.
-function renderNavigator(){
+// Where the story opens: on the first place the compared methods disagree,
+// so the first thing on screen is a real difference.
+function syncCompareState(){
   const pages = D().pages;
   const diffs = laneDiffs();
-  if (state.page === null || !pages.includes(state.page)) state.page = firstContentPage();
-  const at = pages.indexOf(state.page);
-  const options = pages.map(p =>
-    `<option value="${p}" ${p === state.page ? "selected" : ""}>${p}</option>`).join("");
-  // Which section(s) this page falls in -- named, so the page number is not
-  // the only thing telling the reader where they are.
-  const here = docSections().filter(s => s.pages.includes(state.page)).map(s => s.title);
-  $("navbar").innerHTML = `
-    <span>Sayfa</span><select id="pagenav">${options}</select>
-    <span class="stepnav"><button id="prevpage" ${at <= 0 ? "disabled" : ""}>&#8592;</button>
-      <button id="nextpage" ${at >= pages.length - 1 ? "disabled" : ""}>&#8594;</button></span>
-    <span class="muted">${at + 1} / ${pages.length}</span>
-    ${diffs.length ? `<span class="stepnav" style="margin-left:8px">
-      <button id="prevdiff2">&#8592;</button><button id="nextdiff2">&#8594;</button></span>
-      <span>${diffs.length} ayrışma noktası${state.diffIdx >= 0 ? ` · ${state.diffIdx + 1}.` : ""}</span>`
-      : (laneList().length > 1 ? `<span>bu yöntemler her yerde aynı kesiyor</span>` : "")}
-    <span class="grow">
-      <label class="conttoggle"><input type="checkbox" id="contchk2" ${state.contShow ? "checked" : ""}> Devam zinciri
-        ${info("Bir parça aramada bulunduğunda aynı bölümün devamı olan komşu parçalar da cevaba taşınabilir. Bu kutu o zinciri gösterir; ölçümleri değiştirmez.")}</label>
-      ${here.length ? `<span class="muted" style="font-size:13px;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
-        title="${esc(here.join(" · "))}">${esc(here.join(" · "))}</span>` : ""}
-    </span>`;
-  $("pagenav").onchange = e => { state.page = Number(e.target.value); state.diffIdx = -1; render(); };
-  $("prevpage").onclick = () => { state.page = pages[Math.max(0, at - 1)]; state.diffIdx = -1; render(); };
-  $("nextpage").onclick = () => { state.page = pages[Math.min(pages.length - 1, at + 1)]; state.diffIdx = -1; render(); };
-  $("contchk2").onchange = e => { state.contShow = e.target.checked; render(); };
-  if (diffs.length) {
-    $("prevdiff2").onclick = () => stepLaneDiff(-1);
-    $("nextdiff2").onclick = () => stepLaneDiff(1);
+  if (state.diffIdx >= diffs.length) state.diffIdx = -1;
+  if (state.page === null || !pages.includes(state.page)) {
+    if (diffs.length) { state.diffIdx = 0; state.page = diffs[0].p; }
+    else state.page = firstContentPage();
+    state.unfolded = new Set();
   }
+  if (!laneList().includes(selArm())) { state.selArm = laneList()[0]; state.selChunk = null; }
 }
 
-// Move to the next place the compared methods disagree, wherever it is: the
-// section follows the difference, not the other way round.
+// One line per method that cuts, one per method that continues, from the
+// chunks that actually meet at this point -- never from a template alone.
+function pointFacts(point){
+  const doc = D();
+  const at = arm => doc.arms[arm].chunks[doc.arms[arm].m[point.before]];
+  const cut = point.cut.map(arm => {
+    const chunk = at(arm);
+    const isCont = chunk && chunk.cp !== null && chunk.cp !== undefined;
+    const why = chunk ? (isCont ? (CONT_LABELS[chunk.rs] || "önceki parçanın devamı") : (REASONS[chunk.rs] || {label: chunk.rs}).label) : "";
+    return {arm, chunk, why, short: shortReason(chunk)};
+  });
+  const kept = point.kept.map(arm => ({arm, chunk: at(arm)}));
+  return {cut, kept, decision: pointDecision(point, cut, kept)};
+}
+// What Deep Analysis decided *at this boundary*, read from the chunk whose
+// start this boundary is -- the one place the pipeline recorded it.
+function pointDecision(point, cut, kept){
+  if (!isDeepArm("agentic")) return "";
+  const an = analysisState();
+  const ranModel = Boolean(an && an.ranModel);
+  const names = list => (list || []).map(s => SMELL_TEXT[s] || s).join(", ");
+  // This boundary's own smells if the story recorded any; the change group's
+  // set is a claim about the region, so it is worded as one.
+  const why = d => {
+    if (names(d.cut_smells)) return {text: names(d.cut_smells), own: true};
+    if (names(d.removed_smells)) return {text: names(d.removed_smells), own: false};
+    const size = d.size_effect && d.size_effect.below_min;
+    if (size && size.final < size.standard) return {text: "çok kısa parça", own: true, size: true};
+    return null;
+  };
+  // A model claim is only made when a model actually ran on this document.
+  const how = d => d.origin === "llm" && ranModel ? "model önerisiyle" : "kalite kuralıyla";
+  const std = cut.find(c => c.arm === "structure-only");
+  if (std && point.kept.includes("agentic") && std.chunk && std.chunk.dec && std.chunk.dec.status === "std_changed") {
+    const d = std.chunk.dec, w = why(d);
+    const tail = !w ? "" : w.size ? ": kesim çok kısa bir parça bırakıyordu"
+      : w.own ? `: kesim <i>${esc(w.text)}</i> üretiyordu`
+      : `: bu bölgedeki Standard kesimleri <i>${esc(w.text)}</i> üretiyordu`;
+    return `<b>Deep Analysis</b> Standard'ın bu kesimini ${how(d)} kaldırdı${tail}.`;
+  }
+  const deep = cut.find(c => c.arm === "agentic");
+  if (deep && point.kept.includes("structure-only") && deep.chunk && deep.chunk.dec) {
+    const d = deep.chunk.dec, w = why(d);
+    const tail = !w ? "" : w.own ? `: Standard'ın kesimi <i>${esc(w.text)}</i> üretiyordu`
+      : `: bu bölgedeki Standard kesimleri <i>${esc(w.text)}</i> üretiyordu`;
+    if (d.status === "det_moved") return `<b>Deep Analysis</b> bu sınırı kalite kuralıyla ekledi${tail}.`;
+    if (d.status === "llm_accepted") return ranModel
+      ? `<b>Deep Analysis</b> bu sınırı modelin önerisiyle ekledi; öneriyi kural katmanı doğruladı.`
+      : `<b>Deep Analysis</b> bu sınırı kural katmanıyla ekledi.`;
+    if (d.status === "ceiling") return `<b>Zorunlu kesim:</b> bu blok tek başına bütçeden büyük; hiçbir yöntem bu kesimden kaçınamaz.`;
+  }
+  return "";
+}
+const armDot = arm => `<i class="dot" style="background:${LANE_COLOR[arm] || "#94a3b8"}"></i>`;
+const names = arms => arms.map(a => `<span class="who">${armDot(a)}${esc(modeName(a).top)}</span>`).join(", ");
+
+// The band: two labelled rows, so "who cut" and "who did not" never share a
+// verb. One method per entry, each with the piece it opened or is still in.
+function bandHtml(point, idx, total, facts){
+  const side = (label, entries) => `<div class="side"><span class="k">${label}</span><span class="v">${entries.join(" ")}</span></div>`;
+  const cut = facts.cut.map(c => `<span class="ent">${armDot(c.arm)}<b>${esc(modeName(c.arm).top)}</b>${
+    c.chunk ? ` → Parça ${c.chunk.num} başladı${c.short ? ` <i>${esc(c.short)}</i>` : ""}` : ""}</span>`);
+  const kept = facts.kept.map(k => `<span class="ent">${armDot(k.arm)}<b>${esc(modeName(k.arm).top)}</b>${
+    k.chunk ? ` → Parça ${k.chunk.num} sürüyor` : ""}</span>`);
+  return `<span class="cnt">${idx + 1}/${total}</span>
+    ${side("BÖLDÜ", cut)}${side("BÖLMEDİ", kept)}
+    ${facts.decision ? `<span class="dec">${facts.decision}</span>` : ""}`;
+}
+
+// The toolbar: which methods, which disagreement, which section and page.
+function renderCompareBar(step){
+  const lanes = laneList();
+  const have = docArms();
+  const diffs = laneDiffs();
+  const dm = deepMeta();
+  const chips = have.map(a => {
+    const on = lanes.includes(a);
+    return `<button class="lanechip ${on ? "on" : ""}" data-lane="${a}" style="--c:${LANE_COLOR[a] || "#94a3b8"};--c-soft:${LANE_SOFT[a] || "#eef2f6"}"
+      aria-pressed="${on}" title="${on ? "Karşılaştırmadan çıkar" : "Karşılaştırmaya ekle"}"><span class="dot"></span>${esc(modeName(a).top)} <span class="n">${D().arms[a].chunks.length}</span></button>`;
+  }).join("");
+  const off = PRODUCT_ARMS.filter(a => !have.includes(a)).map(a =>
+    `<button class="lanechip off" disabled title="${esc(absentReason(a))}">${esc(modeName(a).top)} <span class="n">yok</span></button>`).join("");
+  const pages = D().pages;
+  const at = pages.indexOf(state.page);
+  const sections = docSections();
+  const here = sections.findIndex(s => s.pages.includes(state.page));
+  const secOpts = sections.map((s, i) => `<option value="${i}" ${i === here ? "selected" : ""}>${esc(s.title.length > 60 ? s.title.slice(0, 58) + "…" : s.title)} (s. ${s.pages[0]}${s.pages.length > 1 ? "–" + s.pages[s.pages.length - 1] : ""})</option>`).join("");
+  const pageOpts = pages.map(p => `<option value="${p}" ${p === state.page ? "selected" : ""}>${p}</option>`).join("");
+  // With more than two methods the count is over everything on screen, so it
+  // says how many of those are the Standard / Deep Analysis story.
+  const pair = lanes.includes("structure-only") && lanes.includes("agentic")
+    ? diffs.filter(d => d.cut.includes("structure-only") !== d.cut.includes("agentic")).length : null;
+  const counter = lanes.length < 2
+    ? `<span class="count none">tek yöntem — karşılaştırmak için ikinci bir yöntem seçin</span>`
+    : (diffs.length
+      ? `<span class="count">Ayrışma ${state.diffIdx >= 0 ? state.diffIdx + 1 : "–"} / ${diffs.length}</span>${
+          lanes.length > 2 && pair !== null ? `<span class="muted" style="font-size:12.5px">${pair}'i Standard–Deep</span>` : ""}`
+      : `<span class="count none">bu yöntemler her yerde aynı kesiyor</span>`);
+  $("cmpbar").innerHTML = `
+    <div class="row">
+      <span class="title"><span class="step">${step}</span>Parçaları karşılaştır</span>
+      <span class="lab">Yöntemler</span>${chips}${off}
+      <span class="grow legend">Renkli ray bir yöntemin parçası; rayın koptuğu yer o yöntemin yeni parça açtığı yerdir. Sarı şerit, yöntemlerin farklı karar verdiği noktadır.</span>
+    </div>
+    <div class="row">
+      <span class="diffstep"><span class="stepnav"><button id="prevdiff" ${diffs.length ? "" : "disabled"} title="Önceki ayrışma (←)">&#8592;</button>
+        <button id="nextdiff" ${diffs.length ? "" : "disabled"} title="Sonraki ayrışma (→)">&#8594;</button></span>${counter}</span>
+      <span class="sep"></span>
+      <span class="lab">Bölüm</span><select id="secnav">${secOpts}</select>
+      <span class="lab">Sayfa</span><span class="stepnav"><button id="prevpage" ${at <= 0 ? "disabled" : ""}>&#8592;</button></span>
+      <select id="pagenav">${pageOpts}</select><span class="stepnav"><button id="nextpage" ${at >= pages.length - 1 ? "disabled" : ""}>&#8594;</button></span>
+      <span class="muted">${pages.length} sayfa</span>
+      <span class="grow">
+        <label class="conttoggle"><input type="checkbox" id="foldchk" ${state.foldAgree ? "checked" : ""}> Sadece ayrışmalar
+          ${info("Seçili yöntemlerin aynı kararı verdiği metin bloklarını katlar; her ayrışmanın çevresinde iki birim bağlam kalır. Katlanan blok tıklanınca açılır.")}</label>
+        <label class="conttoggle"><input type="checkbox" id="contchk2" ${state.contShow ? "checked" : ""}> Devam zinciri
+          ${info("Bir parça aramada bulunduğunda aynı bölümün devamı olan komşu parçalar da cevaba taşınabilir. Bu kutu o zinciri gösterir; ölçümleri değiştirmez.")}</label>
+        ${dm ? `<button class="sonuc" id="gosonuc" title="Sonuç bandına in">Sonuç<span class="num"> · ${dm.smellTotal.standard} → ${dm.smellTotal.deep} yapısal problem</span> ↓</button>` : ""}
+      </span>
+    </div>`;
+  $("cmpbar").querySelectorAll("button[data-lane]").forEach(el => { el.onclick = () => toggleLane(el.dataset.lane); });
+  $("prevdiff").onclick = () => stepLaneDiff(-1);
+  $("nextdiff").onclick = () => stepLaneDiff(1);
+  $("secnav").onchange = e => { const s = sections[Number(e.target.value)]; if (s) goPage(s.pages[0]); };
+  $("pagenav").onchange = e => goPage(Number(e.target.value));
+  $("prevpage").onclick = () => goPage(pages[Math.max(0, at - 1)]);
+  $("nextpage").onclick = () => goPage(pages[Math.min(pages.length - 1, at + 1)]);
+  $("foldchk").onchange = e => { state.foldAgree = e.target.checked; state.unfolded = new Set(); render(); };
+  $("contchk2").onchange = e => { state.contShow = e.target.checked; render(); };
+  const go = $("gosonuc");
+  if (go) go.onclick = () => $("results").scrollIntoView({behavior: "smooth", block: "start"});
+}
+function goPage(p){
+  state.page = p;
+  state.diffIdx = laneDiffs().findIndex(d => d.p === p);
+  state.unfolded = new Set();
+  render();
+}
+
 // Move to the next place the compared methods disagree, wherever it is: the
 // page follows the difference, not the other way round.
 function stepLaneDiff(delta){
   const diffs = laneDiffs();
   if (!diffs.length) return;
   state.diffIdx = (state.diffIdx + delta + diffs.length) % diffs.length;
-  const point = diffs[state.diffIdx];
-  const unit = unitById(point.before);
-  if (unit) state.page = unit.p;
+  state.page = diffs[state.diffIdx].p;
+  state.unfolded = new Set();
   render();
-  const el = document.querySelector(`.rowmark[data-diff="${point.before}"]`);
-  if (el) { el.scrollIntoView({block: "center"}); el.classList.add("here"); }
 }
 
 const NUMS = ["", "bir", "iki", "üç", "dört"];
 function renderPresentation(){
   let step = 0;
   const hasStory = Boolean(deepMeta()) || isLegacyAgentic();
+  syncCompareState();
+  renderCompareBar(++step);
+  renderStage();
+  renderDiffCard();
+  renderPresDetail();
   renderResults({step: hasStory ? ++step : null});
   $("methodhead").innerHTML = inner(sectionHead(++step, "Yöntemler",
-    `Bu doküman ${NUMS[docArms().length] || docArms().length} yöntemle parçalandı. Bir yöntemi karşılaştırmaya eklemek ya da çıkarmak için kartına tıklayın.`));
+    `Bu doküman ${NUMS[docArms().length] || docArms().length} yöntemle parçalandı. Karta tıklamak yöntemi yukarıdaki karşılaştırmaya ekler ya da çıkarır.`));
   renderMethods();
-  $("readerhead").innerHTML = inner(sectionHead(++step, "Parçaları karşılaştır",
-    "Aynı sayfa, seçtiğiniz yöntemlerin kesimleriyle yan yana. Renkli çizgi bir parçanın başladığı yerdir; sarı şerit, yöntemlerin farklı karar verdiği noktayı gösterir."));
-  renderLanePicker();
-  renderNavigator();
-  renderLanes();
-  renderPresDetail();
+  fitStage();
+  focusStage();
 }
 
-// The comparison itself: one row per canonical unit, one column per method.
-// A row carries the boundary marks of every lane at the same height, so a cut
-// that exists in one method and not another needs no explanation.
-function renderLanes(){
-  const lanes = laneList();
-  const units = pageUnits(state.page);
-  const cols = `grid-template-columns:repeat(${lanes.length},minmax(0,1fr))`;
-  const marks = {};
-  for (const arm of lanes) marks[arm] = boundaryPositions(units, arm);
+// The stage fills what is left of the first screen; the story starts below it.
+function fitStage(){
+  const stage = $("stage");
+  if (!stage || state.mode !== "presentation" || window.innerWidth <= 1100) return;
+  const top = stage.getBoundingClientRect().top + window.scrollY;
+  stage.style.height = Math.max(420, window.innerHeight - top - 18) + "px";
+}
+// Bring the thing the reader asked for into the stage: the current
+// disagreement, else the selected chunk, else the first band on the page.
+function focusStage(){
+  const sc = $("scroller");
+  if (!sc) return;
   const diffs = laneDiffs();
-  const diffBefore = new Map(diffs.map(d => [d.before, d]));
-  const expansion = state.contShow && state.selChunk !== null ? simulateExpansion(SA(), state.selChunk) : null;
-  const expMembers = expansion ? new Set(expansion.members) : null;
-
-  let out = `<div class="lanes"><div class="head" style="${cols}">` + lanes.map(arm => {
-    const data = D().arms[arm];
-    return `<div><span class="dot" style="width:9px;height:9px;border-radius:3px;background:${LANE_COLOR[arm] || "#9aa3ad"}"></span>
-      ${esc(modeName(arm).top)}<span class="n">${data.chunks.length} parça${data.sq && data.sq.token_count ? " · medyan " + fmt(data.sq.token_count.median, 0) + " tok" : ""}</span></div>`;
-  }).join("") + `</div>`;
-
-  for (let k = 0; k < units.length; k++) {
-    const unit = units[k];
-    const point = diffBefore.get(unit.i);
-    if (point) {
-      out += `<div class="rowmark" data-diff="${esc(unit.i)}"><b>Yöntemler ayrışıyor</b>` +
-        `<span>${esc(point.cut.map(a => modeName(a).top).join(", "))} burada yeni parça açıyor;` +
-        ` ${esc(point.kept.map(a => modeName(a).top).join(", "))} aynı parçada devam ediyor.</span></div>`;
-    }
-    out += `<div class="row" style="${cols}">` + lanes.map(arm => {
-      const data = D().arms[arm];
-      const at = data.m[unit.i];
-      let cls = at === undefined ? "" : (at % 2 === 0 ? "tintA" : "tintB");
-      if (at !== undefined && selArm() === arm && state.selChunk === at) cls += " sel";
-      if (at !== undefined && state.contShow && expMembers && selArm() === arm && expMembers.has(at)) cls += " sel";
-      const mark = marks[arm][k];
-      let cut = "";
-      if (mark !== null) {
-        const chunk = data.chunks[mark];
-        const isCont = chunk.cp !== null && chunk.cp !== undefined;
-        const why = isCont ? (CONT_LABELS[chunk.rs] || "önceki parçanın devamı") : (REASONS[chunk.rs] || {label: chunk.rs}).label;
-        cut = `<div class="cut ${arm === "agentic" ? "deepcut" : ""} ${isCont ? "techcut" : ""}">
-          <button data-chunk="${mark}" data-arm="${arm}">Parça ${chunk.num}</button>
-          <span class="why">${chunk.n} tok · ${esc(why)}</span></div>`;
-      }
-      return `<div class="cell ${cls}" data-uid="${esc(unit.i)}" data-arm="${arm}"${at !== undefined ? ` data-uchunk="${at}"` : ""}>${cut}<div class="body">${unitHtml(unit)}</div></div>`;
-    }).join("") + `</div>`;
-  }
-  $("prespage").innerHTML = out + `</div>`;
-  bindReader($("prespage"));
+  let el = null;
+  if (state.diffIdx >= 0 && diffs[state.diffIdx]) el = sc.querySelector(`.band.diff[data-diff="${diffs[state.diffIdx].before}"]`);
+  if (!el && state.selChunk !== null) el = sc.querySelector(".u.sel");
+  if (!el) el = sc.querySelector(".band.diff:not(.ctx)");
+  sc.scrollTop = el ? Math.max(0, el.offsetTop - Math.round(sc.clientHeight * 0.34)) : 0;
 }
 
+// The rails and the bands for one page, with two units of context on each
+// side so a boundary at a page edge always shows both of its sides.
+function renderStage(){
+  const doc = D();
+  const lanes = laneList();
+  const sc = $("scroller");
+  const cols = `repeat(${lanes.length},28px) minmax(0,1fr)`;
+  const all = doc.units;
+  const page = pageUnits(state.page);
+  if (!page.length) { sc.innerHTML = `<div class="empty">Bu sayfada birim yok.</div>`; renderDocMap(); return; }
+  const first = uidx(page[0].i), last = uidx(page[page.length - 1].i);
+  const diffs = laneDiffs();
+  const reach = diffs.filter(d => d.p === state.page).map(d => uidx(d.after));
+  const from = Math.max(0, Math.min(first - 2, ...reach)), to = Math.min(all.length - 1, last + 2);
+  const rows = [];
+  for (let i = from; i <= to; i++) rows.push({unit: all[i], ctx: i < first || i > last});
+  // Effective chunk per lane per row: an unmapped unit (a heading the method
+  // keeps out of unit_ids) belongs to the chunk below it.
+  const eff = {};
+  for (const arm of lanes) {
+    const m = doc.arms[arm].m;
+    const e = new Array(rows.length);
+    let below;
+    for (let k = rows.length - 1; k >= 0; k--) {
+      const at = m[rows[k].unit.i];
+      if (at !== undefined) below = at;
+      e[k] = at !== undefined ? at : below;
+    }
+    eff[arm] = e;
+  }
+  const chunkBefore = {};   // the chunk each lane was in just before the window
+  for (const arm of lanes) {
+    const m = doc.arms[arm].m;
+    let prev;
+    for (let i = from - 1; i >= 0 && prev === undefined; i--) prev = m[all[i].i];
+    chunkBefore[arm] = prev;
+  }
+  const startsAt = (arm, k) => eff[arm][k] !== undefined && eff[arm][k] !== (k > 0 ? eff[arm][k - 1] : chunkBefore[arm]);
+  const bandAt = new Map();  // row index -> diff point placed before that row
+  diffs.forEach((point, idx) => {
+    const a = uidx(point.after);
+    if (a >= from && a < to) bandAt.set(a - from + 1, {point, idx});
+  });
+  const expansion = state.contShow && state.selChunk !== null ? simulateExpansion(SA(), state.selChunk) : null;
+  const chain = expansion ? new Set(expansion.members) : null;
+  const sel = selArm();
 
-// A selection belongs to the column it was made in. In the side-by-side view
-// that is not always the left one, and moving state.arm to follow the click
-// used to collapse the comparison the reader had just opened.
-// A selection belongs to the lane it was made in, so clicking the right-hand
-// method inspects that method rather than switching the whole screen to it.
-function bindReader(root){
-  const pick = (arm, idx) => { state.selArm = arm || state.arm; state.selChunk = idx; renderPresDetail();
-    root.querySelectorAll(".cell").forEach(c => c.classList.toggle("sel",
-      c.dataset.arm === state.selArm && Number(c.dataset.uchunk) === state.selChunk)); };
-  root.querySelectorAll(".cut button[data-chunk]").forEach(el => {
+  // Which rows stay on screen when the agreeing runs are folded.
+  let keep = null;
+  if (state.foldAgree && lanes.length > 1) {
+    keep = new Set();
+    for (const [k] of bandAt) for (let j = Math.max(0, k - 2); j <= Math.min(rows.length - 1, k + 2); j++) keep.add(j);
+  }
+  const railCell = (arm, k, cls) => {
+    const c = eff[arm][k];
+    const st = cls !== "gap" && startsAt(arm, k);
+    const chunk = st ? doc.arms[arm].chunks[c] : null;
+    const tech = chunk && chunk.cp !== null && chunk.cp !== undefined;
+    const classes = ["rail", c === undefined ? "none" : (c % 2 ? "b" : "a"), st ? "start" : "", tech ? "tech" : "",
+      arm === sel && c !== undefined && c === state.selChunk ? "sel" : "",
+      arm === sel && chain && c !== undefined && chain.has(c) && c !== state.selChunk ? "chain" : "", cls || ""].filter(Boolean).join(" ");
+    const why = chunk ? (tech ? (CONT_LABELS[chunk.rs] || "önceki parçanın devamı") : (REASONS[chunk.rs] || {label: chunk.rs}).label) : "";
+    return `<div class="${classes}" data-arm="${arm}" style="--c:${LANE_COLOR[arm] || "#94a3b8"};--c-soft:${LANE_SOFT[arm] || "#eef2f6"}"${c !== undefined ? ` data-chunk="${c}"` : ""}>${
+      st ? `<button class="badge" data-chunk="${c}" data-arm="${arm}" title="${esc(modeName(arm).top)} · Parça ${chunk.num} · ${chunk.n} token · ${esc(why)}">${chunk.num}</button>` : ""}</div>`;
+  };
+  let out = "";
+  const edge = (label, p) => `<div class="edge"><div class="msg" style="grid-column:1/-1"><button data-page="${p}">${label}</button></div></div>`;
+  if (from < first) out += edge(`← s. ${all[from].p} sonu`, all[from].p);
+  let k = 0, openUntil = -1;   // an opened fold stays open to the end of its run
+  while (k < rows.length) {
+    if (keep && !keep.has(k) && k >= openUntil) {
+      // A run the compared methods agree on: one line that says what it hides.
+      let j = k;
+      while (j < rows.length && !keep.has(j)) j++;
+      const run = rows.slice(k, j);
+      const id = run[0].unit.i;
+      if (!state.unfolded.has(id)) {
+        let common = 0;
+        for (let r = k; r < j; r++) if (lanes.every(arm => startsAt(arm, r))) common++;
+        const secs = [...new Set(run.map(r => (r.unit.sd || [])[0]).filter(Boolean))];
+        const prevSec = k > 0 ? (rows[k - 1].unit.sd || [])[0] : null;
+        const newSec = secs.find(s => s !== prevSec);
+        out += `<div class="fold">${lanes.map(arm => `<div class="rail fade" style="--c:${LANE_COLOR[arm] || "#94a3b8"}"></div>`).join("")}
+          <div class="msg" data-unfold="${esc(id)}" role="button" tabindex="0">··· ${run.length} paragraf gizli — ${lanes.length === 2 ? esc(modeName(lanes[0]).top) + " ve " + esc(modeName(lanes[1]).top) : "seçili yöntemler"} burada aynı kararı verdi${common ? `, ${common} yerde ikisi de böldü` : ""}${newSec ? ` · bölüm başlıyor: ${esc(newSec)}` : ""} · <span class="open">aç</span></div></div>`;
+        k = j;
+        continue;
+      }
+      openUntil = j;
+    }
+    const band = bandAt.get(k);
+    if (band) {
+      const facts = pointFacts(band.point);
+      const productPair = lanes.includes("structure-only") && lanes.includes("agentic");
+      const minor = productPair && (band.point.cut.includes("structure-only") === band.point.cut.includes("agentic"));
+      out += `<div class="band diff ${minor ? "minor" : ""} ${band.idx === state.diffIdx ? "here" : ""} ${rows[k].ctx ? "ctx" : ""}" data-diff="${esc(band.point.before)}">` +
+        lanes.map(arm => railCell(arm, k, band.point.cut.includes(arm) ? "gap" : "")).join("") +
+        `<div class="msg">${bandHtml(band.point, band.idx, diffs.length, facts)}</div></div>`;
+    } else if (lanes.length && k > 0 && lanes.every(arm => startsAt(arm, k))) {
+      // Every compared method starts a chunk here: a quiet line, not a band.
+      const reasons = [...new Set(lanes.map(arm => { const ch = doc.arms[arm].chunks[eff[arm][k]]; return ch ? (REASONS[ch.rs] || {label: ch.rs}).label : ""; }))];
+      const caption = lanes.length === 1
+        ? `Parça ${doc.arms[lanes[0]].chunks[eff[lanes[0]][k]].num} · ${esc(reasons[0] || "")}`
+        : `${lanes.length === 2 ? "ikisi de burada böldü" : "hepsi burada böldü"}${reasons.length === 1 && reasons[0] ? " · " + esc(reasons[0]) : ""}`;
+      out += `<div class="band same">${lanes.map(arm => railCell(arm, k, "gap")).join("")}<div class="msg">${caption}</div></div>`;
+    }
+    const row = rows[k];
+    const cutters = lanes.filter(arm => startsAt(arm, k));
+    const selHere = eff[sel] !== undefined && eff[sel][k] !== undefined && eff[sel][k] === state.selChunk;
+    out += `<div class="u ${row.ctx ? "ctx" : ""} ${cutters.length ? "hascut" : ""} ${selHere ? "sel" : ""}" data-uid="${esc(row.unit.i)}" data-p="${row.unit.p}">` +
+      lanes.map(arm => railCell(arm, k)).join("") +
+      `<div class="txt clk">${cutters.length ? `<div class="cutline">${cutters.map(arm => `<i style="background:${LANE_COLOR[arm] || "#94a3b8"}"></i>`).join("")}</div>` : ""}${unitHtml(row.unit)}</div></div>`;
+    k++;
+  }
+  if (to > last) out += edge(`s. ${all[to].p} başı →`, all[to].p);
+  const section = docSections().find(s => s.pages.includes(state.page));
+  const onPage = diffs.filter(d => d.p === state.page).length;
+  const nextDiff = diffs.findIndex(d => d.p > state.page);
+  // The rails are named where they are read, so nobody has to match a colour
+  // to a chip in the toolbar to know whose boundary they are looking at.
+  const heads = lanes.map(arm => `<div class="rhd" style="--c:${LANE_COLOR[arm] || "#94a3b8"}"
+    title="${esc(modeName(arm).top)} — bu rayın koptuğu yer bu yöntemin yeni parça açtığı yerdir">${esc(modeName(arm).top.slice(0, 2))}</div>`).join("");
+  sc.style.setProperty("--cols", cols);
+  sc.innerHTML = `<div class="orient">${heads}<div class="obody">
+      <span>Sayfa <b>${state.page}</b></span>${section ? `<span>Bölüm: <b>${esc(section.title)}</b></span>` : ""}
+      ${info("Metin bir kez basılır. Soldaki her renkli ray bir yöntemdir: ray koptuğu yerde o yöntem yeni bir parça açar ve parça numarası rozet olarak görünür. Sarı şerit, yöntemlerin farklı karar verdiği noktadır.")}
+      <span class="grow">${lanes.length > 1 ? (onPage ? `<span>bu sayfada <b>${onPage}</b> ayrışma</span>` : `<span>bu sayfada ayrışma yok</span>`) : ""}
+      ${nextDiff >= 0 ? `<button data-godiff="${nextDiff}">sonraki ayrışma s. ${diffs[nextDiff].p} →</button>` : ""}</span></div></div>
+    <div class="reader">${out}</div>`;
+  sc.querySelectorAll("button[data-page]").forEach(b => { b.onclick = () => goPage(Number(b.dataset.page)); });
+  sc.querySelectorAll("[data-unfold]").forEach(b => {
+    const open = () => { state.unfolded.add(b.dataset.unfold); renderStage(); };
+    b.onclick = open;
+    b.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } };
+  });
+  sc.querySelectorAll("button[data-godiff]").forEach(b => { b.onclick = () => { state.diffIdx = Number(b.dataset.godiff); state.page = diffs[state.diffIdx].p; state.unfolded = new Set(); render(); }; });
+  bindReader(sc, eff, rows);
+  renderDocMap();
+}
+
+// A chunk is picked from its badge or from its text; the highlight follows
+// the chunk across every row it covers, in that method's rail.
+function bindReader(root, eff, rows){
+  const pick = (arm, idx) => {
+    state.selArm = arm; state.selChunk = idx;
+    renderPresDetail();
+    root.querySelectorAll(".rail[data-arm]").forEach(r => r.classList.toggle("sel", r.dataset.arm === arm && Number(r.dataset.chunk) === idx));
+    root.querySelectorAll(".u").forEach((u, i) => {
+      const k = rows.findIndex(r => r.unit.i === u.dataset.uid);
+      u.classList.toggle("sel", k >= 0 && eff[arm] && eff[arm][k] === idx);
+    });
+    if (state.contShow) renderStage();
+  };
+  root.querySelectorAll(".badge[data-chunk]").forEach(el => {
     el.onclick = e => { e.stopPropagation(); pick(el.dataset.arm, Number(el.dataset.chunk)); };
   });
-  root.querySelectorAll(".cell[data-uchunk]").forEach(el => {
-    el.onclick = () => pick(el.dataset.arm, Number(el.dataset.uchunk));
+  root.querySelectorAll(".u .txt").forEach(el => {
+    el.onclick = () => {
+      const u = el.parentElement;
+      const k = rows.findIndex(r => r.unit.i === u.dataset.uid);
+      const arm = selArm();
+      if (k >= 0 && eff[arm] && eff[arm][k] !== undefined) pick(arm, eff[arm][k]);
+    };
   });
+}
+
+// The whole document as one vertical strip: where the disagreements are, and
+// where the reader is. Click to go there.
+function renderDocMap(){
+  const box = $("docmap");
+  const doc = D();
+  const U = doc.units.length;
+  const diffs = laneDiffs();
+  const page = pageUnits(state.page);
+  const W = 30;
+  let svg = `<svg viewBox="0 0 ${W} ${U}" preserveAspectRatio="none">`;
+  const tick = Math.max(1, Math.round(U / 320));
+  for (const s of docSections()) {
+    const i = uidx(s.units[0].i);
+    if (i > 0) svg += `<rect x="0" y="${i}" width="7" height="${tick}" fill="#cbd5e1"/>`;
+  }
+  if (diffs.length > 320) {
+    const bins = 160, size = U / bins, counts = new Array(bins).fill(0);
+    for (const d of diffs) counts[Math.min(bins - 1, Math.floor(uidx(d.before) / size))]++;
+    const max = Math.max(...counts);
+    counts.forEach((c, b) => { if (c) svg += `<rect x="9" y="${b * size}" width="${(W - 9) * c / max}" height="${size}" fill="#e6a23c"><title>${c} ayrışma</title></rect>`; });
+  } else {
+    diffs.forEach((d, i) => { svg += `<rect x="9" y="${uidx(d.before)}" width="${W - 9}" height="${tick}" fill="${i === state.diffIdx ? "#b45309" : "#e6a23c"}"/>`; });
+  }
+  if (page.length) svg += `<rect x="0" y="${uidx(page[0].i)}" width="${W}" height="${Math.max(tick, uidx(page[page.length - 1].i) - uidx(page[0].i) + 1)}" fill="rgba(29,78,216,.22)" stroke="rgba(29,78,216,.6)" stroke-width="0.6" vector-effect="non-scaling-stroke"/>`;
+  if (state.diffIdx >= 0 && diffs[state.diffIdx]) svg += `<rect x="7" y="${uidx(diffs[state.diffIdx].before)}" width="${W - 7}" height="${tick * 1.6}" fill="#b45309"/>`;
+  box.innerHTML = svg + `</svg>`;
+  box.onclick = e => {
+    const r = box.getBoundingClientRect();
+    const idx = Math.min(U - 1, Math.max(0, Math.floor((e.clientY - r.top) / r.height * U)));
+    let best = -1, dist = Infinity;
+    diffs.forEach((d, i) => { const di = Math.abs(uidx(d.before) - idx); if (di < dist) { dist = di; best = i; } });
+    state.unfolded = new Set();
+    if (best >= 0 && dist <= U / 100) { state.diffIdx = best; state.page = diffs[best].p; }
+    else { state.page = doc.units[idx].p; state.diffIdx = diffs.findIndex(d => d.p === state.page); }
+    render();
+  };
+}
+
+// The panel's first card: the disagreement the reader is standing on.
+function renderDiffCard(){
+  const box = $("diffcard");
+  const diffs = laneDiffs();
+  const point = state.diffIdx >= 0 ? diffs[state.diffIdx] : null;
+  if (!point) {
+    box.innerHTML = laneList().length > 1 && diffs.length
+      ? `<div class="empty" style="margin-bottom:14px">Bir ayrışma seçin: ← → tuşları ya da soldaki haritadaki sarı işaretler.</div>` : "";
+    return;
+  }
+  const facts = pointFacts(point);
+  const section = docSections().find(s => s.pages.includes(point.p));
+  const line = (arm, verb, chunk, why) => `<div class="line"><i class="dot" style="background:${LANE_COLOR[arm] || "#94a3b8"}"></i>
+    <div><b>${esc(modeName(arm).top)}</b> ${verb}${chunk ? ` <span class="m">· Parça ${chunk.num} · ${chunk.n} token${why ? " · " + esc(why) : ""}</span>` : ""}</div></div>`;
+  box.innerHTML = `<div class="diffcard">
+    <div class="head"><span class="cnt">${state.diffIdx + 1} / ${diffs.length}</span>Ayrışma noktası</div>
+    <div class="where">s. ${point.p}${section ? " · " + esc(section.title) : ""}</div>
+    ${facts.cut.map(c => line(c.arm, "burada böldü", c.chunk, c.why)).join("")}
+    ${facts.kept.map(k => line(k.arm, "devam etti", k.chunk, k.chunk ? "sürüyor" : "")).join("")}
+    ${facts.decision ? `<div class="dec">${facts.decision}</div>` : ""}
+    <div class="nav"><button id="dprev">← önceki</button><button id="dnext">sonraki →</button></div>
+  </div>`;
+  $("dprev").onclick = () => stepLaneDiff(-1);
+  $("dnext").onclick = () => stepLaneDiff(1);
 }
 
 function expansionBudget(){ const budgets = D().meta.budgets || {}; return budgets.hard_max_tokens || 1126; }
@@ -1570,15 +1944,16 @@ function simulateExpansion(armData, seedIdx, budget){
 
 function jumpToChunk(idx, arm){
   if (arm) state.arm = arm;
-  if (!laneList().includes(state.arm)) setLanes(laneList().concat([state.arm]));
+  if (!laneList().includes(state.arm)) setLanes(docArms().filter(a => laneList().includes(a) || a === state.arm));
   const chunk = D().arms[state.arm].chunks[idx];
   state.selArm = state.arm;
   state.selChunk = idx;
   state.mode = "presentation";
+  state.diffIdx = -1;
+  state.unfolded = new Set();
   if (chunk.pg.length) state.page = chunk.pg[0];
   render();
-  const el = document.querySelector(`.cell.sel`);
-  if (el) el.scrollIntoView({block:"center"});
+  $("stage").scrollIntoView({block: "start"});
 }
 
 function sectionStory(si){
@@ -1603,19 +1978,19 @@ function armNoteFor(arm){
 }
 
 function renderPresDetail(){
-  const box = $("presdetail");
+  const box = $("chunkdetail");
   const arm = selArm();
   const armData = SA();
   const armNote = armNoteFor(arm);
   if (state.selChunk === null || !armData.chunks[state.selChunk]) {
-    box.innerHTML = `<h3>Parça detayı</h3><div class="empty">Bir parça şeridine ya da metne tıklayın: o sınırın neden orada olduğunu burada anlatırız.</div><div class="arminfo">${esc(armNote)}</div>`;
+    box.innerHTML = `<h3>Parça detayı</h3><div class="empty">Raydaki bir parça numarasına ya da metne tıklayın: o sınırın neden orada olduğunu burada anlatırız.</div><div class="arminfo">${esc(armNote)}</div>`;
     return;
   }
   const chunk = armData.chunks[state.selChunk];
   const reason = REASONS[chunk.rs] || {label: chunk.rs, sent: ""};
   const prev = chunk.cp, next = chunk.cn;
   const hasLink = (prev !== null && prev !== undefined) || (next !== null && next !== undefined);
-  const link = idx => `<button data-jump="${idx}">Chunk ${armData.chunks[idx].num}</button>`;
+  const link = idx => `<button data-jump="${idx}">Parça ${armData.chunks[idx].num}</button>`;
   const inType = chunk.rt;
   const outType = (next !== null && next !== undefined) ? armData.chunks[next].rt : null;
   const budgetNeighbor = (inType === "TOKEN_BUDGET_CONTINUATION") || (outType === "TOKEN_BUDGET_CONTINUATION");
@@ -1634,11 +2009,13 @@ function renderPresDetail(){
     let sent = "";
     if (d) {
       if (d.status === "kept") sent = d.llm_reverted ? `Bu sınır Standard'ın sınırıyla aynı. Model burada farklı bir sınır önerdi, ancak öneri iki ayrı sırada denenince <b>tutmadı</b> (${esc(d.llm_reverted === "order_dependent" ? "cevap sunum sırasına göre değişti" : d.llm_reverted === "base_preferred" ? "model kural sınırını tercih etti" : d.llm_reverted)}); kural sınırı korundu.` : "Bu sınır Standard'ın sınırıyla aynı: ne kalite kuralı ne model değişiklik gerektiren bir şey buldu.";
-      else if (d.status === "det_moved") sent = `Kalite kuralı bu sınırı taşıdı${(d.removed_smells || []).length ? ": Standard'ın kesimi <b>" + esc((d.removed_smells || []).map(s => SMELL_TEXT[s] || s).join(", ")) + "</b> üretiyordu; yeni kesim bu kusuru taşımıyor" : " (çok kısa parçalar birleşti)"}. Modelsiz, tekrarlanabilir karar.` + (d.llm_reverted ? " Model bu bölgede başka bir sınır önerdi, doğrulamadan geçmedi." : "");
-      else if (d.status === "llm_accepted") sent = "Bu sınırı model önerdi. Öneri iki ayrı sunum sırasında da tercih edildiği için kabul edildi, ardından kalite kurallarından yeniden geçti — boyut, kapsama ve yapısal problem sayaçlarının tamamı yeniden kontrol edildi.";
+      else if (d.status === "det_moved") sent = `Kalite kuralı bu sınırı taşıdı${(d.cut_smells || d.removed_smells || []).length ? ": Standard'ın kesimi <b>" + esc((d.cut_smells || d.removed_smells).map(s => SMELL_TEXT[s] || s).join(", ")) + "</b> üretiyordu; yeni kesim bu kusuru taşımıyor" : " (çok kısa parçalar birleşti)"}. Modelsiz, tekrarlanabilir karar.` + (d.llm_reverted ? " Model bu bölgede başka bir sınır önerdi, doğrulamadan geçmedi." : "");
+      else if (d.status === "llm_accepted") sent = (analysisState() || {}).ranModel
+        ? "Bu sınırı model önerdi. Öneri iki ayrı sunum sırasında da tercih edildiği için kabul edildi, ardından kalite kurallarından yeniden geçti — boyut, kapsama ve yapısal problem sayaçlarının tamamı yeniden kontrol edildi."
+        : "Bu sınırı kural katmanı yerleştirdi; bu koşuda model çalışmadı.";
       else if (d.status === "ceiling") sent = "Zorunlu kesim: bu parça tek bir tablonun ya da paragrafın ortasından başlıyor, çünkü o blok tek başına bütçeden büyük. Hiçbir bölümleme yöntemi bu kesimden kaçınamaz.";
     }
-    deepBlock = `<div class="reason-sent deep"><b>Deep Analysis kararı.</b> ${sent || "Bu chunk bölüm başlangıcında; kesim kararı bölüm sınırının kendisi."}</div>` +
+    deepBlock = `<div class="reason-sent deep"><b>Deep Analysis kararı.</b> ${sent || "Bu parça bölüm başlangıcında; kesim kararı bölüm sınırının kendisi."}</div>` +
       (st ? `<details class="adv"><summary>Teknik detay — bölüm ${st.i}: ${esc(SECTION_STATUS[st.st] || st.st)}</summary><pre>${esc(JSON.stringify({
         section: st.h, status: st.st, llm_consulted: st.cons, reverted: st.rv, verdict_tiered: st.vt,
         standard_cuts_after: st.std, deterministic_cuts_after: st.det, final_cuts_after: st.fin,
@@ -1646,7 +2023,7 @@ function renderPresDetail(){
         change_groups: st.gr, llm_proposals: st.pr, this_boundary: d || null
       }, null, 1))}</pre></details>`: "");
   } else if (arm === "structure-only" && d && d.status === "std_changed") {
-    deepBlock = `<div class="reason-sent deep"><b>Deep Analysis bu kesimi değiştirdi.</b> ${(d.removed_smells || []).length ? "Standard'ın bu kesimi <b>" + esc((d.removed_smells || []).map(s => SMELL_TEXT[s] || s).join(", ")) + "</b> üretiyordu." : "Boyut dengesi için taşındı/birleştirildi."} Karar ${d.origin === "llm" ? "model önerisi ve iki sıralı doğrulamayla" : "deterministik kalite kuralıyla"} verildi. Deep Analysis'i seçip aynı sayfayı açarak yeni sınırı görebilirsiniz.</div>`;
+    deepBlock = `<div class="reason-sent deep"><b>Deep Analysis bu kesimi değiştirdi.</b> ${(d.cut_smells || d.removed_smells || []).length ? "Standard'ın bu kesimi <b>" + esc((d.cut_smells || d.removed_smells).map(s => SMELL_TEXT[s] || s).join(", ")) + "</b> üretiyordu." : "Boyut dengesi için taşındı/birleştirildi."} Karar ${d.origin === "llm" && (analysisState() || {}).ranModel ? "model önerisi ve iki sıralı doğrulamayla" : "deterministik kalite kuralıyla"} verildi. Deep Analysis'i seçip aynı sayfayı açarak yeni sınırı görebilirsiniz.</div>`;
   }
 
   box.innerHTML = `<h3>Parça ${chunk.num} <span class="muted" style="font-weight:400;font-size:12.5px">· ${esc(modeName(arm).top)}</span></h3>
@@ -1749,7 +2126,7 @@ function renderChatSide(){
       <dt>Cevap modeli</dt><dd>${h ? esc(h.answer_model || "yok") : "—"}</dd>
       <dt>Retrieval</dt><dd>${h ? (h.dense ? "dense + BM25, RRF" : "BM25") + ` · top-k ${h.retrieval && h.retrieval.top_k}` : "—"}</dd>
       <dt>Bağlam</dt><dd>${h && h.context ? `${h.context.max_context_tokens} token bütçe · devam genişletme ${h.context.expansion_enabled ? "açık" : "kapalı"}` : "—"}</dd>
-      <dt>Yöntem</dt><dd>${esc(modeName(state.chat.arm).top)}${state.chat.arm === "agentic" && dm ? ` · ${dm.chunkCount.deep} chunk` : ""}</dd>
+      <dt>Yöntem</dt><dd>${esc(modeName(state.chat.arm).top)}${state.chat.arm === "agentic" && dm ? ` · ${dm.chunkCount.deep} parça` : ""}</dd>
     </dl>
     <div class="muted" style="font-size:12px;margin-top:10px">Yöntemler aynı arama hattını kullanır; değişen tek şey dokümanın nasıl parçalandığıdır. Kaynak yetersizse model tahmin yürütmez.</div>`;
 }
@@ -1961,13 +2338,18 @@ function renderQuery(){
   $("querycols").querySelectorAll("button[data-goto]").forEach(b => {
     b.onclick = () => {
       state.mode = "presentation";
-      setLanes([b.dataset.goto]);
+      const arm = b.dataset.goto;
+      if (!laneList().includes(arm)) setLanes(docArms().filter(a => laneList().includes(a) || a === arm));
+      state.arm = arm; state.selArm = arm;
       const evidence = g.ev.length ? unitById(g.ev[0]) : null;
       state.page = (evidence && evidence.p) || g.pg[0] || D().pages[0];
+      state.diffIdx = -1; state.selChunk = null; state.unfolded = new Set();
       render();
-      g.ev.forEach(id => { const el = document.querySelector(`.cell[data-uid="${id}"]`); if (el) el.classList.add("evflash"); });
-      const first = document.querySelector(".evflash");
-      if (first) first.scrollIntoView({block:"center"});
+      g.ev.forEach(id => { const el = document.querySelector(`.u[data-uid="${id}"]`); if (el) el.classList.add("evflash"); });
+      const first = document.querySelector(".u.evflash");
+      const sc = $("scroller");
+      if (first && sc) sc.scrollTop = Math.max(0, first.offsetTop - Math.round(sc.clientHeight * 0.3));
+      $("stage").scrollIntoView({block: "start"});
     };
   });
 }
@@ -2490,7 +2872,7 @@ function selectDoc(docId){
   state.armB = hasArm("structure-only") && state.arm !== "structure-only"
     ? "structure-only" : (docArms().find(a => a !== state.arm) || state.arm);
   state.chat.turns = []; state.chat.arm = null;
-  state.selArm = state.arm; state.lanes = null; state.page = null;
+  state.selArm = state.arm; state.lanes = null; state.page = null; state.unfolded = new Set();
   if (isLive() && state.qsub === "gold") state.qsub = "chat";
   syncDocOptions();
   render();
@@ -2719,6 +3101,7 @@ const PAGE_LEADS = {
 function renderPageHead(){
   const doc = D();
   const an = analysisState();
+  const compact = state.mode === "presentation";
   const lead = state.mode === "query"
     ? ((doc.gold || []).length
         ? "Kendi sorunuzu sorun ya da ölçüm sorularında yöntemlerin doğru parçayı kaçıncı sırada getirdiğini görün."
@@ -2728,13 +3111,14 @@ function renderPageHead(){
     ? `<span class="pill ok">RAG Console · canlı doküman</span>`
     : `<span class="pill std">Dondurulmuş karşılaştırma seti</span>`;
   const deep = an ? `<span class="pill ${an.pill || "deep"}">Deep Analysis${an.tag ? " · " + esc(an.tag) : ""}</span>` : "";
-  const facts = [`${doc.meta.unitCount.toLocaleString("tr-TR")} birim`,
+  const facts = [compact ? null : `${doc.meta.unitCount.toLocaleString("tr-TR")} birim`,
                  `${doc.meta.pageCount || Math.max(...doc.pages)} sayfa`,
-                 `${docArms().length} yöntem`];
+                 `${docArms().length} yöntem`].filter(Boolean);
+  $("pagehead").className = "pagehead" + (compact ? " compact" : "");
   $("pagehead").innerHTML = `<div class="ph-main">
       <div class="eyebrow">${MODE_TITLES[state.mode]}</div>
       <h1>${esc(doc.label)}</h1>
-      <div class="lead">${lead}</div>
+      ${compact ? "" : `<div class="lead">${lead}</div>`}
     </div>
     <div class="facts">${kind}${deep}${facts.map(f => `<span>${f}</span>`).join("")}</div>`;
 }

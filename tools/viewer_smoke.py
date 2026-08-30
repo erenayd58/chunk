@@ -55,34 +55,38 @@ with sync_playwright() as p:
     check(methods.count() == 4, f"expected 4 method cards, got {methods.count()}")
     check(page.locator("#results .results").count() == 1, "results strip missing on the default doc")
     # --- the comparison workbench: lanes, cuts, difference navigation ---
-    check(page.locator(".lanes .row").count() > 0, "the comparison rendered no rows")
-    check(page.locator(".lanes .cut").count() > 0, "no boundaries drawn in the lanes")
+    check(page.locator(".reader .u").count() > 0, "the comparison rendered no rows")
+    check(page.locator(".rail.start").count() > 0, "no chunk starts drawn on the rails")
+    check(page.locator(".band.diff").count() > 0, "the page opened without a disagreement band")
     lanes = page.evaluate("() => laneList()")
     check(len(lanes) == 2, f"expected the two product methods side by side, got {lanes}")
     page.screenshot(path=str(outdir / "01-sunum.png"), full_page=False)
 
     # a cut opens the detail panel for the lane it belongs to
-    page.locator('.lanes .cut button[data-arm="agentic"]').first.click()
+    page.locator('.rail.start .badge[data-arm="agentic"]').first.click()
     page.wait_for_timeout(300)
     detail = page.locator("#presdetail").inner_text()
     check("Parça" in detail and "Deep Analysis kararı" in detail, "detail panel lacks the Deep decision sentence")
 
     # a third method joins the comparison
-    page.locator('#lanepicker button[data-lane="markdown"]').click()
+    page.locator('#cmpbar button[data-lane="markdown"]').click()
     page.wait_for_timeout(400)
     check(len(page.evaluate("() => laneList()")) == 3, "a third lane did not join the comparison")
-    check(page.locator(".lanes .head > div").count() == 3, "the lane header did not follow")
+    check(page.locator(".reader .u").first.locator(".rail").count() == 3, "the rails did not follow")
     page.screenshot(path=str(outdir / "02-sunum-compare.png"), full_page=False)
-    page.locator('#lanepicker button[data-lane="markdown"]').click()
+    page.locator('#cmpbar button[data-lane="markdown"]').click()
     page.wait_for_timeout(300)
 
     # walking to a difference moves the section and marks the spot
     diffs = page.evaluate("() => laneDiffs().length")
     check(diffs > 0, "Standard and Deep are identical everywhere, which they are not")
-    page.locator("#nextdiff2").click()
+    # The screen opens on the first disagreement; one step moves to the next.
+    at = page.evaluate("() => state.diffIdx")
+    check(at == 0, f"Sunum did not open on the first disagreement (diffIdx={at})")
+    page.locator("#nextdiff").click()
     page.wait_for_timeout(500)
-    check(page.locator(".lanes .rowmark").count() > 0, "no difference marker after stepping to one")
-    check(page.evaluate("() => state.diffIdx") == 0, "the difference walker did not advance")
+    check(page.locator(".band.diff.here").count() == 1, "no difference marker after stepping to one")
+    check(page.evaluate("() => state.diffIdx") == at + 1, "the difference walker did not advance")
     page.screenshot(path=str(outdir / "03-sunum-deepdiff.png"), full_page=False)
 
     # --- Sorgu ---

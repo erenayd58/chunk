@@ -528,28 +528,57 @@ def _load_deep_arm(
         )
 
     by_cut_after = story_raw.get("by_cut_after") or {}
+    # Every boundary the story recorded, by the unit it cuts after. A change
+    # group's status describes the group; a reader pointing at one boundary is
+    # asking about that boundary, so its own record answers -- which layer
+    # placed or removed it, and which smells it carried.
+    cut_origin: dict[str, str] = {}
+    cut_smells: dict[str, list] = {}
+    for section in story_raw.get("sections") or []:
+        for boundary in section.get("boundaries") or []:
+            key = boundary.get("cut_after_unit_id")
+            if not key:
+                continue
+            if boundary.get("origin"):
+                cut_origin[key] = boundary["origin"]
+            if boundary.get("smells"):
+                cut_smells[key] = list(boundary["smells"])
     merged_at: dict[str, dict] = {}
     std_changed: dict[str, dict] = {}
     for key, record in by_cut_after.items():
         if key.startswith("merge:"):
             merged_at[key[len("merge:"):]] = record
         for cut in record.get("standard_cuts_after") or []:
+            # "removed_by_llm" / "removed_by_deterministic" is this cut's own
+            # actor; the group status is the fallback for older trees.
+            own = cut_origin.get(cut)
+            origin = ("llm" if own == "removed_by_llm" else "deterministic") if own else (
+                "llm" if record.get("status") in ("llm_accepted", "llm_merged") else "deterministic")
             std_changed[cut] = {
                 "status": "std_changed",
                 "removed_smells": record.get("removed_smells") or [],
-                "origin": "llm" if record.get("status") in ("llm_accepted", "llm_merged") else "deterministic",
+                "cut_smells": cut_smells.get(cut) or [],
+                "origin": origin,
                 "size_effect": record.get("size_effect"),
             }
     chunks = arm["chunks"]
     for index, chunk in enumerate(chunks):
         if index >= 1 and chunks[index - 1]["u"]:
-            decision = by_cut_after.get(chunks[index - 1]["u"][-1])
+            cut_after = chunks[index - 1]["u"][-1]
+            decision = by_cut_after.get(cut_after)
             if decision is not None:
                 chunk["dec"] = {
                     k: v for k, v in decision.items()
                     if k in ("status", "removed_smells", "introduced_smells", "size_effect",
                              "llm_reverted", "verifier", "inside_unit", "section_index", "smells")
                 }
+                # A group whose *other* cut the model placed does not make this
+                # cut the model's: the boundary's own origin decides.
+                own = cut_origin.get(cut_after)
+                if own in ("deterministic", "llm") and chunk["dec"].get("status") in ("det_moved", "llm_accepted"):
+                    chunk["dec"]["status"] = "llm_accepted" if own == "llm" else "det_moved"
+                if cut_smells.get(cut_after):
+                    chunk["dec"]["cut_smells"] = cut_smells[cut_after]
         merged = [merged_at[u] for u in chunk["u"] if u in merged_at]
         if merged:
             chunk["mg"] = [

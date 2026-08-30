@@ -9,7 +9,7 @@ ve ölçümler. Tek bir HTML dosyasıdır; yalnız canlı sohbet için yerel sun
 
 | Sekme | Soru | İçerik |
 |---|---|---|
-| **Sunum** | Ne yaptık, fark ne? | Önce **Sonuç**: Standard → Deep Analysis bandı (yapısal kalite problemi S→D, kötüleşen bölüm, bir kerelik maliyet, tek cümlelik hüküm), altında "Ne düzeldi?" — problem türü başına iki çubuk tek ölçekte; sonra **Yöntemler**: dokümanın gerçekten sahip olduğu yöntemler birer kart (karta tıklamak yöntemi karşılaştırmaya ekler ya da çıkarır); sonra **Parçaları karşılaştır**: aynı sayfa, seçilen iki–dört yöntemin kesimleriyle hizalı şeritlerde yan yana, sayfa sayfa ve ayrışma noktasından ayrışma noktasına gezilir; her kesimde sınır nedeni, sağdaki panelde Deep kararı. Yöntem ve ölçüm ayrıntısı tek bir açılır bölümün arkasındadır |
+| **Sunum** | Ne yaptık, fark ne? | İlk ekran **Parçaları karşılaştır** sahnesidir: doküman metni bir kez basılır; seçilen her yöntem (Markdown / Hybrid / Standard / Deep Analysis, dokümanın gerçekten sahip oldukları) sol kenarda kendi renginde bir **ray** taşır, ray o yöntemin yeni parça açtığı yerde kopar ve parça numarası rozetiyle işaretlenir; raylar farklı karar verdiğinde metni sarı bir **ayrışma şeridi** keser: "Standard burada böldü · Parça 9 · … · Deep Analysis devam etti · Parça 8 sürüyor" ve varsa Deep'in bu sınırdaki kararı. Sahne ilk ayrışmada açılır; ← → (ya da n / p) ayrışmadan ayrışmaya gezer, bölüm ve sayfa seçicileri atlar, soldaki dikey harita bütün dokümandaki ayrışmaları ve açık sayfayı gösterir (tıklayınca gider), "Sadece ayrışmalar" aynı karar verilen blokları katlar. Sağ panel: seçili ayrışmanın iki tarafı ve tıklanan parçanın detayı. **Sonuç** bandı, "Ne düzeldi?" çubukları, yöntem kartları ve metodoloji sahnenin altındadır |
 | **Sorgu** | Kullanınca nasıl çalışıyor? | *Dokümana Sor*: doküman + yöntem seç, doğal dilde sor → dense + BM25 (RRF) retrieval → aynı bölümün devam parçalarıyla bağlam → kaynaklı cevap; kaynak kartları (başlık, bölüm, sayfa, yöntem, kullanıldı mı), karta tıklayınca chunk metni ve "Sunum'da göster"; "Tüm yöntemlerle karşılaştır" aynı soruyu dört yöntemle koşar. *Gold sorgular*: frozen benchmark'ın sorgu-bazlı görünümü (çevrimdışı) |
 | **Debug** | Sistem bu kararı neden verdi? | Canonical unit'ler (tip, rol, seviye, section path), her koldaki chunk/fragment/offset/method eşlemesi, parser bulguları, hard cap üstü unit'ler (temsil tavanı), unit inspector'da bölümün Deep karar izi (Standard → deterministik → final kesimler, kaldırılan kokular, LLM önerileri ve verifier kararları); bölüm kararları tablosu (durum filtresiyle) |
 | **Benchmark** | Ölçümlerde sonuç ne? | Frozen benchmark v5 (üç kol) değişmeden; ayrı **Deep Analysis paneli**: koku tablosu (S→D, Δ), chunk_quality tablosu, retrieval (frozen değer kopya, Deep yeniden skorlandı), sınır kökeni, LLM çağrısı/verifier/fallback, süre, token ve maliyet tahmini, dürüst yorum; dokümanlar arası sözleşme tablosu |
@@ -19,7 +19,8 @@ ve ölçümler. Tek bir HTML dosyasıdır; yalnız canlı sohbet için yerel sun
 Dört sekme tek bir kabuğu paylaşır: üstte yapışkan bir başlık çubuğu (marka, alt
 çizgili sekmeler, doküman seçici, RAG Console düğmesi) ve her ekranın başında aynı
 üç cevabı veren bir **sayfa başlığı** — hangi ekran (küçük etiket), hangi doküman
-(başlık) ve bu ekran ne işe yarar (bir cümle); sağında dokümanın bağlamı (set, Deep
+(başlık) ve bu ekran ne işe yarar (bir cümle; Sunum'da başlık tek satıra iner, çünkü
+ilk ekran karşılaştırma sahnesinindir); sağında dokümanın bağlamı (set, Deep
 Analysis durumu, birim / sayfa / yöntem sayısı). Zemin soğuk nötr, yüzeyler beyaz;
 ürünün tek mavisi ve Deep Analysis'in tek moru dışında renk kullanılmaz. Her yöntem
 kartında, şerit çipinde ve kesim çizgisinde **aynı rengi** taşır (Markdown amber,

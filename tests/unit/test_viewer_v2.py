@@ -534,10 +534,16 @@ def test_continuation_links_are_embedded_per_chunk(tmp_path):
 def test_technical_and_structural_boundaries_render_differently(tmp_path):
     html_text = build(tmp_path)
     # Two visual classes exist and carry different treatments.
-    assert ".lanes .cut.techcut{border-top-style:dashed" in html_text
-    assert ".lanes .cut{" in html_text and ".lanes .cut.deepcut{" in html_text
+    # A continuation cut draws its rail dashed; a structural one draws it solid.
+    assert ".rail.start.tech::before{background:repeating-linear-gradient" in html_text
+    assert ".rail.start::before{" in html_text and ".band.diff .msg{" in html_text
     # The continuation label a technical boundary carries is still written out.
-    assert "Önceki chunk'ın devamı — boyut sınırı nedeniyle ayrıldı" in html_text
+    assert "Önceki parçanın devamı — boyut sınırı nedeniyle ayrıldı" in html_text
+    # One noun for a chunk in the reader's own copy: "parça". The engine name
+    # survives where a measurement is audited (TERMS' `tech` labels, Debug).
+    assert "Önceki chunk'ın devamı" not in html_text
+    assert "Chunk ${" not in html_text
+    assert "Bu, dokümanın ilk parçası." in html_text
     assert "Yeni bölüm başladı" in html_text
 
 
