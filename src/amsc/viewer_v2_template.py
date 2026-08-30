@@ -1980,13 +1980,18 @@ function renderBoard(){
     for (const arm of lanes) {
       const p = lane[arm].pieces[k];
       const prev = k > 0 ? lane[arm].ext[k - 1] : lane[arm].before;
+      // A note says only what the boundary row above cannot: a chunk that
+      // starts inside a block this row will not slice, or a run two chunks
+      // really share. An ordinary chunk start is already drawn as one.
       let text = "";
       if (p && !slice) {
-        const fresh = [...new Set(p.reduce((acc, x) => acc.concat(x.owners), []))].filter(c => c !== prev);
-        if (fresh.length) {
-          const names = fresh.map(c => num(arm, c)).filter(Boolean).join(" → ");
-          text = p.length > 1 ? `${names} · bu bloğun içinde başlıyor`
-            : `${names} · önceki parçayla örtüşüyor`;
+        const names = list => list.map(c => num(arm, c)).filter(Boolean);
+        if (p.length > 1) {
+          const fresh = names([...new Set(p.reduce((acc, x) => acc.concat(x.owners), []))].filter(c => c !== prev));
+          if (fresh.length) text = `${fresh.join(" → ")} · bu bloğun içinde başlıyor`;
+        } else if (p[0].owners.length > 1) {
+          const fresh = names(p[0].owners.filter(c => c !== prev));
+          if (fresh.length) text = `${fresh.join(" + ")} · önceki parçayla örtüşüyor`;
         }
       }
       notes[arm] = text;
