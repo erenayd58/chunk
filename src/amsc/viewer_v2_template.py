@@ -680,6 +680,8 @@ footer{color:var(--faint);font-size:12.5px;padding:28px 22px;text-align:center}
   .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;height:auto!important;max-height:none}
   .docmap{display:none}
   .board{max-height:70vh;--colmin:236px}
+  /* The method's name is the one thing a column head cannot lose. */
+  .colhead .n{display:none}
   .panel{grid-column:1/-1;border-left:none;border-top:1px solid var(--line);max-height:320px}
   .sidecard,.inspector{position:static;max-height:none}
   .fixrow,.fixhead{grid-template-columns:1fr;gap:6px}
@@ -821,6 +823,9 @@ const SMELL_INFO = {
   above_soft_max:      {label:"Çok uzun parça",                   help:"Hedeflenen boyutun üstünde kalan chunk (900 token üstü); modele fazladan bağlam gider."}
 };
 const SMELL_TEXT = Object.fromEntries(Object.entries(SMELL_INFO).map(([k, v]) => [k, v.label]));
+// A defect name is a clause ("Başlık içerikten koptu"), so mid-sentence it
+// starts in lower case -- in the document's own locale, not the browser's.
+const midSentence = s => s ? s[0].toLocaleLowerCase("tr") + s.slice(1) : s;
 const SMELL_HELP = Object.fromEntries(Object.entries(SMELL_INFO).map(([k, v]) => [k, v.help]));
 const SMELL_FIXED = {
   orphan_label: "başlık içeriğiyle birlikte kaldı",
@@ -1635,7 +1640,7 @@ function pointDecision(point, cut, kept){
   if (!isDeepArm("agentic")) return "";
   const an = analysisState();
   const ranModel = Boolean(an && an.ranModel);
-  const names = list => (list || []).map(s => SMELL_TEXT[s] || s).join(", ");
+  const names = list => (list || []).map(s => midSentence(SMELL_TEXT[s] || s)).join(", ");
   // This boundary's own smells if the story recorded any; the change group's
   // set is a claim about the region, so it is worded as one.
   const why = d => {
@@ -1650,16 +1655,16 @@ function pointDecision(point, cut, kept){
   const std = cut.find(c => c.arm === "structure-only");
   if (std && point.kept.includes("agentic") && std.chunk && std.chunk.dec && std.chunk.dec.status === "std_changed") {
     const d = std.chunk.dec, w = why(d);
-    const tail = !w ? "" : w.size ? ": kesim çok kısa bir parça bırakıyordu"
-      : w.own ? `: kesim <i>${esc(w.text)}</i> üretiyordu`
-      : `: bu bölgedeki Standard kesimleri <i>${esc(w.text)}</i> üretiyordu`;
+    const tail = !w ? "" : w.size ? "; kesim çok kısa bir parça bırakıyordu"
+      : w.own ? `; o kesimde <i>${esc(w.text)}</i>`
+      : `; bu bölgedeki Standard kesimlerinde <i>${esc(w.text)}</i>`;
     return `<b>Deep Analysis</b> Standard'ın bu kesimini ${how(d)} kaldırdı${tail}.`;
   }
   const deep = cut.find(c => c.arm === "agentic");
   if (deep && point.kept.includes("structure-only") && deep.chunk && deep.chunk.dec) {
     const d = deep.chunk.dec, w = why(d);
-    const tail = !w ? "" : w.own ? `: Standard'ın kesimi <i>${esc(w.text)}</i> üretiyordu`
-      : `: bu bölgedeki Standard kesimleri <i>${esc(w.text)}</i> üretiyordu`;
+    const tail = !w ? "" : w.own ? `; Standard'ın kesiminde <i>${esc(w.text)}</i>`
+      : `; bu bölgedeki Standard kesimlerinde <i>${esc(w.text)}</i>`;
     if (d.status === "det_moved") return `<b>Deep Analysis</b> bu sınırı kalite kuralıyla ekledi${tail}.`;
     if (d.status === "llm_accepted") return ranModel
       ? `<b>Deep Analysis</b> bu sınırı modelin önerisiyle ekledi; öneriyi kural katmanı doğruladı.`
@@ -2277,7 +2282,7 @@ function renderPresDetail(){
     let sent = "";
     if (d) {
       if (d.status === "kept") sent = d.llm_reverted ? `Bu sınır Standard'ın sınırıyla aynı. Model burada farklı bir sınır önerdi, ancak öneri iki ayrı sırada denenince <b>tutmadı</b> (${esc(d.llm_reverted === "order_dependent" ? "cevap sunum sırasına göre değişti" : d.llm_reverted === "base_preferred" ? "model kural sınırını tercih etti" : d.llm_reverted)}); kural sınırı korundu.` : "Bu sınır Standard'ın sınırıyla aynı: ne kalite kuralı ne model değişiklik gerektiren bir şey buldu.";
-      else if (d.status === "det_moved") sent = `Kalite kuralı bu sınırı taşıdı${(d.cut_smells || d.removed_smells || []).length ? ": Standard'ın kesimi <b>" + esc((d.cut_smells || d.removed_smells).map(s => SMELL_TEXT[s] || s).join(", ")) + "</b> üretiyordu; yeni kesim bu kusuru taşımıyor" : " (çok kısa parçalar birleşti)"}. Modelsiz, tekrarlanabilir karar.` + (d.llm_reverted ? " Model bu bölgede başka bir sınır önerdi, doğrulamadan geçmedi." : "");
+      else if (d.status === "det_moved") sent = `Kalite kuralı bu sınırı taşıdı${(d.cut_smells || d.removed_smells || []).length ? ": Standard'ın kesiminde <b>" + esc((d.cut_smells || d.removed_smells).map(s => midSentence(SMELL_TEXT[s] || s)).join(", ")) + "</b>; yeni kesim bu kusuru taşımıyor" : " (çok kısa parçalar birleşti)"}. Modelsiz, tekrarlanabilir karar.` + (d.llm_reverted ? " Model bu bölgede başka bir sınır önerdi, doğrulamadan geçmedi." : "");
       else if (d.status === "llm_accepted") sent = (analysisState() || {}).ranModel
         ? "Bu sınırı model önerdi. Öneri iki ayrı sunum sırasında da tercih edildiği için kabul edildi, ardından kalite kurallarından yeniden geçti — boyut, kapsama ve yapısal problem sayaçlarının tamamı yeniden kontrol edildi."
         : "Bu sınırı kural katmanı yerleştirdi; bu koşuda model çalışmadı.";
@@ -2291,7 +2296,7 @@ function renderPresDetail(){
         change_groups: st.gr, llm_proposals: st.pr, this_boundary: d || null
       }, null, 1))}</pre></details>`: "");
   } else if (arm === "structure-only" && d && d.status === "std_changed") {
-    deepBlock = `<div class="reason-sent deep"><b>Deep Analysis bu kesimi değiştirdi.</b> ${(d.cut_smells || d.removed_smells || []).length ? "Standard'ın bu kesimi <b>" + esc((d.cut_smells || d.removed_smells).map(s => SMELL_TEXT[s] || s).join(", ")) + "</b> üretiyordu." : "Boyut dengesi için taşındı/birleştirildi."} Karar ${d.origin === "llm" && (analysisState() || {}).ranModel ? "model önerisi ve iki sıralı doğrulamayla" : "deterministik kalite kuralıyla"} verildi. Deep Analysis'i seçip aynı sayfayı açarak yeni sınırı görebilirsiniz.</div>`;
+    deepBlock = `<div class="reason-sent deep"><b>Deep Analysis bu kesimi değiştirdi.</b> ${(d.cut_smells || d.removed_smells || []).length ? "Standard'ın bu kesiminde <b>" + esc((d.cut_smells || d.removed_smells).map(s => midSentence(SMELL_TEXT[s] || s)).join(", ")) + "</b> vardı." : "Boyut dengesi için taşındı/birleştirildi."} Karar ${d.origin === "llm" && (analysisState() || {}).ranModel ? "model önerisi ve iki sıralı doğrulamayla" : "deterministik kalite kuralıyla"} verildi. Deep Analysis'i seçip aynı sayfayı açarak yeni sınırı görebilirsiniz.</div>`;
   }
 
   box.innerHTML = `<h3>Parça ${chunk.num} <span class="muted" style="font-weight:400;font-size:12.5px">· ${esc(modeName(arm).top)}</span></h3>
