@@ -44,19 +44,14 @@ a{color:var(--accent)}
 .brand .tag{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
   color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 8px}
 .tabs{display:flex;gap:3px;background:#efeee8;border-radius:10px;padding:3px}
-.tabs button{padding:6px 16px;border-radius:8px;color:var(--muted);font-weight:500}
+.tabs button{padding:7px 20px;border-radius:8px;color:var(--muted);font-weight:550}
 .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.tabs button small{display:block;font-size:11.5px;font-weight:400;line-height:1.1;opacity:.75}
 .seg{display:flex;gap:3px;background:#efeee8;border-radius:10px;padding:3px;flex-wrap:wrap}
 .seg button{padding:5px 12px;border-radius:8px;color:var(--muted)}
 .seg button.on{background:var(--accent);color:#fff}
 .seg button.on.deep{background:var(--deep)}
 .seg button small{display:block;font-size:11.5px;font-weight:400;line-height:1.1;opacity:.8}
 .bar-right{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.filterseg button.on{background:#3d3f43;color:#fff}
-.diffnav button{border:1px solid var(--line-strong);border-radius:7px;padding:4px 10px;background:#fff}
-.diffnav button:disabled{opacity:.4;cursor:default}
-.diffcount{color:var(--muted);font-size:13.5px}
 .conttoggle{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);cursor:pointer}
 main{max-width:1760px;margin:0 auto;padding:20px 22px 40px}
 
@@ -128,8 +123,8 @@ table.t td.deepcol{background:#faf7ff}
 .pres-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px}
 .readerbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:14px;color:var(--muted)}
 .readerbar select{padding:3px 8px}
-.docpage{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:34px 42px;
-  font-family:var(--serif);font-size:17px}
+.docpage{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:30px 38px;
+  font-family:var(--serif);font-size:16.5px}
 .docpage .pagehead{font-family:var(--font);color:var(--muted);font-size:13.5px;margin-bottom:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .chunkline{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-family:var(--font);flex-wrap:wrap;
   scroll-margin-top:calc(var(--barh) + 14px)}
@@ -155,7 +150,7 @@ table.t td.deepcol{background:#faf7ff}
 .u.tintB{background:var(--tintB)}
 .u.contedge{border-left:3px solid #e4c988}
 .u.expmember{border-left:3px solid #c9861b;background:#fdf6e7}
-.u.evflash{outline:3px solid var(--warn);outline-offset:2px}
+.u.evflash,.lanes .cell.evflash{outline:3px solid var(--warn);outline-offset:-3px}
 .u.selchunk{outline:2px solid var(--accent);outline-offset:-2px}
 .u h1,.u h2,.u h3,.u h4,.u h5,.u h6{font-family:var(--font);line-height:1.3;margin:14px 0 6px}
 .u h1{font-size:24px}.u h2{font-size:21px}.u h3{font-size:18px}
@@ -304,15 +299,6 @@ details.secgold summary{cursor:pointer;color:var(--accent)}
   gap:10px;flex-wrap:wrap}
 .verdict .who{font-size:13px;color:var(--muted);white-space:nowrap}
 .verdict b{font-weight:650}
-/* Standard and Deep side by side, two sentences each -- not two lists. */
-.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
-.vs .side{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 18px}
-.vs .side.std{border-top:3px solid var(--accent)}
-.vs .side.deep{border-top:3px solid var(--deep)}
-.vs .side h4{font-size:15px;font-weight:650;display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.vs .side p{font-size:14.5px;line-height:1.55;color:#3f4750}
-.vs .side .facts{color:var(--muted);font-size:13px;margin-top:9px}
-/* The two sentences that stop a reader mis-reading what the model does. */
 .guards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
 .guards .g{border-left:3px solid var(--line-strong);padding:2px 0 2px 14px;font-size:14px;line-height:1.5;color:#3f4750}
 .guards .g b{color:var(--ink);font-weight:650;display:block;margin-bottom:2px}
@@ -323,10 +309,59 @@ details.secgold summary{cursor:pointer;color:var(--accent)}
   background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
 .when .w{font-size:14px;line-height:1.5;color:#3f4750}
 .when .w b{display:block;color:var(--ink);font-weight:650;font-size:13.5px;margin-bottom:2px}
-/* Reader controls, beside the reader they control. */
-.readertools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.readertools+.readerbar{margin-top:-6px}
-.readertools .diffnav button{padding:4px 9px}
+/* ---- the comparison workbench ---- */
+.workbench{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;max-width:1480px}
+.wb-lanes{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wb-lanes .lab{font-size:13.5px;color:var(--muted);margin-right:2px}
+.lanechip{border:1px solid var(--line-strong);border-radius:999px;padding:5px 14px;background:#fff;
+  font-size:14px;font-weight:550;color:#3f4750;display:inline-flex;align-items:center;gap:7px}
+.lanechip:hover{border-color:var(--accent)}
+.lanechip .dot{width:9px;height:9px;border-radius:3px;background:var(--line-strong);flex:0 0 auto}
+.lanechip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.lanechip.on.deepm{border-color:var(--deep);background:var(--deep-soft);color:var(--deep)}
+.lanechip.off{opacity:.5;cursor:not-allowed;border-style:dashed}
+.wb-nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.wb-nav select{max-width:520px}
+.wb-nav .stepnav{display:inline-flex;gap:4px;align-items:center}
+.wb-nav .stepnav button{border:1px solid var(--line-strong);border-radius:7px;padding:4px 11px;background:#fff}
+.wb-nav .stepnav button:disabled{opacity:.4;cursor:default}
+.wb-nav .grow{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.wb-nav .conttoggle{cursor:pointer}
+
+/* Aligned lanes: one row per canonical unit, one column per method, so a
+   boundary that exists in one lane and not another is visible without
+   reading a word. */
+.lanes{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.lanes .head{display:grid;position:sticky;top:var(--barh);z-index:5;background:#f4f3ee;
+  border-bottom:1px solid var(--line-strong);border-radius:11px 11px 0 0}
+.lanes .head > div{padding:10px 16px;font-weight:650;font-size:14.5px;display:flex;align-items:center;
+  gap:8px;flex-wrap:wrap;border-left:1px solid var(--line)}
+.lanes .head > div:first-child{border-left:none}
+.lanes .head .n{font-weight:400;color:var(--muted);font-size:13px}
+.lanes .row{display:grid;border-bottom:1px solid #f0efe9}
+.lanes .row:last-child{border-bottom:none}
+.lanes .row.split{border-bottom-color:var(--line)}
+.lanes .cell{padding:0 16px;border-left:1px solid var(--line);min-width:0;position:relative}
+.lanes .cell:first-child{border-left:none}
+.lanes .cell .body{font-family:var(--serif);font-size:15.5px;padding:6px 0}
+.lanes .cell.tintA{background:var(--tintA)}
+.lanes .cell.tintB{background:var(--tintB)}
+.lanes .cell.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.lanes .cut{display:flex;align-items:center;gap:9px;margin:0 -16px;padding:7px 16px;position:relative;z-index:1;
+  background:linear-gradient(90deg,rgba(31,79,156,.10),rgba(31,79,156,0));border-top:2px solid var(--accent);
+  scroll-margin-top:calc(var(--barh) + 70px)}
+.lanes .cut.deepcut{background:linear-gradient(90deg,rgba(91,62,166,.12),rgba(91,62,166,0));border-top-color:var(--deep)}
+.lanes .cut.techcut{border-top-style:dashed;border-top-color:#c9a24b;
+  background:linear-gradient(90deg,rgba(201,162,75,.14),rgba(201,162,75,0))}
+.lanes .cut button{font-size:13px;font-weight:650;color:var(--accent);white-space:nowrap}
+.lanes .cut.deepcut button{color:var(--deep)}
+.lanes .cut.techcut button{color:#8a5a09}
+.lanes .cut .why{font-weight:400;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lanes .rowmark{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:6px 16px;position:relative;z-index:2;
+  background:#fdf6e7;border-top:1px solid #ecd9ab;border-bottom:1px solid #ecd9ab;
+  font:12.5px/1.4 var(--font);color:#8a5a09;scroll-margin-top:calc(var(--barh) + 70px)}
+.lanes .rowmark b{font-weight:650}
+.lanes .rowmark.here{box-shadow:0 0 0 2px var(--warn)}
 .toolstash{display:none}
 
 /* ---- explainer layer: the plain-language skin over the technical numbers ---- */
@@ -439,33 +474,18 @@ footer{color:var(--muted);font-size:12.5px;padding:26px 22px;text-align:center}
   <span class="brand">AMSC Chunking<small>Viewer v2</small><span class="tag">Chunking + RAG PoC</span></span>
   <select id="docsel" title="Doküman"></select>
   <div class="tabs" id="modetabs">
-    <button data-mode="presentation">Sunum<small>ne yaptık, fark ne?</small></button>
-    <button data-mode="query">Sorgu<small>kullanınca nasıl çalışıyor?</small></button>
-    <button data-mode="debug">Debug<small>neden bu karar?</small></button>
-    <button data-mode="benchmark">Benchmark<small>ölçümler ne diyor?</small></button>
+    <button data-mode="presentation">Sunum</button>
+    <button data-mode="query">Sorgu</button>
+    <button data-mode="debug">Debug</button>
+    <button data-mode="benchmark">Benchmark</button>
   </div>
   <div class="seg" id="armseg"></div>
   <div class="bar-right">
     <button class="btn small" id="wsopen" title="RAG Console'daki bilgi tabanları ve dokümanlar"><span class="dot" id="wsdot"></span> <span id="wslabel">RAG Console</span></button>
   </div>
-  <!-- Reader controls live with the reader, not in the global bar; they are
-       moved into the active view's toolbar by syncBar(). -->
+  <!-- The reader's page control, parked here while Debug is not showing. -->
   <div class="toolstash" id="toolstash">
     <span id="pagectl">Sayfa <select id="pagesel"></select></span>
-    <span class="seg filterseg" id="filterseg">
-      <button data-f="all">Tüm sayfalar</button>
-      <button data-f="diff">Yöntemlerin ayrıştığı sayfalar</button>
-      <button data-f="deep">Deep Analysis'in değiştirdiği sayfalar</button>
-    </span>
-    <span class="diffnav" id="diffnav">
-      <button id="prevdiff">&#8592;</button>
-      <button id="nextdiff">&#8594;</button>
-      <span class="diffcount" id="diffcount"></span>
-    </span>
-    <label class="conttoggle" id="conttoggle">
-      <input type="checkbox" id="contchk"> Devam zinciri
-      <button type="button" class="info" data-help="Bir parça aramada bulunduğunda, aynı bölümün kaldığı yerden devam eden komşu parçaları da cevaba taşınabilir. Bu kutu o zinciri sayfada gösterir; ölçüm sonuçlarını değiştirmez." aria-label="Aciklama">?</button>
-    </label>
   </div>
 </div>
 <main>
@@ -475,8 +495,10 @@ footer{color:var(--muted);font-size:12.5px;padding:26px 22px;text-align:center}
     <div id="methodnote"></div>
     <div id="results"></div>
     <div class="sechead" id="readerhead"></div>
-    <div class="readertools" id="readertools"></div>
-    <div class="readerbar" id="readerbar"></div>
+    <div class="workbench">
+      <div class="wb-lanes" id="lanepicker"></div>
+      <div class="wb-nav" id="navbar"></div>
+    </div>
     <div class="pres-layout">
       <div id="prespage"></div>
       <aside class="sidecard" id="presdetail"></aside>
@@ -493,7 +515,7 @@ footer{color:var(--muted);font-size:12.5px;padding:26px 22px;text-align:center}
       <div class="chatwrap">
         <div>
           <div class="chatbox">
-            <div class="muted" style="font-size:13px;margin-bottom:6px">Seçili dokümana kendi cümlelerinizle sorun. Cevabın altında, hangi parçalardan geldiği kart olarak listelenir.</div>
+
             <textarea id="chatq" placeholder="Örn. Şirketin 2024 yılı toplam üye sayısı kaçtır?"></textarea>
             <div class="chatctl">
               <span class="seg" id="chatarms"></span>
@@ -537,6 +559,8 @@ const DATA = JSON.parse(document.getElementById("viewer-data").textContent);
 const ARMS = DATA.armOrder;
 const PRODUCT_ARMS = DATA.productArmOrder || ["markdown","hybrid","structure-only","agentic"];
 const ARM_LABEL = DATA.armLabels;
+
+const LANE_COLOR = {markdown: "#8a5a09", hybrid: "#0f766e", "structure-only": "#1f4f9c", agentic: "#5b3ea6"};
 
 const REASONS = {
   doc_start:   {label:"Doküman başlangıcı", sent:"Bu, dokümanın ilk chunk'ı."},
@@ -644,7 +668,11 @@ const state = {
   mode: "presentation",
   arm: null,
   armB: null,
-  compare: false,
+  // The methods being compared, left to right. One lane is a reading view;
+  // two or more is the comparison this product exists for.
+  lanes: null,
+  scope: "section",
+  section: null,
   page: null,
   filter: "all",
   diffIdx: -1,
@@ -821,6 +849,7 @@ function kpi(label, help, valueHtml, sub, extraClass){
 }
 const arrowValue = (from, to) => `<span class="from">${from}</span><span class="arrow">→</span><span class="to">${to}</span>`;
 
+const _baseId = id => String(id).split("#")[0];
 function unitById(id){ return D()._byId[id]; }
 function indexDoc(doc){
   doc._byId = {};
@@ -893,12 +922,6 @@ function initBar(){
   $("modetabs").querySelectorAll("button").forEach(b => {
     b.onclick = () => { state.mode = b.dataset.mode; render(); };
   });
-  $("contchk").onchange = () => { state.contShow = $("contchk").checked; render(); };
-  $("filterseg").querySelectorAll("button").forEach(b => {
-    b.onclick = () => { state.filter = b.dataset.f; state.diffIdx = -1; syncPage(); render(); };
-  });
-  $("prevdiff").onclick = () => stepDiff(-1);
-  $("nextdiff").onclick = () => stepDiff(1);
   $("qsubtabs").querySelectorAll("button").forEach(b => {
     b.onclick = () => { state.qsub = b.dataset.sub; render(); };
   });
@@ -924,6 +947,88 @@ function measureBar(){
   document.documentElement.style.setProperty("--barh", h + "px");
 }
 
+// The document's own sections, as a reader would name them: a run of units
+// sharing one section path. This is what the reader navigates by -- a page is
+// where something is printed, a section is what it is about.
+function docSections(){
+  const doc = D();
+  if (doc._sections) return doc._sections;
+  // Group at the document's own top level -- its chapters. The full section
+  // path would give hundreds of two-unit slivers, which is a worse thing to
+  // navigate than the pages it replaced.
+  const out = [];
+  let current = null;
+  for (const unit of doc.units) {
+    const key = (unit.sd || [])[0] || "";
+    if (!current || current.key !== key) {
+      current = {i: out.length, key, title: key || "Belge başı", units: [], pages: new Set()};
+      out.push(current);
+    }
+    current.units.push(unit);
+    current.pages.add(unit.p);
+  }
+  for (const section of out) section.pages = [...section.pages].sort((a, b) => a - b);
+  doc._sections = out;
+  return out;
+}
+// Open on the first chapter that has something to read, not on a cover page.
+function firstContentSection(){
+  const sections = docSections();
+  const numbered = sections.findIndex(s => /^\s*\d+\s*[.)]/.test(s.title));
+  if (numbered >= 0) return numbered;
+  const prose = s => s.units.filter(u => u.t === "paragraph" && u.x.length > 240).length;
+  const at = sections.findIndex(s => prose(s) >= 2);
+  return at < 0 ? (sections.length > 1 ? 1 : 0) : at;
+}
+function sectionOfUnit(unitId){
+  return docSections().find(s => s.units.some(u => u.i === unitId));
+}
+
+// Which methods the reader is comparing. Defaults to the two that answer the
+// product's question -- the base method and the premium one -- when both are
+// there, otherwise to everything the document has.
+function laneList(){
+  const have = docArms();
+  const wanted = (state.lanes || []).filter(a => have.includes(a));
+  if (wanted.length) return wanted;
+  if (have.includes("structure-only")) {
+    const other = ["agentic", "markdown", "hybrid"].find(a => have.includes(a));
+    return other ? have.filter(a => a === "structure-only" || a === other) : ["structure-only"];
+  }
+  return have.slice(0, 2);
+}
+function setLanes(lanes){
+  state.lanes = lanes.slice();
+  if (!lanes.includes(state.arm)) state.arm = lanes[0];
+  if (!lanes.includes(selArm())) { state.selArm = lanes[0]; state.selChunk = null; }
+}
+
+// Where the compared methods disagree: between two consecutive content units,
+// at least one lane cuts and at least one does not. Computed over the lanes on
+// screen, so the count always matches what the reader is looking at.
+function laneDiffs(){
+  const lanes = laneList();
+  if (lanes.length < 2) return [];
+  const content = D().units.filter(u => u.t !== "heading");
+  const points = [];
+  for (let k = 1; k < content.length; k++) {
+    const left = content[k - 1], right = content[k];
+    const cuts = [];
+    let usable = true;
+    for (const arm of lanes) {
+      const m = D().arms[arm].m;
+      const a = m[left.i], b = m[right.i];
+      if (a === undefined || b === undefined) { usable = false; break; }
+      cuts.push(a !== b);
+    }
+    if (usable && cuts.some(Boolean) && !cuts.every(Boolean)) {
+      points.push({after: left.i, before: right.i, p: right.p,
+                   cut: lanes.filter((a, i) => cuts[i]), kept: lanes.filter((a, i) => !cuts[i])});
+    }
+  }
+  return points;
+}
+
 function pageList(){
   if (state.filter === "diff" && D().diffPages.length) return D().diffPages;
   if (state.filter === "deep" && (D().deepDiffPages || []).length) return D().deepDiffPages;
@@ -939,24 +1044,13 @@ function syncPage(){
   if (state.page === null && state.filter === "all") state.page = firstContentPage();
   if (!pages.includes(state.page)) state.page = pages[0];
 }
-function stepDiff(delta){
-  const diffs = D().diffs;
-  if (!diffs.length) return;
-  state.diffIdx = (state.diffIdx + delta + diffs.length) % diffs.length;
-  const point = diffs[state.diffIdx];
-  state.filter = "diff";
-  state.page = point.p;
-  state.mode = "presentation";
-  render();
-  const el = document.querySelector(`[data-diff="${point.a}|${point.b}"]`);
-  if (el) { el.scrollIntoView({block:"center"}); el.style.boxShadow = "0 0 0 3px #f2d9a4"; }
-}
 
 // Only Debug shows this; Sunum's method cards are its own selector.
 function renderArmSeg(){
   const seg = $("armseg");
   seg.innerHTML = docArms().map(a =>
-    `<button data-arm="${a}" class="${isDeepArm(a) ? "deep" : ""}">${esc(armLabel(a))}<small>${esc(armTech(a))}</small></button>`).join("");
+    `<button data-arm="${a}" class="${isDeepArm(a) ? "deep" : ""}">${esc(armLabel(a))}${
+      armTech(a) !== armLabel(a) ? `<small>${esc(armTech(a))}</small>` : ""}</button>`).join("");
   seg.querySelectorAll("button").forEach(b => {
     b.onclick = () => { state.arm = b.dataset.arm; state.selArm = b.dataset.arm; state.selChunk = null;
       if (state.armB === state.arm) state.armB = docArms().find(a => a !== state.arm) || state.arm; render(); };
@@ -967,35 +1061,18 @@ function syncBar(){
   $("modetabs").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.mode === state.mode));
   renderArmSeg();
   $("armseg").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.arm === state.arm));
-  $("filterseg").querySelectorAll("button").forEach(b => {
-    b.classList.toggle("on", b.dataset.f === state.filter);
-    if (b.dataset.f === "diff") b.classList.toggle("hidden", !D().diffs.length);
-    if (b.dataset.f === "deep") b.classList.toggle("hidden", !(D().deepDiffPages || []).length);
-  });
-  const inPage = state.mode === "presentation" || state.mode === "debug";
-  // Page, filter, difference navigation and the continuation toggle all act on
-  // the reader below them, so they sit with it rather than in the global bar.
-  const host = state.mode === "presentation" ? $("readertools") : (state.mode === "debug" ? $("dbgtools") : null);
-  for (const id of ["pagectl", "filterseg", "diffnav", "conttoggle"]) {
-    const el = $(id);
-    const wanted = id === "pagectl" ? inPage : state.mode === "presentation";
-    if (wanted && host) host.appendChild(el); else $("toolstash").appendChild(el);
-    el.style.display = wanted ? "" : "none";
-  }
+  // Only Debug still reads by page; the comparison reads by section.
+  const el = $("pagectl");
+  if (state.mode === "debug") { $("dbgtools").appendChild(el); el.style.display = ""; }
+  else { $("toolstash").appendChild(el); el.style.display = "none"; }
   $("armseg").style.display = state.mode === "debug" ? "" : "none";
-  $("diffnav").style.display = state.mode === "presentation" && D().diffs.length ? "" : "none";
-  $("contchk").checked = state.contShow;
-  if (inPage) {
+  if (state.mode === "debug") {
     syncPage();
     const sel = $("pagesel");
     sel.innerHTML = pageList().map(p => `<option value="${p}">${p}</option>`).join("");
     sel.value = state.page;
     sel.onchange = () => { state.page = Number(sel.value); render(); };
   }
-  const diffs = D().diffs;
-  $("diffcount").textContent = diffs.length
-    ? (state.diffIdx >= 0 ? (state.diffIdx + 1) + " / " : "") + diffs.length + " fark noktası" : "fark yok";
-  $("prevdiff").disabled = $("nextdiff").disabled = !diffs.length;
 }
 
 /* -------- Sunum: methods + results -------- */
@@ -1032,14 +1109,20 @@ function renderMethods(){
   }).join("");
   // An absent method is explained once, in a line -- never faked, never a card.
   $("methodnote").innerHTML = missing.length
-    ? `<div class="help">${esc(missing.map(a => modeName(a).top).join(" ve "))} bu dokümanda çalıştırılmadı${isLive()
-        ? " — RAG Console'a yüklenen dokümanlar Standard ve Deep Analysis ile hazırlanır; diğer iki yöntem yalnız dondurulmuş karşılaştırma setinde vardır."
-        : " — bu doküman için üretilmiş bir koşusu yok."}</div>`
+    ? `<div class="help">${missing.map(a => esc(absentReason(a))).join(" ")}</div>`
     : "";
   $("methods").querySelectorAll(".method").forEach(el => {
     el.onclick = () => { state.arm = el.dataset.arm; state.selArm = el.dataset.arm; state.selChunk = null;
       if (state.armB === state.arm) state.armB = docArms().find(a => a !== state.arm) || state.arm; render(); };
   });
+}
+
+function absentReason(arm){
+  const live = D().live;
+  const state = live && live.methods ? (live.methods[arm] || {}) : null;
+  if (state && state.status === "failed") return `${modeName(arm).top} çalıştırıldı ama tamamlanamadı: ${state.error || "bilinmeyen hata"}`;
+  if (live) return `${modeName(arm).top} bu doküman için çalıştırılmadı. RAG Console'da bu yöntemi ekleyebilirsiniz.`;
+  return `${modeName(arm).top} bu doküman için üretilmedi.`;
 }
 
 function smellSum(t){ return ["orphan_label","lead_in_cut","continuation_cut","run_split_when_fits","fragment_cut","table_split"].reduce((s, k) => s + (t && t[k] || 0), 0); }
@@ -1098,31 +1181,21 @@ function deepStory(dm, opts){
           `<span style="color:var(--good)">yok</span>`, esc(an.short))}
   </div>`;
 
-  const std = doc.arms["structure-only"], deep = doc.arms.agentic;
-  const compare = `<div class="vs">
-    <div class="side std"><h4><span class="pill std">Standard</span> temel yöntem</h4>
-      <p>Hızlı ve deterministik. Dokümanın kendi başlık yapısını takip eder: her bölüm kendi başlığı altında kalır, yalnız çok büyüyen bölümler bölünür. Ek maliyeti ve gecikmesi yoktur.</p>
-      ${std ? `<div class="facts">${std.chunks.length} parça${std.sq && std.sq.token_count ? " · medyan " + fmt(std.sq.token_count.median, 0) + " token" : ""}</div>` : ""}</div>
-    <div class="side deep"><h4><span class="pill deep">Deep Analysis</span> premium hazırlama modu${an.tag ? ` <span class="pill ${an.pill}">${esc(an.tag)}</span>` : ""}</h4>
-      <p>Karmaşık dokümanlar için. Standard'ın geride bıraktığı kötü sınırları arar — kopmuş başlık, ikiye bölünmüş liste, ortadan ayrılmış tablo — ve bulduklarını düzeltir. Yalnız yükleme sırasında çalışır.</p>
-      ${deep ? `<div class="facts">${deep.chunks.length} parça${deep.sq && deep.sq.token_count ? " · medyan " + fmt(deep.sq.token_count.median, 0) + " token" : ""}${llm ? " · " + dm.calls.total + " model çağrısı" : " · model çalışmadı"}</div>` : ""}</div>
-  </div>`;
-
-  // Two sentences that head off the two mis-readings this screen invites.
-  const guards = `<div class="guards">
-    <div class="g llm"><b>Modelin rolü sınırlı.</b> Parçaları model belirlemez. ${llm
-      ? "Yalnız kuralın kararsız kaldığı " + (sc.llm_consulted_sections ?? "birkaç") + " bölümde öneri verir; her öneri iki ayrı sırada doğrulanır ve doğrulanmayan öneri geri alınır."
-      : "Bu dokümanda sınırların hiçbirini model belirlemedi; sonucun tamamı kural katmanından geliyor."}</div>
-    <div class="g rule"><b>Kalite kuralları güvenlik katmanı.</b> Sonuç hiçbir problem türünde Standard'ın gerisine düşemez — bu bir hedef değil, koşunun geçmek zorunda olduğu bir sözleşme.</div>
-  </div>`;
-
+  // When to prefer which method -- one line, because that is the only part of
+  // the methodology a reader of this screen has to act on.
   const when = `<div class="when">
-    <div class="w"><b>Değer</b>Tablo, liste ve çok sayıda alt başlık içeren dokümanlarda; cevabın bir tablo satırını ya da madde listesini eksiksiz vermesi gerektiğinde.</div>
-    <div class="w"><b>Gerekmeyebilir</b>Düz, tablosuz, kısa metinlerde Standard zaten aynı sınırları bulur.</div>
-    <div class="w"><b>Maliyet mantığı</b>${llm ? "Bir kerelik " + cost + "; kazanç her sorguda tekrar eder. Sorgu anında ek maliyet ve gecikme yok." : "Bu koşuda model çalışmadı; kural katmanının kazancı ücretsiz ve tekrarlanabilir."}</div>
+    <div class="w"><b>Deep Analysis ne zaman değer?</b>Tablo, liste ve çok sayıda alt başlık içeren dokümanlarda — cevabın bir tablo satırını ya da madde listesini eksiksiz vermesi gerektiğinde.</div>
+    <div class="w"><b>Ne zaman gerekmez?</b>Düz, tablosuz, kısa metinlerde Standard zaten aynı sınırları bulur.</div>
+    <div class="w"><b>Maliyeti</b>${llm ? "Bir kerelik " + cost + ", yalnız yüklemede. Sorgu anında ek maliyet ve gecikme yok." : "Bu dokümanda model çalışmadı; kazanç ücretsiz."}</div>
   </div>`;
 
-  const detail = `<details class="deep-detail"><summary>Teknik ayrıntı — ölçüm, sınır kökeni ve iddia sınırları</summary><div class="inner">
+  const detail = `<details class="deep-detail"><summary>Yöntem ve ölçüm ayrıntısı</summary><div class="inner">
+    <div class="guards">
+      <div class="g llm"><b>Parçaları model belirlemez.</b> ${llm
+        ? "Model yalnız kuralın kararsız kaldığı " + (sc.llm_consulted_sections ?? "birkaç") + " bölümde öneri verir; her öneri iki ayrı sırada doğrulanır, doğrulanmayan geri alınır."
+        : "Bu dokümanda sınırların hiçbirini model belirlemedi; sonucun tamamı kural katmanından geliyor."}</div>
+      <div class="g rule"><b>Sonuç Standard'ın gerisine düşemez.</b> Hiçbir problem türünde daha kötü bir sonuç kabul edilmez; bu bir hedef değil, koşunun geçmek zorunda olduğu bir kural.</div>
+    </div>
     <div class="kpis" style="margin-top:12px">
       ${kpi("Düzeltmeyi kim yaptı?", "Deep Analysis'in taşıdığı ya da eklediği chunk sınırlarının kaynağı.",
         `${origin.deterministic || 0}<span class="unit">kural</span><span class="arrow">+</span><span class="to">${origin.llm || 0}</span><span class="unit">model</span>`,
@@ -1139,16 +1212,16 @@ function deepStory(dm, opts){
       ${kpi(term("ceiling"), null, `${sc.ceiling_boundaries ?? "—"}`,
         "Tek bir tablo ya da paragraf bütçeden büyük olduğu için hiçbir yöntemin kaçınamayacağı kesim.")}
     </div>
-    <div class="note" style="margin-top:12px">Her problem türü, chunk sınırlarının şekline bakan deterministik bir sayaçtır — model yorumu değil. ${llm
-      ? "Deep Analysis model kullanır; aynı koşu birebir tekrarlanmaz ve bir “kazanan yöntem” ilan edilmez."
-      : "Bu koşuda model kullanılmadı; model katmanının ekleyeceği kazanç bu tabloda yer almıyor."} Eşikler PoC seviyesindedir, optimize edilmemiştir.</div>
+    <div class="note" style="margin-top:12px">Her problem türü, parça sınırlarının şekline bakan deterministik bir sayaçtır — model yorumu değil. ${llm
+      ? "Deep Analysis model kullandığı için aynı koşu birebir tekrarlanmaz; bir “kazanan yöntem” ilan edilmez."
+      : "Bu koşuda model çalışmadı."} Eşikler PoC seviyesinde, optimize edilmemiş.</div>
   </div></details>`;
 
   return `<div class="results" style="background:none;border:none;padding:0;margin:0">
     ${sectionHead(opts && opts.step, "Standard → Deep Analysis", `<b>${esc(doc.label)}</b> · ${doc.meta.unitCount} birim · ${Math.max(...doc.pages)} sayfa${llm && dm.model ? " · model " + esc(dm.model) : ""}`)}
     <div class="verdict">${verdict}</div>
     ${an.warn ? `<div class="guard warn"><b>${esc(an.short)}</b> ${esc(an.help)}</div>` : ""}
-    ${kpis}${compare}${guards}${fixList(ts, td)}${when}${detail}
+    ${kpis}${fixList(ts, td)}${when}${detail}
   </div>`;
 }
 
@@ -1225,120 +1298,166 @@ function mergePill(chunk, arm){
   }).join("");
 }
 
-function chunkLine(arm, idx, compact, unitId){
-  const armData = D().arms[arm];
-  const chunk = armData.chunks[idx];
-  const isCont = chunk.cp !== null && chunk.cp !== undefined;
-  const why = isCont ? (CONT_LABELS[chunk.rs] || "Önceki chunk'ın devamı") : (REASONS[chunk.rs] || {label: chunk.rs}).label;
-  const kindText = isCont ? "· · · teknik sınır — içerik devam ediyor · · ·" : "yeni bölüm";
-  let out = `<div class="chunkline ${isCont ? "tech" : "struct"}">` +
-    (compact ? "" : `<span class="kind">${kindText}</span>`) +
-    `<span class="chunkpill ${state.selChunk === idx && selArm() === arm ? "sel" : ""}" data-chunk="${idx}" data-arm="${arm}">` +
-    `Parça ${chunk.num} · ${chunk.n} token · <span class="why">${esc(why)}</span>` +
-    (state.contShow && chunk.rt === "TOKEN_BUDGET_CONTINUATION" ? " ⟡" : "") + `</span>` +
-    decisionPill(chunk, arm) + mergePill(chunk, arm) +
-    (chunk.llm ? `<span class="decpill ${chunk.llm.m ? "llm" : "kept"}">${chunk.llm.m ? "sınır model oyuyla taşındı" : "model değerlendirdi; kesim korundu"}</span>` : "") +
-    `<span class="rule"></span>`;
-  const d = D().diffs.length ? D().diffs.find(x => x.b === unitId) : null;
-  if (!compact && state.filter === "diff" && d && D()._diffKey.has(d.a + "|" + d.b)) {
-    const cuts = ARMS.filter(a => d.s[a]).map(a => modeName(a).top);
-    const kept = ARMS.filter(a => !d.s[a]).map(a => modeName(a).top);
-    out += `<span class="diffbadge" data-diff="${d.a}|${d.b}">Yöntemler ayrışıyor${info(
-      `Burada ${cuts.join(", ") || "hiçbir yöntem"} keser, ${kept.join(", ") || "hiçbiri"} kesmez. Aynı iki cümle arasında yöntemlerin farklı karar verdiği nokta.`)}</span>`;
-  }
-  return out + `</div>`;
+
+// The lane picker: which methods are on screen. Every method the document
+// actually has is offered; nothing else is, and nothing is faked.
+function renderLanePicker(){
+  const lanes = laneList();
+  const have = docArms();
+  if (!lanes.includes(state.arm)) { state.arm = lanes[0]; state.selArm = lanes[0]; state.selChunk = null; }
+  const absent = PRODUCT_ARMS.filter(a => !have.includes(a));
+  const chips = have.map(a => {
+    const on = lanes.includes(a);
+    const naming = modeName(a);
+    return `<button class="lanechip ${on ? "on" : ""} ${a === "agentic" ? "deepm" : ""}" data-lane="${a}"
+      aria-pressed="${on}"><span class="dot" style="background:${LANE_COLOR[a] || "#9aa3ad"}"></span>${esc(naming.top)}
+      <span class="muted" style="font-weight:400;font-size:12.5px">${D().arms[a].chunks.length}</span></button>`;
+  }).join("");
+  const off = absent.map(a =>
+    `<button class="lanechip off" disabled title="${esc(absentReason(a))}">${esc(modeName(a).top)}</button>`).join("");
+  $("lanepicker").innerHTML = `<span class="lab">Karşılaştır:</span>${chips}${off}` +
+    (lanes.length < 2 ? `<span class="muted" style="font-size:13px">— ikinci bir yöntem seçin</span>` : "");
+  $("lanepicker").querySelectorAll("button[data-lane]").forEach(el => {
+    el.onclick = () => {
+      const arm = el.dataset.lane;
+      const next = lanes.includes(arm) ? lanes.filter(a => a !== arm) : lanes.concat([arm]);
+      if (!next.length) return;  // one lane always stays on screen
+      setLanes(docArms().filter(a => next.includes(a)));
+      state.diffIdx = -1;
+      render();
+    };
+  });
 }
 
-function renderReaderBar(){
-  const arms = docArms();
-  const opts = a => arms.map(x => `<option value="${x}" ${x === a ? "selected" : ""}>${esc(modeName(x).top)}</option>`).join("");
-  $("readerbar").innerHTML = `<label><input type="checkbox" id="cmpchk" ${state.compare ? "checked" : ""}> İki yöntemi yan yana karşılaştır</label>
-    ${state.compare ? `<span>sol: <select id="armA">${opts(state.arm)}</select></span><span>sağ: <select id="armB">${opts(state.armB)}</select></span>` : ""}`;
-  // Leaving the comparison hands the selection back to the visible column.
-  $("cmpchk").onchange = () => { state.compare = $("cmpchk").checked; state.selArm = state.arm; state.selChunk = null; render(); };
-  if (state.compare) {
-    // Picking a side's method to what the other side already shows would leave
-    // the reader comparing a document with itself; the two swap instead.
-    $("armA").onchange = () => { const v = $("armA").value;
-      if (v === state.armB) state.armB = state.arm;
-      state.arm = v; state.selArm = v; state.selChunk = null; render(); };
-    $("armB").onchange = () => { const v = $("armB").value;
-      if (v === state.arm) { state.arm = state.armB; state.selArm = state.arm; state.selChunk = null; }
-      state.armB = v; render(); };
+// The navigator: sections first, differences second, pages last. A page is
+// where something was printed; a section is what it is about, and a difference
+// is what this screen is for.
+function renderNavigator(){
+  const sections = docSections();
+  const diffs = laneDiffs();
+  if (state.section === null || state.section >= sections.length) state.section = firstContentSection();
+  const options = sections.map((s, i) =>
+    `<option value="${i}" ${i === state.section ? "selected" : ""}>${i + 1}. ${esc(s.title)} — ${s.units.length} birim</option>`).join("");
+  const pages = D().pages;
+  $("navbar").innerHTML = `
+    <span>Bölüm</span><select id="secnav">${options}</select>
+    <span class="stepnav"><button id="prevsec" ${state.section === 0 ? "disabled" : ""}>&#8592;</button>
+      <button id="nextsec" ${state.section >= sections.length - 1 ? "disabled" : ""}>&#8594;</button></span>
+    ${diffs.length ? `<span class="stepnav" style="margin-left:8px">
+      <button id="prevdiff2">&#8592;</button><button id="nextdiff2">&#8594;</button></span>
+      <span>${diffs.length} ayrışma noktası${state.diffIdx >= 0 ? ` · ${state.diffIdx + 1}.` : ""}</span>`
+      : (laneList().length > 1 ? `<span>bu yöntemler her yerde aynı kesiyor</span>` : "")}
+    <span class="grow">
+      <label class="conttoggle"><input type="checkbox" id="contchk2" ${state.contShow ? "checked" : ""}> Devam zinciri
+        ${info("Bir parça aramada bulunduğunda aynı bölümün devamı olan komşu parçalar da cevaba taşınabilir. Bu kutu o zinciri gösterir; ölçümleri değiştirmez.")}</label>
+      <span class="muted" style="font-size:13px">sayfa ${sections[state.section] ? sections[state.section].pages.join(", ") : pages[0]}</span>
+    </span>`;
+  $("secnav").onchange = e => { state.section = Number(e.target.value); state.diffIdx = -1; render(); };
+  $("prevsec").onclick = () => { state.section = Math.max(0, state.section - 1); render(); };
+  $("nextsec").onclick = () => { state.section = Math.min(sections.length - 1, state.section + 1); render(); };
+  $("contchk2").onchange = e => { state.contShow = e.target.checked; render(); };
+  if (diffs.length) {
+    $("prevdiff2").onclick = () => stepLaneDiff(-1);
+    $("nextdiff2").onclick = () => stepLaneDiff(1);
   }
+}
+
+// Move to the next place the compared methods disagree, wherever it is: the
+// section follows the difference, not the other way round.
+function stepLaneDiff(delta){
+  const diffs = laneDiffs();
+  if (!diffs.length) return;
+  state.diffIdx = (state.diffIdx + delta + diffs.length) % diffs.length;
+  const point = diffs[state.diffIdx];
+  const section = sectionOfUnit(point.before);
+  if (section) state.section = section.i;
+  render();
+  const el = document.querySelector(`.rowmark[data-diff="${point.before}"]`);
+  if (el) { el.scrollIntoView({block: "center"}); el.classList.add("here"); }
 }
 
 const NUMS = ["", "bir", "iki", "üç", "dört"];
 function renderPresentation(){
-  // The story is numbered by what this document actually has, so a reader
-  // never looks for a section that was skipped.
   let step = 0;
   const hasStory = Boolean(deepMeta()) || isLegacyAgentic();
   $("methodhead").innerHTML = inner(sectionHead(++step, "Yöntemler",
-    `Aynı doküman ${NUMS[docArms().length] || docArms().length} farklı şekilde parçalandı. Bir kart seçmek aşağıdaki okuyucuyu o yönteme geçirir; adın yanındaki soru işareti nasıl çalıştığını söyler.`));
+    `Bu doküman ${NUMS[docArms().length] || docArms().length} yöntemle parçalandı.`));
   renderMethods();
   renderResults({step: hasStory ? ++step : null});
-  $("readerhead").innerHTML = inner(sectionHead(++step, "Parçaları incele",
-    "Dokümanın kendisi, seçili yöntemin parça sınırlarıyla. Bir şeride ya da metne tıklayın: o sınırın neden orada olduğunu sağdaki panel anlatır."));
-  renderReaderBar();
-  const units = pageUnits(state.page);
-  if (state.compare && state.armB && state.armB !== state.arm && hasArm(state.armB)) { renderCompare(units); return; }
-  const arm = state.arm, armData = A();
-  const marks = boundaryPositions(units, arm);
-  const m = armData.m;
-  const expansion = state.contShow && state.selChunk !== null && selArm() === arm ? simulateExpansion(armData, state.selChunk) : null;
+  $("readerhead").innerHTML = inner(sectionHead(++step, "Parçaları karşılaştır",
+    "Aynı bölüm, seçtiğiniz yöntemlerin kesimleriyle yan yana. Renkli çizgi bir parçanın başladığı yerdir; sarı şerit, yöntemlerin farklı karar verdiği noktayı gösterir."));
+  renderLanePicker();
+  renderNavigator();
+  renderLanes();
+  renderPresDetail();
+}
+
+// The comparison itself: one row per canonical unit, one column per method.
+// A row carries the boundary marks of every lane at the same height, so a cut
+// that exists in one method and not another needs no explanation.
+function renderLanes(){
+  const lanes = laneList();
+  const section = docSections()[state.section] || docSections()[0];
+  const units = section ? section.units : pageUnits(state.page);
+  const cols = `grid-template-columns:repeat(${lanes.length},minmax(0,1fr))`;
+  const marks = {};
+  for (const arm of lanes) marks[arm] = boundaryPositions(units, arm);
+  const diffs = laneDiffs();
+  const diffBefore = new Map(diffs.map(d => [d.before, d]));
+  const expansion = state.contShow && state.selChunk !== null ? simulateExpansion(SA(), state.selChunk) : null;
   const expMembers = expansion ? new Set(expansion.members) : null;
 
-  let htmlOut = `<div class="docpage"><div class="pagehead"><span>${esc(D().label)} — sayfa ${state.page}</span><span>${esc(modeName(arm).top)}</span></div>`;
+  let out = `<div class="lanes"><div class="head" style="${cols}">` + lanes.map(arm => {
+    const data = D().arms[arm];
+    return `<div><span class="dot" style="width:9px;height:9px;border-radius:3px;background:${LANE_COLOR[arm] || "#9aa3ad"}"></span>
+      ${esc(modeName(arm).top)}<span class="n">${data.chunks.length} parça${data.sq && data.sq.token_count ? " · medyan " + fmt(data.sq.token_count.median, 0) + " tok" : ""}</span></div>`;
+  }).join("") + `</div>`;
+
   for (let k = 0; k < units.length; k++) {
-    const u = units[k];
-    if (marks[k] !== null) htmlOut += chunkLine(arm, marks[k], false, u.i);
-    const at = m[u.i];
-    let cls = at === undefined ? "" : (at % 2 === 0 ? "tintA" : "tintB");
-    if (at !== undefined && state.contShow) {
-      const chunk = armData.chunks[at];
-      if (expMembers && expMembers.has(at)) cls += " expmember";
-      else if (chunk.g !== null && chunk.g !== undefined) cls += " contedge";
+    const unit = units[k];
+    const point = diffBefore.get(unit.i);
+    if (point) {
+      out += `<div class="rowmark" data-diff="${esc(unit.i)}"><b>Yöntemler ayrışıyor</b>` +
+        `<span>${esc(point.cut.map(a => modeName(a).top).join(", "))} burada yeni parça açıyor;` +
+        ` ${esc(point.kept.map(a => modeName(a).top).join(", "))} aynı parçada devam ediyor.</span></div>`;
     }
-    if (at !== undefined && state.selChunk === at && selArm() === arm) cls += " selchunk";
-    htmlOut += `<div class="u ${cls}" data-uid="${u.i}"${at !== undefined ? ` data-uchunk="${at}"` : ""}>` + unitHtml(u) + `</div>`;
+    out += `<div class="row" style="${cols}">` + lanes.map(arm => {
+      const data = D().arms[arm];
+      const at = data.m[unit.i];
+      let cls = at === undefined ? "" : (at % 2 === 0 ? "tintA" : "tintB");
+      if (at !== undefined && selArm() === arm && state.selChunk === at) cls += " sel";
+      if (at !== undefined && state.contShow && expMembers && selArm() === arm && expMembers.has(at)) cls += " sel";
+      const mark = marks[arm][k];
+      let cut = "";
+      if (mark !== null) {
+        const chunk = data.chunks[mark];
+        const isCont = chunk.cp !== null && chunk.cp !== undefined;
+        const why = isCont ? (CONT_LABELS[chunk.rs] || "önceki parçanın devamı") : (REASONS[chunk.rs] || {label: chunk.rs}).label;
+        cut = `<div class="cut ${arm === "agentic" ? "deepcut" : ""} ${isCont ? "techcut" : ""}">
+          <button data-chunk="${mark}" data-arm="${arm}">Parça ${chunk.num}</button>
+          <span class="why">${chunk.n} tok · ${esc(why)}</span></div>`;
+      }
+      return `<div class="cell ${cls}" data-uid="${esc(unit.i)}" data-arm="${arm}"${at !== undefined ? ` data-uchunk="${at}"` : ""}>${cut}<div class="body">${unitHtml(unit)}</div></div>`;
+    }).join("") + `</div>`;
   }
-  htmlOut += "</div>";
-  $("prespage").innerHTML = htmlOut;
+  $("prespage").innerHTML = out + `</div>`;
   bindReader($("prespage"));
-  renderPresDetail();
 }
 
-function renderCompare(units){
-  const a = state.arm, b = state.armB;
-  const marksA = boundaryPositions(units, a), marksB = boundaryPositions(units, b);
-  const mA = D().arms[a].m, mB = D().arms[b].m;
-  const colhead = (arm, side) => `<div class="colhead ${side}">${esc(modeName(arm).top)} <span class="muted" style="font-weight:400;font-size:12.5px">${D().arms[arm].chunks.length} parça</span></div>`;
-  let out = `<div class="cmp">` + colhead(a, "a") + colhead(b, "b");
-  for (let k = 0; k < units.length; k++) {
-    const u = units[k];
-    const cell = (arm, marks, m) => {
-      const at = m[u.i];
-      let cls = at === undefined ? "" : (at % 2 === 0 ? "tintA" : "tintB");
-      if (at !== undefined && selArm() === arm && state.selChunk === at) cls += " selchunk";
-      return `<div class="cell">${marks[k] !== null ? chunkLine(arm, marks[k], true, u.i) : ""}<div class="u ${cls}" data-uid="${u.i}" data-arm="${arm}"${at !== undefined ? ` data-uchunk="${at}"` : ""}>${unitHtml(u)}</div></div>`;
-    };
-    out += cell(a, marksA, mA) + cell(b, marksB, mB);
-  }
-  $("prespage").innerHTML = out + "</div>";
-  bindReader($("prespage"));
-  renderPresDetail();
-}
 
 // A selection belongs to the column it was made in. In the side-by-side view
 // that is not always the left one, and moving state.arm to follow the click
 // used to collapse the comparison the reader had just opened.
+// A selection belongs to the lane it was made in, so clicking the right-hand
+// method inspects that method rather than switching the whole screen to it.
 function bindReader(root){
-  const pick = (arm, idx) => { state.selArm = arm || state.arm; state.selChunk = idx; render(); };
-  root.querySelectorAll(".chunkpill").forEach(el => {
-    el.onclick = () => pick(el.dataset.arm, Number(el.dataset.chunk));
+  const pick = (arm, idx) => { state.selArm = arm || state.arm; state.selChunk = idx; renderPresDetail();
+    root.querySelectorAll(".cell").forEach(c => c.classList.toggle("sel",
+      c.dataset.arm === state.selArm && Number(c.dataset.uchunk) === state.selChunk)); };
+  root.querySelectorAll(".cut button[data-chunk]").forEach(el => {
+    el.onclick = e => { e.stopPropagation(); pick(el.dataset.arm, Number(el.dataset.chunk)); };
   });
-  root.querySelectorAll(".u[data-uchunk]").forEach(el => {
+  root.querySelectorAll(".cell[data-uchunk]").forEach(el => {
     el.onclick = () => pick(el.dataset.arm, Number(el.dataset.uchunk));
   });
 }
@@ -1377,13 +1496,15 @@ function simulateExpansion(armData, seedIdx, budget){
 
 function jumpToChunk(idx, arm){
   if (arm) state.arm = arm;
+  if (!laneList().includes(state.arm)) setLanes(laneList().concat([state.arm]));
   const chunk = D().arms[state.arm].chunks[idx];
   state.selArm = state.arm;
   state.selChunk = idx;
   state.mode = "presentation";
-  if (chunk.pg.length && chunk.pg[0] !== state.page) { state.filter = "all"; state.page = chunk.pg[0]; }
+  const section = chunk.u.length ? sectionOfUnit(_baseId(chunk.u[0])) : null;
+  if (section) state.section = section.i;
   render();
-  const el = document.querySelector(`.chunkpill.sel`);
+  const el = document.querySelector(`.cell.sel`);
   if (el) el.scrollIntoView({block:"center"});
 }
 
@@ -1549,8 +1670,7 @@ function renderChatArms(){
 function renderChatSide(){
   const h = state.chat.health;
   const dm = deepMeta();
-  $("chatside").innerHTML = `<h3>Bu sohbet nasıl çalışır${info("Soru, seçtiğiniz yöntemin parçaları arasında aranır; en iyi eşleşenler ve aynı bölümün devam parçaları cevap modeline verilir. Parçalama yüklemede bitmiştir — soru sorarken ne yeniden bölümleme ne model danışması çalışır.")}</h3>
-    <div class="muted" style="font-size:12.5px;line-height:1.5">Cevap yalnız getirilen parçalara dayanır. Her yöntem aynı arama hattını kullanır; değişen tek şey dokümanın nasıl parçalandığıdır.</div>
+  $("chatside").innerHTML = `<h3>Kurulum${info("Soru, seçtiğiniz yöntemin parçaları arasında aranır; en iyi eşleşenler ve aynı bölümün devam parçaları cevap modeline verilir. Parçalama yüklemede bitmiştir — soru sorarken yeniden bölümleme yapılmaz.")}</h3>
     <dl class="kv" style="margin-top:10px">
       <dt>Embedding</dt><dd>${h ? esc(h.embedding_model || "yok (BM25)") : "—"}</dd>
       <dt>Cevap modeli</dt><dd>${h ? esc(h.answer_model || "yok") : "—"}</dd>
@@ -1558,7 +1678,7 @@ function renderChatSide(){
       <dt>Bağlam</dt><dd>${h && h.context ? `${h.context.max_context_tokens} token bütçe · devam genişletme ${h.context.expansion_enabled ? "açık" : "kapalı"}` : "—"}</dd>
       <dt>Yöntem</dt><dd>${esc(modeName(state.chat.arm).top)}${state.chat.arm === "agentic" && dm ? ` · ${dm.chunkCount.deep} chunk` : ""}</dd>
     </dl>
-    <div class="muted" style="font-size:12px;margin-top:10px">Kaynaklar yetersizse model tahmin yürütmez, bunu söyler.</div>`;
+    <div class="muted" style="font-size:12px;margin-top:10px">Yöntemler aynı arama hattını kullanır; değişen tek şey dokümanın nasıl parçalandığıdır. Kaynak yetersizse model tahmin yürütmez.</div>`;
 }
 
 function renderSuggest(){
@@ -1578,9 +1698,10 @@ async function renderChat(){
   if (isLive()) {
     const consoleUrl = (workspace.data && workspace.data.url) || "";
     $("offline").classList.remove("hidden");
-    $("offline").innerHTML = `<b>Bu doküman RAG Console'da sorgulanır.</b> Buradaki “Dokümana Sor”, viewer sunucusunun kendi demo korpusunu (dondurulmuş karşılaştırma seti) sorgular; canlı çalışma alanı dokümanları RAG Console'un kendi bilgi tabanında indekslenir.<br>
-      Bu dokümanı sormak için ${consoleUrl ? `<a href="${esc(consoleUrl)}" target="_blank" rel="noopener">RAG Console'u açın ↗</a>` : "RAG Console'u açın"} ve ait olduğu bilgi tabanını seçin.<br>
-      <span class="muted">Sunum, Debug ve Benchmark sekmeleri bu doküman için burada çalışır.</span>`;
+    $("offline").innerHTML = `<b>Bu dokümanı RAG Console'daki sohbetten sorabilirsiniz.</b>
+      Buradaki sohbet dondurulmuş karşılaştırma setini sorgular; canlı dokümanlar Console'un kendi bilgi tabanında indekslidir.
+      ${consoleUrl ? `<a href="${esc(consoleUrl)}/chat" target="_blank" rel="noopener">Console'da sor ↗</a>` : ""}
+      <span class="muted">Sunum, Debug ve Benchmark bu doküman için burada çalışır.</span>`;
     $("chatsend").disabled = true;
     $("chatq").disabled = true;
     renderChatSide();
@@ -1589,9 +1710,9 @@ async function renderChat(){
   }
   $("offline").classList.toggle("hidden", online);
   if (!online) {
-    $("offline").innerHTML = `<b>Canlı sohbet için sunucu gerekli.</b> Bu dosya tek başına Sunum, Debug, Benchmark ve gold sorgu görünümünü çalıştırır; "Dokümana Sor" için viewer'ı yerel sunucudan açın:<br>
-      <code>py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v2/index.html --config configs/rag-poc.yaml</code> → <code>http://127.0.0.1:8765/</code><br>
-      <span class="muted">Sunucu embedding ve cevap modelini yapılandırmadan okur; anahtar tarayıcıya hiç gelmez.</span>`;
+    $("offline").innerHTML = `<b>Sohbet için sunucu gerekiyor.</b> Bu dosya tek başına açıldığında Sunum, Debug, Benchmark ve ölçüm soruları çalışır.<br>
+      <code>py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v2/index.html --config configs/rag-poc.yaml</code> → <code>http://127.0.0.1:8765/</code>
+      <span class="muted">Anahtarlar yalnız sunucuda kalır.</span>`;
   }
   $("chatsend").disabled = !online || state.chat.busy;
   $("chatq").disabled = !online;
@@ -1723,8 +1844,9 @@ function statusOf(frr){
 }
 function renderQuery(){
   $("queryhead2").innerHTML = inner(sectionHead(null, "Sorgu",
-    "Parçalama işini bitirdi; bu sekme sonucunu gösterir. <b>Dokümana sor</b> ile kendi sorunuzu sorun — cevap yalnız getirilen parçalara dayanır ve her cümlenin kaynağı gösterilir." +
-    ((D().gold || []).length ? " <b>Ölçüm soruları</b>, cevabı elle doğrulanmış soru listesidir; her yöntemin doğru parçayı kaçıncı sırada getirdiğini yan yana gösterir." : "")));
+    (D().gold || []).length
+      ? "Kendi sorunuzu sorun ya da ölçüm sorularında yöntemlerin doğru parçayı kaçıncı sırada getirdiğini görün."
+      : "Bu dokümana bir soru sorun; cevabın hangi parçalardan geldiği altında listelenir."));
   $("qsubtabs").querySelectorAll("button").forEach(b => {
     b.classList.toggle("on", b.dataset.sub === state.qsub);
     if (b.dataset.sub === "gold") b.classList.toggle("hidden", !(D().gold || []).length);
@@ -1769,11 +1891,13 @@ function renderQuery(){
   }).join("");
   $("querycols").querySelectorAll("button[data-goto]").forEach(b => {
     b.onclick = () => {
-      state.mode = "presentation"; state.arm = b.dataset.goto; state.filter = "all"; state.compare = false;
-      state.page = g.pg[0] || D().pages[0];
+      state.mode = "presentation";
+      setLanes([b.dataset.goto]);
+      const section = g.ev.length ? sectionOfUnit(g.ev[0]) : null;
+      if (section) state.section = section.i;
       render();
-      g.ev.forEach(id => { const el = document.querySelector(`.u[data-uid="${id}"]`); if (el) el.classList.add("evflash"); });
-      const first = document.querySelector(".u.evflash");
+      g.ev.forEach(id => { const el = document.querySelector(`.cell[data-uid="${id}"]`); if (el) el.classList.add("evflash"); });
+      const first = document.querySelector(".evflash");
       if (first) first.scrollIntoView({block:"center"});
     };
   });
@@ -1830,7 +1954,7 @@ function renderDebugList(){
       }).join("");
     }).join("");
     return `<div class="dbgunit${state.selUnit === u.i ? " sel" : ""}" data-uid="${u.i}">
-      <div class="head">${chips}</div><div class="path">${esc(JSON.stringify(u.s))}</div><div class="txt">${esc(u.x)}</div>
+      <div class="head">${chips}</div><div class="path">${esc((u.sd || []).join(" › ") || "bölüm yolu yok")}</div><div class="txt">${esc(u.x)}</div>
       <table class="dbgtable"><tr><th>yöntem</th><th>parça · fragman</th><th>karakter aralığı</th><th>eşleme</th></tr>${rows}</table></div>`;
   }).join("") : `<div class="card muted">Bu sayfada filtreye uyan birim yok.</div>`;
   $("dbglist").querySelectorAll(".dbgunit").forEach(el => {
@@ -1840,7 +1964,7 @@ function renderDebugList(){
 }
 function renderDebug(){
   $("dbghead").innerHTML = inner(sectionHead(null, "Debug",
-    "Sayfanın ham hâli. Her kart, ayrıştırıcının çıkardığı tek bir <b>birim</b>dir: bir başlık, bir paragraf, bir tablo. Altındaki tablo o birimin hangi yöntemde hangi parçaya düştüğünü söyler; bir karta tıklayınca sağdaki panel o birimin bütün alanlarını ve varsa Deep Analysis karar izini açar."));
+    "Her kart bir <b>birim</b>: ayrıştırıcının çıkardığı tek bir başlık, paragraf ya da tablo. Altındaki satırlar o birimin her yöntemde hangi parçaya düştüğünü gösterir; karta tıklayın, sağdaki panel açılsın."));
   renderDebugBar();
   renderDebugList();
   renderInspector();
@@ -1858,8 +1982,26 @@ function renderInspector(){
   const box = $("inspector");
   const u = state.selUnit && unitById(state.selUnit);
   if (!u) { box.innerHTML = "<b>Birim incelemesi</b><div class='muted' style='margin-top:8px'>Soldan bir birime tıklayın: alanları, ayrıştırıcı notları ve varsa bölümünün Deep Analysis karar izi burada açılır.</div>"; return; }
-  const fields = {unit_id: u.i, type: u.t, page: u.p, semantic_role: u.r, opens_section: u.o, heading_level: u.l, block: u.b, section_path: u.s};
-  let out = `<b>Birim incelemesi — ${esc(u.i)}</b><pre>${esc(JSON.stringify(fields, null, 1))}</pre>`;
+  const row = (key, value) => `<div class="row"><dt>${esc(key)}</dt><dd>${value}</dd></div>`;
+  let out = `<b>Birim incelemesi</b><div class="trail" style="border:none;margin-top:6px;padding-top:0">
+    ${row("Kimlik", `<span class="mono">${esc(u.i)}</span>`)}
+    ${row("Tür", esc(u.t) + (u.r ? ` · ${esc(u.r)}` : "") + (u.l !== null && u.l !== undefined ? ` · seviye ${u.l}` : ""))}
+    ${row("Sayfa", u.p + (u.b !== null && u.b !== undefined ? ` · blok ${u.b}` : ""))}
+    ${row("Bölüm", esc((u.sd || []).join(" › ") || "—"))}
+    ${row("Bölüm açar mı", u.o === true ? "evet" : u.o === false ? "hayır" : "belirtilmemiş")}
+  </div>`;
+  // Which chunk this unit fell into, per method: the one question a unit
+  // raises in a comparison tool, answered where the unit is selected.
+  out += `<div class="trail"><b>Hangi parçaya düştü?</b>` + docArms().map(arm => {
+    const data = D().arms[arm];
+    const segs = data.seg[u.i] || [];
+    if (!segs.length) return row(modeName(arm).top, "<span class='muted'>bu yöntemde hiçbir parçaya girmedi</span>");
+    const parts = segs.map(s => {
+      const chunk = data.chunks[s[0]];
+      return `<button class="linkbtn" data-goarm="${arm}" data-gochunk="${s[0]}">Parça ${chunk.num}</button> <span class="muted">${chunk.n} tok</span>`;
+    }).join(", ");
+    return row(modeName(arm).top, parts + (segs.length > 1 ? ` <span class="muted">(${segs.length} parçaya bölündü)</span>` : ""));
+  }).join("") + `</div>`;
   if (u.big) out += `<div class="guard" style="margin:8px 0"><b>Kaçınılmaz kesim.</b> Bu birim ${u.big} token — tek başına bütçenin (${expansionBudget()}) üstünde. Hangi yöntem seçilirse seçilsin ortasından kesilmek zorunda; düzeltmek için kaynağın kendisinin değişmesi gerekir.</div>`;
   const pf = D().parser.findings.filter(f => f.t === u.i);
   if (pf.length) out += `<div class="trail"><b>Ayrıştırıcı notları</b>${pf.map(f => `<div class="row"><dt>${esc(f.r)} · ${esc(f.c)}</dt><dd>${esc(f.why)}${f.ev ? " — <i>" + esc(f.ev) + "</i>" : ""}</dd></div>`).join("")}</div>`;
@@ -1881,8 +2023,11 @@ function renderInspector(){
       </div>`;
     }
   }
-  out += `<div style="margin-top:8px;font-weight:600">Ham metin</div><pre>${esc(u.x)}</pre>`;
+  out += `<details class="adv"><summary>Ham metin</summary><pre>${esc(u.x)}</pre></details>`;
   box.innerHTML = out;
+  box.querySelectorAll("button[data-gochunk]").forEach(el => {
+    el.onclick = () => jumpToChunk(Number(el.dataset.gochunk), el.dataset.goarm);
+  });
 }
 function renderSectionPanel(){
   const story = D().story;
@@ -2102,7 +2247,7 @@ function benchSummary(doc, dm, step){
   let out = sectionHead(step, live ? "Bu dokümanda kalite" : "Kalite özeti",
     live
       ? `<b>${esc(doc.label)}</b> için yüklemede üretilen parçalar üzerinden ölçüldü.`
-      : `<b>${esc(doc.label)}</b> üzerinde Standard bölümleme ile Deep Analysis bölümlemesinin ölçülen farkı. Aynı doküman, aynı ayarlar; yalnız sınırların nereden geçtiği değişiyor.`);
+      : `<b>${esc(doc.label)}</b> üzerinde Standard ile Deep Analysis arasındaki ölçülen fark.`);
   out += `<div class="kpis">
     ${kpi(term("smell"), null, arrowValue(dm.smellTotal.standard, dm.smellTotal.deep),
       `<b>${fixed}</b> sorunlu sınır ortadan kalktı.`, "hero")}
@@ -2156,7 +2301,7 @@ function benchMethods(doc, step){
   const frozen = ARMS.filter(a => arms[a] && arms[a].ret);
   if (frozen.length < 3) return "";
   let out = sectionHead(step, "Yöntemler yan yana",
-    `Aynı doküman dört farklı şekilde parçalandı ve aynı ${doc.meta.queryCount} gold soruyla arandı. Sayılar 0–1 arasıdır; yüksek olan iyidir. Sütun başlıklarındaki soru işareti her sütunun ne ölçtüğünü söyler.`);
+    `Aynı ${doc.meta.queryCount} soruyla arandı. Sayılar 0–1 arası, yüksek olan iyi.`);
   const rows = frozen.map(a => ({arm: armFull(a), values: arms[a].ret}));
   const deepArm = arms.agentic && isDeepArm("agentic") && arms.agentic.ret ? [{arm: armFull("agentic"), values: arms.agentic.ret}] : [];
   out += benchTable("Arama başarısı — hangi yöntem doğru parçayı getiriyor?", rows.concat(deepArm), RET_COLS_PLAIN, true,
@@ -2181,11 +2326,12 @@ function renderBenchmark(){
   if (!dm && !methods) out += `<div class="guard">Bu doküman için ne dondurulmuş üç kol karşılaştırması ne de Deep Analysis paneli var.</div>`;
   const frozen = renderFrozenBenchmark(doc);
   if (frozen) {
-    out += sectionHead(nextStep(), "Detaylar",
-      "Yukarıdaki her sayının arkasındaki ham ölçümler. Sunum sırasında açmanız gerekmez; “nereden geliyor?” sorusu gelirse buradadır.");
+    out += sectionHead(nextStep(), "Ölçüm ayrıntısı",
+      "Yukarıdaki sayıların arkasındaki ham ölçümler.");
     out += `<details class="deep-detail"><summary>Dondurulmuş üç kol karşılaştırması — tüm metrikler (frozen benchmark v5)</summary><div class="inner">${frozen}</div></details>`;
   } else if (dm) {
-    out += sectionHead(nextStep(), "Detaylar", "Ham ölçümler. Bu doküman için gold sorgu seti olmadığından üç kol karşılaştırması yok; aşağıdaki panel Standard ile Deep Analysis'i aynı canonical üzerinde yapısal olarak karşılaştırır.");
+    out += sectionHead(nextStep(), "Ölçüm ayrıntısı",
+      "Bu dokümanın ölçüm sorusu olmadığı için arama karşılaştırması yok; aşağıdaki panel yapısal ölçümleri verir.");
   }
   const ag = doc.arms.agentic;
   if (ag && isLegacyAgentic()) {
@@ -2277,7 +2423,7 @@ function selectDoc(docId){
   state.armB = hasArm("structure-only") && state.arm !== "structure-only"
     ? "structure-only" : (docArms().find(a => a !== state.arm) || state.arm);
   state.chat.turns = []; state.chat.arm = null;
-  state.selArm = state.arm;
+  state.selArm = state.arm; state.lanes = null; state.section = null;
   // A filter the new document cannot offer would leave the control showing
   // nothing selected while still filtering, which reads as a broken button.
   if ((state.filter === "diff" && !D().diffs.length) ||
@@ -2351,6 +2497,17 @@ function liveDocLabel(entry, rows){
 }
 const liveReady = () => liveDocs().filter(d => (d.doc.viewer || {}).status === "ready");
 
+// Console records that are the same document: same bytes, one analysis. The
+// picker shows the document, not the number of times it was uploaded.
+function liveDocuments(){
+  const seen = new Map();
+  for (const row of liveDocs()) {
+    const key = (row.doc.viewer || {}).analysis_key || row.doc.doc_id;
+    if (!seen.has(key)) seen.set(key, row);
+  }
+  return [...seen.values()];
+}
+
 // One picker for everything a reader can actually open. The frozen corpus and
 // the console's live documents are two groups inside it, not two places to
 // look -- and a live document appears here as soon as its analysis is ready,
@@ -2360,7 +2517,7 @@ function syncDocOptions(){
   if (!sel) return;
   const frozen = FROZEN_ORDER.map(id =>
     `<option value="${esc(id)}">${esc(DATA.docs[id].label)}</option>`).join("");
-  const rows = liveDocs();
+  const rows = liveDocuments();
   const live = rows.map(entry => {
     const doc = entry.doc;
     const status = (doc.viewer || {}).status;
@@ -2390,7 +2547,11 @@ function renderWorkspace(){
   const totals = (data && data.totals) || {};
   let label = "RAG Console";
   if (workspace.status === "loading") label = "RAG Console · okunuyor…";
-  else if (live) label = `RAG Console · ${totals.viewer_ready ?? 0}/${totals.documents ?? 0} doküman hazır`;
+  else if (live) {
+    const docs = liveDocuments().length;
+    const ready = liveDocuments().filter(d => (d.doc.viewer || {}).status === "ready").length;
+    label = `RAG Console · ${ready}/${docs} doküman hazır`;
+  }
   else if (workspace.status === "down") label = "RAG Console · bağlı değil";
   $("wslabel").textContent = label;
   button.title = live && data.url ? `${data.url} — bilgi tabanlarını ve dokümanları gör`
@@ -2462,9 +2623,12 @@ function liveDocRow(entry){
   let action = "", note = "";
   if (status === "ready") {
     action = `<button class="linkbtn" data-live="${esc(id)}" data-label="${esc(doc.name || id)}">${workspace.loading === id ? "açılıyor…" : "Viewer'da aç"}</button>`;
-    note = viewer.deep_source === "deterministic_contract"
-      ? `<span class="pill grey">Standard ile yüklendi</span>${info("Doküman Standard modda yüklendi. Viewer'daki karşılaştırmanın Deep tarafını ücretsiz, modelsiz kalite sözleşmesi üretti.")}`
-      : `<span class="pill deep">Deep Analysis ile yüklendi</span>${info("Yükleme sırasında çalışan Deep Analysis koşusu olduğu gibi paketlendi; Viewer için ikinci bir model çağrısı yapılmadı. Modelin o koşuda gerçekten çağrılıp çağrılmadığını dokümanın kendi Sunum ekranı söyler.")}`;
+    // What this document *has*, not how its upload was labelled: a document
+    // with no Deep variant must never be badged as a Deep ingest.
+    const ready = viewer.ready_methods || [];
+    note = ready.includes("agentic")
+      ? `<span class="pill deep">Deep Analysis ile yüklendi</span>${info("Yükleme sırasında çalışan Deep Analysis koşusu olduğu gibi paketlendi; Viewer için ikinci bir model çağrısı yapılmadı. Modelin gerçekten çağrılıp çağrılmadığını dokümanın kendi Sunum ekranı söyler.")}`
+      : `<span class="pill grey">Deep Analysis çalıştırılmadı</span>${info("Bu doküman için Deep Analysis istenmedi. Ekleyebilirsiniz: analiz yeniden hazırlanır, doküman ikinci kez okunmaz.")}`;
   } else if (status === "pending" || status === "running" || preparing) {
     action = `<span class="pill grey">Viewer analizi hazırlanıyor…</span>`;
   } else if (status === "failed") {
@@ -2473,8 +2637,11 @@ function liveDocRow(entry){
   } else {
     action = `<button class="linkbtn" data-prepare="${esc(id)}">Viewer analizi hazırla</button>`;
   }
+  const ready = (viewer.ready_methods || []).map(m => modeName(m).top);
+  const shared = (viewer.shared_with || []).length;
   return `<div class="wsdoc"><span class="dname">${esc(doc.name || id)}</span>${action}${note}
-    <span class="dmeta">${(doc.chunk_count || 0).toLocaleString("tr-TR")} parça${doc.chunking_mode ? " · " + esc(INGEST_MODES[doc.chunking_mode] || doc.chunking_mode) : ""}</span></div>`;
+    ${shared ? `<span class="pill grey" title="Aynı dosya birden çok kez yüklendi; hepsi tek analiz olarak tutuluyor.">aynı doküman ×${shared + 1}</span>` : ""}
+    <span class="dmeta">${(doc.chunk_count || 0).toLocaleString("tr-TR")} parça${ready.length ? " · " + esc(ready.join(", ")) : ""}</span></div>`;
 }
 
 /* -------- shell -------- */

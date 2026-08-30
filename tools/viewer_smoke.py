@@ -54,28 +54,36 @@ with sync_playwright() as p:
     methods = page.locator("#methods .method")
     check(methods.count() == 4, f"expected 4 method cards, got {methods.count()}")
     check(page.locator("#results .results").count() == 1, "results strip missing on the default doc")
-    check(page.locator("#prespage .chunkline").count() > 0, "no chunk boundaries rendered on the first page")
+    # --- the comparison workbench: lanes, cuts, difference navigation ---
+    check(page.locator(".lanes .row").count() > 0, "the comparison rendered no rows")
+    check(page.locator(".lanes .cut").count() > 0, "no boundaries drawn in the lanes")
+    lanes = page.evaluate("() => laneList()")
+    check(len(lanes) == 2, f"expected the two product methods side by side, got {lanes}")
     page.screenshot(path=str(outdir / "01-sunum.png"), full_page=False)
-    # click the Agentic card, select a chunk, read the detail panel
-    page.locator("#methods .method[data-arm='agentic']").click()
-    page.wait_for_timeout(300)
-    page.locator("#prespage .chunkpill").first.click()
+
+    # a cut opens the detail panel for the lane it belongs to
+    page.locator('.lanes .cut button[data-arm="agentic"]').first.click()
     page.wait_for_timeout(300)
     detail = page.locator("#presdetail").inner_text()
     check("Parça" in detail and "Deep Analysis kararı" in detail, "detail panel lacks the Deep decision sentence")
-    # compare mode
-    page.locator("#cmpchk").check()
+
+    # a third method joins the comparison
+    page.locator('#lanepicker button[data-lane="markdown"]').click()
     page.wait_for_timeout(400)
-    check(page.locator("#prespage .cmp").count() == 1, "compare grid not rendered")
-    check(page.locator("#prespage .cmp .cell").count() >= 2, "compare grid has no cells")
+    check(len(page.evaluate("() => laneList()")) == 3, "a third lane did not join the comparison")
+    check(page.locator(".lanes .head > div").count() == 3, "the lane header did not follow")
     page.screenshot(path=str(outdir / "02-sunum-compare.png"), full_page=False)
-    # deep-diff filter pages
-    page.locator("#filterseg button[data-f='deep']").click()
+    page.locator('#lanepicker button[data-lane="markdown"]').click()
     page.wait_for_timeout(300)
-    check(page.locator("#prespage .decpill").count() > 0, "no decision pills on a Deep≠Standard page")
+
+    # walking to a difference moves the section and marks the spot
+    diffs = page.evaluate("() => laneDiffs().length")
+    check(diffs > 0, "Standard and Deep are identical everywhere, which they are not")
+    page.locator("#nextdiff2").click()
+    page.wait_for_timeout(500)
+    check(page.locator(".lanes .rowmark").count() > 0, "no difference marker after stepping to one")
+    check(page.evaluate("() => state.diffIdx") == 0, "the difference walker did not advance")
     page.screenshot(path=str(outdir / "03-sunum-deepdiff.png"), full_page=False)
-    page.locator("#cmpchk").uncheck()
-    page.locator("#filterseg button[data-f='all']").click()
 
     # --- Sorgu ---
     page.locator("#modetabs button[data-mode='query']").click()

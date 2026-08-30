@@ -446,6 +446,38 @@ def _package_rows(
     }
 
 
+def package_arm(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    units: Sequence[RawDocumentUnit],
+    output_dir: Path,
+    config: da.DeepConfig | None = None,
+    counter: TokenCounter | None = None,
+    baseline: Any | None = None,
+) -> dict[str, Any]:
+    """Package one chunker's rows into the arm directory the viewer reads.
+
+    The public seam behind :func:`package` -- the live workspace runs several
+    chunkers over one canonical and needs each written in the same shape, by
+    the same writer, so a variant cannot drift from the benchmark's idea of
+    what an arm is. No retrieval is scored: a document with no gold set has
+    no retrieval numbers, and inventing some would be worse than having none.
+    """
+    counter = counter or TiktokenTokenCounter("cl100k_base")
+    config = config or da.DeepConfig()
+    return _package_rows(
+        rows,
+        units=units,
+        counter=counter,
+        config=config,
+        baseline=baseline if baseline is not None else chunk_quality.parser_baseline(units),
+        output_dir=Path(output_dir),
+        frozen_tree=None,
+        root=Path("."),
+        units_sha="",
+    )
+
+
 def package(
     deep_tree: Path,
     units_path: Path,

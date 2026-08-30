@@ -39,6 +39,29 @@ py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v2/index.html --config 
 `index.html` dosya olarak açıldığında Sunum / Debug / Benchmark / gold sorgular çalışır;
 Sorgu sekmesi sunucu yoksa bunu açıkça söyler ve komutu gösterir.
 
+## Doküman ve analiz varyantı
+
+Ürünün veri modeli iki kavramdan ibarettir:
+
+* **Doküman** — yüklenen PDF'in kendisi, *içeriğiyle* kimliklenir (sha256).
+  Aynı dosyayı ikinci kez yüklemek ikinci bir doküman yaratmaz; var olan
+  dokümana yeni varyant ekler. Aynı adı taşıyan farklı iki dosya ise iki
+  ayrı dokümandır.
+* **Analiz varyantı** — o dokümanın canonical'ı üzerinde çalıştırılmış bir
+  chunking yöntemi: Markdown, Standard, Deep Analysis, Hybrid.
+
+Bir yükleme **bir kez** ayrıştırılır; seçilen her yöntem aynı
+`units.jsonl` üzerinde çalışır ve `amsc.deep_arm.package_arm` ile
+benchmark'ın kullandığı aynı yazıcıyla paketlenir. Deep Analysis seçilmişse
+ingest'in kendi koşusu olduğu gibi alınır — Viewer için ikinci bir model
+çağrısı asla yapılmaz. Sonradan bir yöntem eklemek (`POST
+/api/demo/viewer-analysis/<doc>/methods`) dokümanı yeniden okumaz; yalnız
+eksik varyantı üretir.
+
+Viewer yalnız **gerçekten üretilmiş** varyantları karşılaştırmaya açar.
+Üretilmemiş bir yöntem, karşılaştırma çubuğunda devre dışı görünür ve
+nedenini söyler; sahte sonuç üretilmez.
+
 ## Hangi analiz gerçekten çalıştı?
 
 Deep Analysis koşusunun **beş** durumu vardır (`amsc.deep_pipeline`: `ok`, `deterministic`,

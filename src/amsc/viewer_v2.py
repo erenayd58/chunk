@@ -657,16 +657,34 @@ def _oversized_units(units_raw: Sequence[dict], hard_max_tokens: int) -> dict[st
     return oversized
 
 
+#: Arm kinds a packaged directory may declare, so an extra arm cannot be
+#: labelled with a mechanism the boundary-reason reader does not know.
+ARM_KINDS = {"markdown": "markdown_recursive", "hybrid": "hybrid_h1",
+             "structure-only": "structure_first", "agentic": "deep_analysis"}
+
+
 def load_corpus(
     benchmark_dir: Path | None,
     root: Path,
     agentic_dir: Path | None = None,
     deep_dir: Path | None = None,
     label: str | None = None,
+    extra_arm_dirs: Mapping[str, Path] | None = None,
+    units_path: Path | None = None,
 ) -> dict:
-    """Read one document's trees plus its pinned canonical into viewer data."""
-    if benchmark_dir is None and deep_dir is None:
-        raise ValueError("a document needs a benchmark tree or a packaged deep tree")
+    """Read one document's trees plus its pinned canonical into viewer data.
+
+    ``extra_arm_dirs`` names further arms packaged over the *same* canonical --
+    the live workspace runs several chunkers on one parse and packages each
+    with the same writer the benchmark uses. They are read with the reduced
+    contract (chunks + mapping, retrieval optional), because a document with
+    no gold set has no retrieval numbers and must not be given any.
+    """
+    if benchmark_dir is None and deep_dir is None and not (units_path and extra_arm_dirs):
+        raise ValueError(
+            "a document needs a benchmark tree, a packaged deep tree, or a canonical "
+            "with at least one packaged arm"
+        )
     if agentic_dir is not None and deep_dir is not None:
         raise ValueError("--agentic and --deep cannot both fill the fourth arm of one document")
 
@@ -683,10 +701,16 @@ def load_corpus(
         source = config["source"]
         units_path = _require(root / source["units"])
         pinned = source.get("units_sha256") or manifest.get("canonical_sha256")
-    else:
+    elif deep_dir is not None:
         deep_manifest = _load_json(Path(deep_dir) / "arm" / "manifest.json")
         units_path = _require(root / deep_manifest["units_file"])
         pinned = deep_manifest.get("canonical_sha256")
+        source = {}
+    else:
+        # Arms only: the canonical is named directly and every arm was
+        # packaged from it, so there is nothing to cross-check it against.
+        units_path = _require(Path(units_path))
+        pinned = None
         source = {}
     digest = hashlib.sha256(units_path.read_bytes()).hexdigest()
     if pinned and digest != pinned:
@@ -778,6 +802,20 @@ def load_corpus(
         agentic_arm, agentic_meta = _load_agentic_arm(Path(agentic_dir), digest, units_by_id)
         arms["agentic"] = agentic_arm
 
+    # Arms packaged over the same canonical by the live workspace. Read with
+    # the reduced contract: no retrieval, because a document with no gold set
+    # has none and must not be given any.
+    for name, arm_dir in dict(extra_arm_dirs or {}).items():
+        if name in arms:
+            raise ValueError(f"{name!r} is already filled; an extra arm cannot replace it")
+        if name not in ARM_KINDS:
+            raise ValueError(f"unknown arm {name!r}; expected one of {sorted(ARM_KINDS)}")
+        arms[name], _rows = _load_arm_dir(
+            Path(arm_dir), kind=ARM_KINDS[name], units_by_id=units_by_id, require_retrieval=False
+        )
+    if not arms:
+        raise ValueError("a document needs at least one packaged arm")
+
     diffs = _difference_points(units, arms) if all(arm in arms for arm in ARM_ORDER) else []
     deep_diff_pages: list[int] = []
     if story is not None:
@@ -803,10 +841,11 @@ def load_corpus(
             unit["pf"] = sorted(set(findings_by_unit[unit["i"]]))
 
     doc_id = (benchmark_dir.name if benchmark_dir is not None else units_raw[0]["document_id"])
+    kind = "benchmark" if benchmark_dir is not None else ("deep-only" if deep_dir is not None else "arms-only")
     result = {
         "label": label or DOC_LABELS.get(doc_id, doc_id),
         "id": units_raw[0]["document_id"],
-        "kind": "benchmark" if benchmark_dir is not None else "deep-only",
+        "kind": kind,
         "units": units,
         "arms": arms,
         "gold": gold,

@@ -340,7 +340,7 @@ def test_all_four_modes_are_present(tmp_path):
         assert f'data-mode="{mode}"' in html_text
     for label in ("Sunum", "Sorgu", "Debug", "Benchmark"):
         # Each tab carries its label followed by a one-line subtitle.
-        assert f">{label}<small>" in html_text
+        assert f">{label}</button>" in html_text
 
 
 def test_benchmark_numbers_are_read_from_the_artifacts_not_hardcoded(tmp_path):
@@ -534,19 +534,18 @@ def test_continuation_links_are_embedded_per_chunk(tmp_path):
 def test_technical_and_structural_boundaries_render_differently(tmp_path):
     html_text = build(tmp_path)
     # Two visual classes exist and carry different treatments.
-    assert ".chunkline.tech .rule{border-top:2px dashed" in html_text
-    assert '"struct"' in html_text and '"tech"' in html_text
-    # The technical connector text and the continuation label are present.
-    assert "içerik devam ediyor" in html_text
+    assert ".lanes .cut.techcut{border-top-style:dashed" in html_text
+    assert ".lanes .cut{" in html_text and ".lanes .cut.deepcut{" in html_text
+    # The continuation label a technical boundary carries is still written out.
     assert "Önceki chunk'ın devamı — boyut sınırı nedeniyle ayrıldı" in html_text
-    assert "yeni bölüm" in html_text
+    assert "Yeni bölüm başladı" in html_text
 
 
 def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     html_text = build(tmp_path)
-    assert 'id="contchk"' in html_text
+    assert 'id="contchk2"' in html_text
     assert "Devam zinciri" in html_text
-    assert "o zinciri sayfada gösterir" in html_text, "the toggle must explain itself"
+    assert "o zinciri gösterir" in html_text, "the toggle must explain itself"
     assert "TOKEN_BUDGET_CONTINUATION" in html_text
     # Presentation-mode product naming for the chunking mode switch.
     assert "Standard" in html_text and "Structure-only" in html_text
@@ -558,8 +557,8 @@ def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     # Deep Analysis is described as an ingest-time preparation mode whose model
     # only advises. The sentence moved out of the top bar's hint line and into
     # the comparison itself, but the claim it makes has to survive the move.
-    assert "premium hazırlama modu" in html_text
-    assert "Yalnız yükleme sırasında çalışır" in html_text
+    assert "premium mod" in html_text
+    assert "yalnız yüklemede" in html_text
     assert "Parçaları model belirlemez" in html_text
     assert "iki ayrı sırada doğrulanır" in html_text
     # The old product framing is gone, and no confidence-detector language
@@ -570,7 +569,7 @@ def test_the_expansion_toggle_and_mode_switch_are_present(tmp_path):
     assert "belirsiz yapısal sınırları" not in html_text
     assert "OPENROUTER" not in html_text and "api_key" not in html_text
     # The expansion simulation is labelled as such and never re-ranks.
-    assert "ölçüm sonuçlarını değiştirmez" in html_text
+    assert "ölçümleri değiştirmez" in html_text
 
 
 # --- the optional agentic arm ------------------------------------------------
@@ -765,7 +764,7 @@ def test_the_agentic_arm_speaks_product_language_in_a_separated_panel(tmp_path):
     assert "Agentic Chunker" in html_text
     assert "ayrı koşu" in html_text
     assert "kazanan ilan edilmez" in html_text
-    assert "sınır model oyuyla taşındı" in html_text
+    assert "Model oyu" in html_text and "sınır taşındı" in html_text
     # The frozen dashboard's own tables never gain the arm; the panel is
     # separate and the difference definition rides the badge that marks one.
     assert "Agentic Chunker — ayrı koşu" in html_text
