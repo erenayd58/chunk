@@ -9,10 +9,23 @@ ve ölçümler. Tek bir HTML dosyasıdır; yalnız canlı sohbet için yerel sun
 
 | Sekme | Soru | İçerik |
 |---|---|---|
-| **Sunum** | Ne yaptık, fark ne? | Markdown / Hybrid / Structure-Only (Standard) / Agentic Chunker (Deep Analysis) kartları; Standard → Deep sonuç şeridi (chunk, koku, regresyon, LLM çağrısı, süre, Hit@5); sayfa okuyucu — tek kol ya da iki kolun aynı sayfada yan yana karşılaştırması; her chunk şeridinde sınır nedeni ve Deep kararı ("kalite kuralı sınırı taşıdı: lead-in devamıyla kaldı", "LLM önerisi doğrulandı", "verifier reddetti", "temsil tavanı") |
+| **Sunum** | Ne yaptık, fark ne? | Önce **Sonuç**: Standard → Deep Analysis bandı (yapısal kalite problemi S→D, kötüleşen bölüm, bir kerelik maliyet, tek cümlelik hüküm), altında "Ne düzeldi?" — problem türü başına iki çubuk tek ölçekte; sonra **Yöntemler**: dokümanın gerçekten sahip olduğu yöntemler birer kart (karta tıklamak yöntemi karşılaştırmaya ekler ya da çıkarır); sonra **Parçaları karşılaştır**: aynı sayfa, seçilen iki–dört yöntemin kesimleriyle hizalı şeritlerde yan yana, sayfa sayfa ve ayrışma noktasından ayrışma noktasına gezilir; her kesimde sınır nedeni, sağdaki panelde Deep kararı. Yöntem ve ölçüm ayrıntısı tek bir açılır bölümün arkasındadır |
 | **Sorgu** | Kullanınca nasıl çalışıyor? | *Dokümana Sor*: doküman + yöntem seç, doğal dilde sor → dense + BM25 (RRF) retrieval → aynı bölümün devam parçalarıyla bağlam → kaynaklı cevap; kaynak kartları (başlık, bölüm, sayfa, yöntem, kullanıldı mı), karta tıklayınca chunk metni ve "Sunum'da göster"; "Tüm yöntemlerle karşılaştır" aynı soruyu dört yöntemle koşar. *Gold sorgular*: frozen benchmark'ın sorgu-bazlı görünümü (çevrimdışı) |
 | **Debug** | Sistem bu kararı neden verdi? | Canonical unit'ler (tip, rol, seviye, section path), her koldaki chunk/fragment/offset/method eşlemesi, parser bulguları, hard cap üstü unit'ler (temsil tavanı), unit inspector'da bölümün Deep karar izi (Standard → deterministik → final kesimler, kaldırılan kokular, LLM önerileri ve verifier kararları); bölüm kararları tablosu (durum filtresiyle) |
 | **Benchmark** | Ölçümlerde sonuç ne? | Frozen benchmark v5 (üç kol) değişmeden; ayrı **Deep Analysis paneli**: koku tablosu (S→D, Δ), chunk_quality tablosu, retrieval (frozen değer kopya, Deep yeniden skorlandı), sınır kökeni, LLM çağrısı/verifier/fallback, süre, token ve maliyet tahmini, dürüst yorum; dokümanlar arası sözleşme tablosu |
+
+## Görsel sistem
+
+Dört sekme tek bir kabuğu paylaşır: üstte yapışkan bir başlık çubuğu (marka, alt
+çizgili sekmeler, doküman seçici, RAG Console düğmesi) ve her ekranın başında aynı
+üç cevabı veren bir **sayfa başlığı** — hangi ekran (küçük etiket), hangi doküman
+(başlık) ve bu ekran ne işe yarar (bir cümle); sağında dokümanın bağlamı (set, Deep
+Analysis durumu, birim / sayfa / yöntem sayısı). Zemin soğuk nötr, yüzeyler beyaz;
+ürünün tek mavisi ve Deep Analysis'in tek moru dışında renk kullanılmaz. Her yöntem
+kartında, şerit çipinde ve kesim çizgisinde **aynı rengi** taşır (Markdown amber,
+Hybrid teal, Standard mavi, Deep Analysis mor). Sonuç bandı model çalıştıysa
+mor-lacivert, çalışmadıysa gridir — durumun görüldüğü ikinci yerdir. Detay her yerde
+aynı açılır bölümün arkasındadır; hiçbir bilgi silinmez, yalnız ikinci sıraya alınır.
 
 ## Üretim
 
