@@ -675,6 +675,14 @@ footer{color:var(--faint);font-size:12.5px;padding:28px 22px;text-align:center}
 @media (min-width:2200px){
   .board .body{font-size:15.5px;max-width:760px}
 }
+/* A laptop screen is short, not narrow: the chrome above the board gives up
+   its padding so the comparison keeps the height it needs. */
+@media (max-height:820px){
+  main{padding-top:14px}
+  .pagehead.compact{margin-bottom:9px;padding-bottom:8px}
+  .cmpbar{padding:7px 16px 6px;gap:6px}
+  .dvsum{padding:7px 16px;gap:6px 14px}
+}
 @media (max-width:1100px){
   .dbg,.chatwrap{grid-template-columns:1fr}
   .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;height:auto!important;max-height:none}
