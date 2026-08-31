@@ -399,3 +399,57 @@ def test_the_refresh_can_ask_the_console_to_prepare(monkeypatch):
     assert seen["url"].endswith("/api/demo/workspace")
     console_workspace("http://127.0.0.1:5005", prepare=True)
     assert seen["url"].endswith("/api/demo/workspace?prepare=1")
+
+
+# --- live documents relayed from the console -----------------------------------
+#
+# A document uploaded to the RAG console is not in this process's frozen
+# catalog. Its rows are handed over instead of read, and everything downstream
+# -- indexing, retrieval, the source cards -- must not be able to tell the
+# difference. The one thing that is different is that rows can be replaced.
+
+
+def test_a_live_document_is_indexed_from_the_rows_it_was_handed(tmp_path):
+    """No chunks.jsonl on this machine, and retrieval still ranks."""
+    e = engine(tmp_path)
+    registered = e.register_live(
+        "upload_1_pdf", "a.pdf", {"agentic": {"kind": "deep_analysis", "rows": rows()}}
+    )
+    assert registered["arms"]["agentic"]["chunk_count"] == len(rows())
+
+    spec = e.catalog.documents["upload_1_pdf"].arms["agentic"]
+    assert spec.chunks is None, "a live arm is indexed from memory, not from a path"
+    assert e.catalog.describe()["upload_1_pdf"]["live"] is True
+    assert e.catalog.describe()["doc"]["live"] is False
+
+    response = e.retrieve("upload_1_pdf", "agentic", "uye sayisi kac")
+    assert response["hits"][0]["chunk_id"] == "doc:s-chunk-0002"
+    assert response["arm_kind"] == "deep_analysis"
+    assert response["sources"], "a live document gets the same source cards as a frozen one"
+
+    with pytest.raises(ValueError):
+        e.register_live("empty_pdf", "b.pdf", {"agentic": {"kind": "deep_analysis", "rows": []}})
+
+
+def test_re_registering_a_document_drops_the_index_it_answered_from(tmp_path):
+    """Re-analysed means re-chunked: the old index must not survive it."""
+    e = engine(tmp_path)
+    e.register_live("upload_1_pdf", "a.pdf", {"agentic": {"kind": "deep_analysis", "rows": rows()}})
+    assert e.retrieve("upload_1_pdf", "agentic", "uye sayisi kac")["hits"][0]["chunk_id"] == "doc:s-chunk-0002"
+    assert ("upload_1_pdf", "agentic") in e._indexes
+    e.notes["upload_1_pdf/agentic"] = "dense retrieval unavailable; BM25 only"
+
+    rebuilt = [
+        {"chunk_id": "doc:v2-chunk-0001", "text": "**2. UYELER**\n\nUye sayisi 212 olarak gerceklesti.",
+         "unit_ids": ["p-2"], "token_count": 9, "pages": [2],
+         "section_paths": [["**2. UYELER**"]], "heading": "**2. UYELER**"},
+    ]
+    e.register_live("upload_1_pdf", "a.pdf", {"agentic": {"kind": "deep_analysis", "rows": rebuilt}})
+
+    assert ("upload_1_pdf", "agentic") not in e._indexes
+    assert "upload_1_pdf/agentic" not in e.notes
+    assert e.catalog.documents["doc"].arms, "another document's registration is untouched"
+
+    again = e.retrieve("upload_1_pdf", "agentic", "uye sayisi kac")
+    assert [hit["chunk_id"] for hit in again["hits"]] == ["doc:v2-chunk-0001"]
+    assert "212" in again["sources"][0]["text"]

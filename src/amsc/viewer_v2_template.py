@@ -2476,6 +2476,7 @@ function renderChatSide(){
       <dt>Retrieval</dt><dd>${h ? (h.dense ? "dense + BM25, RRF" : "BM25") + ` · top-k ${h.retrieval && h.retrieval.top_k}` : "—"}</dd>
       <dt>Bağlam</dt><dd>${h && h.context ? `${h.context.max_context_tokens} token bütçe · devam genişletme ${h.context.expansion_enabled ? "açık" : "kapalı"}` : "—"}</dd>
       <dt>Yöntem</dt><dd>${esc(modeName(state.chat.arm).top)}${state.chat.arm === "agentic" && dm ? ` · ${dm.chunkCount.deep} parça` : ""}</dd>
+      ${isLive() ? `<dt>Kaynak</dt><dd>RAG Console · canlı doküman${D().live && D().live.kbName ? " · " + esc(D().live.kbName) : ""}<br><span class="muted" style="font-size:12px">Parçalama konsolda yapıldı; arama ve cevap bu sunucunun modelleriyle.</span></dd>` : ""}
     </dl>
     <div class="muted" style="font-size:12px;margin-top:10px">Yöntemler aynı arama hattını kullanır; değişen tek şey dokümanın nasıl parçalandığıdır. Kaynak yetersizse model tahmin yürütmez.</div>`;
 }
@@ -2487,34 +2488,66 @@ function renderSuggest(){
   $("suggest").querySelectorAll("button").forEach(b => { b.onclick = () => { $("chatq").value = b.dataset.q; $("chatq").focus(); }; });
 }
 
+/* A live document is chunked in the RAG console, not here. Its rows are
+   relayed to this page's own server and indexed there on first use, so Sorgu
+   answers a freshly uploaded PDF with the same arm picker, the same four-way
+   comparison and the same source cards as a frozen one. Per document, because
+   indexing costs embedding calls and must happen once. */
+const liveIndex = {};
+
+async function ensureLiveIndex(docId){
+  if (liveIndex[docId]) return liveIndex[docId];
+  liveIndex[docId] = "pending";
+  try {
+    const r = await fetch("/api/live-index", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({doc: docId})});
+    const payload = await r.json();
+    if (!r.ok) throw new Error(payload.error || ("HTTP " + r.status));
+    liveIndex[docId] = "ready";
+  } catch (e) {
+    liveIndex[docId] = "error:" + String(e.message || e);
+  }
+  if (state.doc === docId && state.mode === "query" && state.qsub === "chat") renderChat();
+  return liveIndex[docId];
+}
+
 async function renderChat(){
   renderChatArms();
   renderSuggest();
   const online = await checkOnline();
-  // A live document is indexed in the RAG console, not in this page's demo
-  // engine: asking here would query the wrong corpus, so the chat says where
-  // the answer actually lives instead of pretending to have one.
-  if (isLive()) {
-    const consoleUrl = (workspace.data && workspace.data.url) || "";
-    $("offline").classList.remove("hidden");
-    $("offline").innerHTML = `<b>Bu dokümanı RAG Console'daki sohbetten sorabilirsiniz.</b>
-      Buradaki sohbet dondurulmuş karşılaştırma setini sorgular; canlı dokümanlar Console'un kendi bilgi tabanında indekslidir.
-      ${consoleUrl ? `<a href="${esc(consoleUrl)}/chat" target="_blank" rel="noopener">Console'da sor ↗</a>` : ""}
-      <span class="muted">Sunum, Debug ve Benchmark bu doküman için burada çalışır.</span>`;
-    $("chatsend").disabled = true;
-    $("chatq").disabled = true;
-    renderChatSide();
-    renderTurns();
-    return;
-  }
-  $("offline").classList.toggle("hidden", online);
+  const live = isLive();
+  const consoleUrl = (workspace.data && workspace.data.url) || "";
+  const consoleLink = consoleUrl
+    ? ` <a href="${esc(consoleUrl)}/chat" target="_blank" rel="noopener">Console'da sor ↗</a>` : "";
+  let note = "";
+  let ready = online;
   if (!online) {
-    $("offline").innerHTML = `<b>Sohbet için sunucu gerekiyor.</b> Bu dosya tek başına açıldığında Sunum, Debug, Benchmark ve ölçüm soruları çalışır.<br>
+    note = `<b>Sohbet için sunucu gerekiyor.</b> Bu dosya tek başına açıldığında Sunum, Debug, Benchmark ve ölçüm soruları çalışır.<br>
       <code>py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v2/index.html --config configs/rag-poc.yaml</code> → <code>http://127.0.0.1:8765/</code>
       <span class="muted">Anahtarlar yalnız sunucuda kalır.</span>`;
+  } else if (live) {
+    const status = liveIndex[state.doc];
+    if (!status) { ensureLiveIndex(state.doc); }
+    if (status === "ready") {
+      ready = true;
+    } else if (status && status.startsWith("error:")) {
+      ready = false;
+      note = `<b>Bu doküman burada sorgulanamıyor.</b> ${esc(status.slice(6))}
+        <button class="linkbtn" id="liveretry">Yeniden dene</button>
+        <span class="muted">Sunum, Debug ve Benchmark bu doküman için yine çalışır.</span>${consoleLink}`;
+    } else {
+      ready = false;
+      note = `<b>Doküman aramaya hazırlanıyor…</b> Parçaları konsoldan alınıp bu sunucunun arama hattında indeksleniyor —
+        her yöntem için ayrı ayrı, karşılaştırma da hazır olsun diye.
+        <span class="muted">Doküman başına bir kez; büyük bir raporda birkaç dakika sürebilir.</span>`;
+    }
   }
-  $("chatsend").disabled = !online || state.chat.busy;
-  $("chatq").disabled = !online;
+  $("offline").classList.toggle("hidden", !note);
+  if (note) $("offline").innerHTML = note;
+  const retry = $("liveretry");
+  if (retry) retry.onclick = () => { const id = state.doc; delete liveIndex[id]; ensureLiveIndex(id); renderChat(); };
+  $("chatsend").disabled = !ready || state.chat.busy;
+  $("chatq").disabled = !ready;
   renderChatSide();
   renderTurns();
   $("chatsend").onclick = sendChat;
@@ -3241,6 +3274,9 @@ async function prepareLiveDoc(docId){
       body: JSON.stringify({doc: docId})});
   } catch (e) { workspace.error = String(e.message || e); }
   workspace.preparing.delete(docId);
+  // Rebuilt variants are different chunks: the index held for this document
+  // here is now the wrong one, so it is dropped rather than kept answering.
+  delete liveIndex[docId];
   await loadWorkspace();
 }
 

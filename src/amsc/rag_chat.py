@@ -55,17 +55,27 @@ STATUS_ANSWER_ERROR = "answer_error"
 class ArmSpec:
     arm: str
     kind: str
-    chunks: Path
     label: str
+    #: The packaged ``chunks.jsonl`` this arm is indexed from. ``None`` for an
+    #: arm registered from memory.
+    chunks: Path | None = None
+    #: The chunk rows themselves, when they did not come off this machine's
+    #: disk -- a live console document is relayed as rows, so the engine can
+    #: index it without the console's artifact tree being reachable here.
+    rows: tuple[Mapping[str, Any], ...] | None = None
 
 
 @dataclass(frozen=True)
 class DocumentSpec:
     doc_id: str
     label: str
-    units: Path
-    canonical_sha256: str | None
-    arms: dict[str, ArmSpec]
+    units: Path | None = None
+    canonical_sha256: str | None = None
+    arms: dict[str, ArmSpec] = field(default_factory=dict)
+    #: True for a document relayed from the RAG console rather than read from
+    #: the frozen catalog. Nothing in retrieval changes; the flag is what lets
+    #: a caller tell the two apart.
+    live: bool = False
 
 
 @dataclass
@@ -84,8 +94,8 @@ class Catalog:
                 arm: ArmSpec(
                     arm=arm,
                     kind=str(spec.get("kind") or arm),
-                    chunks=root / spec["chunks"],
                     label=str(spec.get("label") or ARM_LABELS.get(arm, arm)),
+                    chunks=root / spec["chunks"],
                 )
                 for arm, spec in (doc.get("arms") or {}).items()
             }
@@ -102,6 +112,7 @@ class Catalog:
         return {
             doc_id: {
                 "label": doc.label,
+                "live": doc.live,
                 "arms": {
                     arm: {"kind": spec.kind, "label": spec.label}
                     for arm, spec in doc.arms.items()
@@ -109,6 +120,34 @@ class Catalog:
             }
             for doc_id, doc in self.documents.items()
         }
+
+    def register_live(
+        self, doc_id: str, label: str, arms: Mapping[str, Mapping[str, Any]]
+    ) -> DocumentSpec:
+        """Add a document whose chunk rows were handed to us, not read.
+
+        This is how a document that lives in the RAG console becomes
+        answerable here: the console packaged it with the same chunkers the
+        benchmark uses, so its rows index and retrieve identically. Replacing
+        an existing registration is deliberate -- a re-analysed document must
+        not keep answering from the rows it had before.
+        """
+        specs: dict[str, ArmSpec] = {}
+        for arm, spec in arms.items():
+            rows = tuple(spec.get("rows") or ())
+            if not rows:
+                continue
+            specs[arm] = ArmSpec(
+                arm=arm,
+                kind=str(spec.get("kind") or arm),
+                label=str(spec.get("label") or ARM_LABELS.get(arm, arm)),
+                rows=rows,
+            )
+        if not specs:
+            raise ValueError(f"live document {doc_id!r} has no arm with chunk rows")
+        document = DocumentSpec(doc_id=doc_id, label=label or doc_id, arms=specs, live=True)
+        self.documents[doc_id] = document
+        return document
 
 
 def load_rows(path: Path) -> list[dict[str, Any]]:
@@ -190,7 +229,7 @@ class ChatEngine:
             if built is not None:
                 return built
             _document, spec = self._spec(doc, arm)
-            rows = load_rows(spec.chunks)
+            rows = list(spec.rows) if spec.rows is not None else load_rows(spec.chunks)
             embedder = self.embedder
             try:
                 built = index_rows(arm, spec.kind, rows, settings=self.retrieval, embedder=embedder)
@@ -345,6 +384,30 @@ class ChatEngine:
             "question": question,
             "arms": results,
             "unit_overlap_with_other_arms": overlap,
+        }
+
+    def register_live(
+        self, doc_id: str, label: str, arms: Mapping[str, Mapping[str, Any]]
+    ) -> dict[str, Any]:
+        """Make a console document answerable here, from rows handed to us.
+
+        Any index already built for this id is dropped: a document that was
+        re-analysed -- new methods, or the same ones over a new canonical --
+        must not keep answering out of the rows it had before.
+        """
+        document = self.catalog.register_live(doc_id, label, arms)
+        with self._guard:
+            stale = [key for key in self._indexes if key[0] == doc_id]
+            for key in stale:
+                self._indexes.pop(key, None)
+                self.notes.pop(f"{key[0]}/{key[1]}", None)
+        return {
+            "document": doc_id,
+            "label": document.label,
+            "arms": {
+                arm: {"kind": spec.kind, "label": spec.label, "chunk_count": len(spec.rows or ())}
+                for arm, spec in document.arms.items()
+            },
         }
 
     def warm(self, docs: Sequence[str] | None = None) -> dict[str, Any]:

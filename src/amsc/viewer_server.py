@@ -6,6 +6,7 @@
     GET  /api/workspace         the RAG console's live knowledge bases
     GET  /api/live-document     one console document's viewer payload
     POST /api/live-prepare      ask the console to build one document's analysis
+    POST /api/live-index        index one console document here, so Sorgu answers it
     GET  /api/chunk?doc&arm&chunk_id
     POST /api/retrieve          {doc, arm, question, top_k?}
     POST /api/chat              {doc, arm, question, top_k?}
@@ -114,6 +115,22 @@ def console_document(console_url: str, doc_id: str) -> dict[str, Any]:
     )
 
 
+def console_arm_chunks(console_url: str, doc_id: str, method: str | None = None) -> dict[str, Any]:
+    """One live document's chunk rows, per arm, relayed from the console.
+
+    The console packaged them with the same chunkers the benchmark uses, so
+    the engine indexes them exactly as it indexes a frozen arm. Rows are a
+    document's whole text, so this gets the payload timeout.
+    """
+    quoted = urllib.parse.quote(str(doc_id), safe="")
+    query = "?method=" + urllib.parse.quote(method, safe="") if method else ""
+    return _console_call(
+        console_url,
+        f"/api/demo/viewer-analysis/{quoted}/chunks{query}",
+        timeout=CONSOLE_PAYLOAD_TIMEOUT_SECONDS,
+    )
+
+
 def console_prepare(console_url: str, doc_id: str) -> dict[str, Any]:
     """Ask the console to build (or rebuild) one document's viewer analysis."""
     quoted = urllib.parse.quote(str(doc_id), safe="")
@@ -125,6 +142,9 @@ class ViewerHandler(BaseHTTPRequestHandler):
     viewer_path: Path
     console_url: str = ""
     server_version = "amsc-viewer/2"
+    #: One registration at a time: two questions asked of the same unseen
+    #: live document must not both pull its rows off the console.
+    live_lock = threading.Lock()
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         if getattr(self.server, "quiet", False):
@@ -153,6 +173,35 @@ class ViewerHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
+
+    def _ensure_live(self, doc: str) -> None:
+        """Index a console document here the first time it is asked about.
+
+        The frozen catalog is this process's own; a document uploaded to the
+        console is not in it. Rather than sending the reader away, the rows
+        are relayed once and indexed with this server's own embedder, so
+        every Sorgu feature -- arm choice, the four-way comparison, source
+        cards -- works on a freshly uploaded PDF.
+        """
+        if not doc or doc in self.engine.catalog.documents or not self.console_url:
+            return
+        with self.live_lock:
+            if doc in self.engine.catalog.documents:
+                return
+            relayed = console_arm_chunks(self.console_url, doc)
+            arms = relayed.get("arms") or {}
+            if arms:
+                self.engine.register_live(doc, str(relayed.get("label") or doc), arms)
+                return
+            # Not a live document either. It stays an unknown document -- the
+            # same answer the engine gives for a typo -- and carries why the
+            # console could not supply it, so the page can say which of the
+            # two happened.
+            reason = relayed.get("reason") or (
+                "konsolda paketlenmiş parça yok" if relayed.get("connected")
+                else "RAG Console'a ulaşılamadı"
+            )
+            raise ValueError(f"unknown document {doc!r}: {reason}")
 
     def _read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length") or 0)
@@ -202,16 +251,39 @@ class ViewerHandler(BaseHTTPRequestHandler):
             top_k = body.get("top_k")
             top_k = int(top_k) if top_k else None
             if route == "/api/retrieve":
+                self._ensure_live(str(body.get("doc")))
                 result = self.engine.retrieve(str(body.get("doc")), str(body.get("arm")), question, top_k=top_k)
                 result.pop("_context", None)
                 self._send_json(result)
             elif route == "/api/chat":
+                self._ensure_live(str(body.get("doc")))
                 self._send_json(
                     self.engine.ask(str(body.get("doc")), str(body.get("arm")), question, top_k=top_k)
                 )
             elif route == "/api/live-prepare":
                 self._send_json(console_prepare(self.console_url, str(body.get("doc"))))
+            elif route == "/api/live-index":
+                doc = str(body.get("doc"))
+                self._ensure_live(doc)
+                document = self.engine.catalog.documents[doc]
+                # Built here rather than on the first question: every arm is
+                # needed for the four-way comparison anyway, and a wait the
+                # page can label beats a "Sor" button that hangs for a minute.
+                warmed = self.engine.warm([doc])
+                self._send_json({
+                    "document": doc,
+                    "label": document.label,
+                    "live": document.live,
+                    "arms": {
+                        arm: {"kind": spec.kind, "label": spec.label,
+                              "chunk_count": len(spec.rows or ()),
+                              **{k: v for k, v in (warmed.get(f"{doc}/{arm}") or {}).items()
+                                 if k in ("build_seconds", "dense", "note")}}
+                        for arm, spec in document.arms.items()
+                    },
+                })
             elif route == "/api/compare":
+                self._ensure_live(str(body.get("doc")))
                 arms = body.get("arms")
                 self._send_json(
                     self.engine.compare(
