@@ -550,6 +550,31 @@ def test_the_comparison_board_is_one_grid_of_method_columns(tmp_path):
     # A note that only one column draws would drop that column by a line, so
     # the plan is a property of the row.
     assert "rowPlan" in html_text and "plan.hasNote" in html_text
+    # Ownership is membership, never the offset map: `seg` records a heading
+    # in every chunk that reprints its path, and none of those chunks contain
+    # it (503 such headings for Markdown on kkb-2024 alone).
+    assert "function armMembers(" in html_text and "armMembers(arm).get(unit.i)" in html_text
+    assert "armData.seg[unit.i]" not in html_text.split("function unitOwners")[1][:400]
+
+
+def test_the_first_screen_is_the_comparison_and_nothing_else(tmp_path):
+    html_text = build(tmp_path)
+    # One control row: methods, the divergence walker, the page. Everything
+    # else -- text density, the fold, the pair filter, the link down to the
+    # result band -- is behind one button.
+    assert 'id="viewmenu"' in html_text and "Görünüm" in html_text
+    assert 'class="viewpop"' in html_text
+    # No second index beside the columns' own numbers.
+    assert 'id="docmap"' not in html_text and "renderDocMap" not in html_text
+    # The detail is a drawer: it starts closed and opens on a picked chunk.
+    assert 'class="panel hidden" id="presdetail"' in html_text
+    assert "function openDetail(" in html_text and "function closeDetail(" in html_text
+    # A card carries its number and a two-word reason, not its token count.
+    assert '<span class="tk">' not in html_text
+    assert "REASONS[chunk.rs] || {}" in html_text
+    # The divergence is said in one line, with the pipeline's reasoning asked
+    # for rather than printed.
+    assert "burada yeni parça açtı" in html_text and 'id="dvwhy"' in html_text
 
 
 def test_boundary_reasons_and_the_mode_switch_survive_the_board(tmp_path):

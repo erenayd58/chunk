@@ -269,13 +269,19 @@ table.t td.deepcol{background:#faf8ff}
 .pagehead.compact h1{font-size:22px}
 
 /* the toolbar: which methods are columns, which divergence, which page */
-.cmpbar{background:var(--surface);border:1px solid var(--line);border-bottom:none;border-radius:var(--r) var(--r) 0 0;
-  padding:10px 16px 9px;display:flex;flex-direction:column;gap:8px}
+.cmpbar{position:relative;background:var(--surface);border:1px solid var(--line);border-bottom:none;
+  border-radius:var(--r) var(--r) 0 0;padding:9px 16px;display:flex;flex-direction:column;gap:8px}
 .cmpbar .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
-.cmpbar .title{display:flex;align-items:center;gap:10px;font-weight:650;font-size:16px;color:var(--ink);margin-right:8px}
-.cmpbar .title .step{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;
-  background:var(--ink);color:#fff;font-size:12.5px;font-weight:700}
 .cmpbar .lab{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+/* Everything that is not a method, a divergence or a page lives behind one
+   button: the first screen is the comparison, not its settings. */
+.viewbtn{border:1px solid var(--line-2);border-radius:7px;padding:4px 11px;background:#fff;color:var(--muted);font-size:13px}
+.viewbtn:hover,.viewbtn.on{border-color:var(--line-2);background:var(--well);color:var(--ink-2)}
+.viewpop{position:absolute;top:calc(100% - 4px);right:14px;z-index:20;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);box-shadow:var(--shadow-lg);
+  padding:11px 14px;display:flex;flex-direction:column;gap:9px;min-width:250px}
+.viewpop .ttl{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.viewpop label{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--ink-2);cursor:pointer}
 .cmpbar select{padding:5px 30px 5px 10px;font-size:13.5px;max-width:420px}
 .cmpbar .sep{width:1px;height:22px;background:var(--line)}
 .cmpbar .grow{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -320,15 +326,18 @@ table.t td.deepcol{background:#faf8ff}
 .dvsum .verb.cut{color:var(--c)}
 .dvsum .verb.kept{color:var(--muted)}
 .dvsum .m{color:var(--muted);font-size:12.5px;white-space:nowrap}
-.dvsum .dec{flex-basis:100%;color:var(--muted);font-size:13px;line-height:1.45}
+.dvsum .sep{color:var(--faint)}
+.dvsum .whybtn{margin-left:auto;color:var(--accent);font-size:13px;font-weight:600;white-space:nowrap}
+.dvsum .whybtn:hover{text-decoration:underline}
+.dvsum .dec{flex-basis:100%;color:var(--muted);font-size:13px;line-height:1.45;
+  border-top:1px solid var(--line);padding-top:8px}
 .dvsum .dec b{color:var(--deep-ink);font-weight:650}
 .dvsum .dec i{font-style:normal;color:var(--ink-2)}
 .dvsum.quiet{color:var(--muted)}
 
-.stage{display:grid;grid-template-columns:26px minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr);height:640px;background:var(--surface);
-  border:1px solid var(--line);border-radius:0 0 var(--r) var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:26px}
-.docmap{border-right:1px solid var(--line);background:var(--well);position:relative;cursor:pointer}
-.docmap svg{display:block;width:100%;height:100%}
+.stage{position:relative;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);
+  height:640px;background:var(--surface);border:1px solid var(--line);border-radius:0 0 var(--r) var(--r);
+  box-shadow:var(--shadow);overflow:hidden;margin-bottom:26px}
 
 /* the board itself. No smooth scrolling: it is positioned in one step when a
    divergence is chosen, and an animation only fights the next click. */
@@ -403,8 +412,7 @@ table.t td.deepcol{background:#faf8ff}
 .cell.bd > .open.cont{border-top-style:dashed;background:var(--well-2);cursor:default}
 .cell.bd .num{font-weight:700;font-size:13.5px;color:var(--c);white-space:nowrap}
 .cell.bd .why{font-size:12px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cell.bd .tk{margin-left:auto;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap}
-.cell.bd .tail{font-size:11px;color:var(--faint);padding:3px 10px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 /* the method that did NOT open a chunk here: its card runs straight through */
 .cell.bd > .thru{height:100%;min-height:22px;background:#fff;border-left:3px solid var(--cl);border-right:1px solid var(--cle);
   display:flex;align-items:center;padding-left:10px;min-width:0}
@@ -440,9 +448,15 @@ table.t td.deepcol{background:#faf8ff}
 .edge button{color:var(--accent);font-weight:600;font-size:12px}
 .edge button:hover{text-decoration:underline}
 
-/* the panel beside the board */
-.panel{border-left:1px solid var(--line);overflow:auto;min-height:0;padding:14px 16px;font-size:14px;background:var(--surface)}
-.panel h3{font-size:15px;margin-bottom:10px;font-weight:650}
+/* The detail is a drawer: it opens on a chunk the reader picked and gives
+   the width straight back to the comparison when they are done with it. */
+.panel{position:absolute;top:0;right:0;bottom:0;width:min(380px,88%);z-index:14;
+  border-left:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-lg);
+  overflow:auto;padding:14px 16px 20px;font-size:14px}
+.panel .close{position:absolute;top:8px;right:10px;width:26px;height:26px;border-radius:7px;
+  color:var(--muted);font-size:17px;line-height:24px;text-align:center}
+.panel .close:hover{background:var(--well-2);color:var(--ink)}
+.panel h3{font-size:15px;margin-bottom:10px;font-weight:650;padding-right:26px}
 .panel .kv{display:grid;grid-template-columns:108px 1fr;gap:6px 10px;font-size:13.5px}
 .panel .kv dt{color:var(--muted)}
 .panel .empty{color:var(--muted);font-size:13.5px;line-height:1.5}
@@ -668,8 +682,6 @@ details.deep-detail .inner>h2:first-child,details.deep-detail .inner>.sechead:fi
 footer{color:var(--faint);font-size:12.5px;padding:28px 22px;text-align:center}
 
 @media (max-width:1500px){
-  .sonuc .num{display:none}
-  .stage{grid-template-columns:26px minmax(0,1fr) 288px}
   .board{--colmin:248px}
 }
 @media (min-width:2200px){
@@ -685,12 +697,10 @@ footer{color:var(--faint);font-size:12.5px;padding:28px 22px;text-align:center}
 }
 @media (max-width:1100px){
   .dbg,.chatwrap{grid-template-columns:1fr}
-  .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;height:auto!important;max-height:none}
-  .docmap{display:none}
+  .stage{grid-template-rows:minmax(0,1fr);height:auto!important;max-height:none}
   .board{max-height:70vh;--colmin:236px}
   /* The method's name is the one thing a column head cannot lose. */
   .colhead .n{display:none}
-  .panel{grid-column:1/-1;border-left:none;border-top:1px solid var(--line);max-height:320px}
   .sidecard,.inspector{position:static;max-height:none}
   .fixrow,.fixhead{grid-template-columns:1fr;gap:6px}
   .fixrow .n{text-align:left}
@@ -727,9 +737,11 @@ footer{color:var(--faint);font-size:12.5px;padding:28px 22px;text-align:center}
     <div class="cmpbar" id="cmpbar"></div>
     <div class="dvsum" id="dvsum"></div>
     <div class="stage" id="stage">
-      <div class="docmap" id="docmap" title="Doküman haritası: işaretler ayrışma noktalarıdır, mavi pencere açık sayfadır. Tıklayınca oraya gider."></div>
       <div class="board" id="board"></div>
-      <aside class="panel" id="presdetail"><div id="chunkdetail"></div></aside>
+      <aside class="panel hidden" id="presdetail">
+        <button class="close" id="detclose" title="Kapat" aria-label="Kapat">&times;</button>
+        <div id="chunkdetail"></div>
+      </aside>
     </div>
     <div id="results"></div>
     <div class="sechead" id="methodhead"></div>
@@ -924,6 +936,9 @@ const state = {
   // unit id so a row opens in EVERY column at once.
   short: null,
   tall: new Set(),
+  // The reasoning behind a divergence, and the view settings, are asked for.
+  whyOpen: false,
+  viewOpen: false,
   query: null,
   selChunk: null,
   selArm: null,
@@ -1173,9 +1188,21 @@ function initBar(){
     b.onclick = () => { state.qsub = b.dataset.sub; render(); };
   });
   $("wsopen").onclick = openWorkspaceModal;
+  $("detclose").onclick = closeDetail;
+  // The view menu is a menu: the next click anywhere else puts it away.
+  document.addEventListener("pointerdown", e => {
+    if (!state.viewOpen) return;
+    if (e.target.closest && e.target.closest("#cmpbar")) return;
+    state.viewOpen = false;
+    renderCompareBar();
+  }, true);
   $("modal").onclick = e => { if (e.target === $("modal")) closeModal(); };
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape") { hideTip(); closeModal(); return; }
+    if (e.key === "Escape") {
+      hideTip(); closeModal(); closeDetail();
+      if (state.viewOpen) { state.viewOpen = false; renderCompareBar(); }
+      return;
+    }
     // Left / right (or p / n) walk the disagreements while Sunum is open.
     if (state.mode !== "presentation" || $("modal").classList.contains("hidden") === false) return;
     const tag = (e.target && e.target.tagName || "").toLowerCase();
@@ -1201,32 +1228,6 @@ function measureBar(){
   const h = Math.round(document.querySelector(".topbar").getBoundingClientRect().height);
   document.documentElement.style.setProperty("--barh", h + "px");
 }
-
-// The document's own sections, as a reader would name them: a run of units
-// sharing one section path. This is what the reader navigates by -- a page is
-// where something is printed, a section is what it is about.
-function docSections(){
-  const doc = D();
-  if (doc._sections) return doc._sections;
-  // Group at the document's own top level -- its chapters. The full section
-  // path would give hundreds of two-unit slivers, which is a worse thing to
-  // navigate than the pages it replaced.
-  const out = [];
-  let current = null;
-  for (const unit of doc.units) {
-    const key = (unit.sd || [])[0] || "";
-    if (!current || current.key !== key) {
-      current = {i: out.length, key, title: key || "Belge başı", units: [], pages: new Set()};
-      out.push(current);
-    }
-    current.units.push(unit);
-    current.pages.add(unit.p);
-  }
-  for (const section of out) section.pages = [...section.pages].sort((a, b) => a - b);
-  doc._sections = out;
-  return out;
-}
-// Open on the first chapter that has something to read, not on a cover page.
 
 // Which methods the reader is comparing, LEFT TO RIGHT: the order is the
 // order they were picked, so the first method chosen is the first column.
@@ -1262,6 +1263,7 @@ function toggleLane(arm){
   // on stays the current one whenever it is still a disagreement.
   const was = state.diffIdx >= 0 ? stepDiffs()[state.diffIdx] : null;
   setLanes(next);
+  closeDetail();
   const now = stepDiffs();
   state.diffIdx = was ? now.findIndex(d => d.before === was.before) : -1;
   if (state.diffIdx < 0) state.diffIdx = now.findIndex(d => d.p === state.page);
@@ -1270,8 +1272,9 @@ function toggleLane(arm){
 }
 
 // Where the compared methods disagree: between two consecutive content units,
-// at least one lane cuts and at least one does not. Computed over the lanes on
-// screen, so the count always matches what the reader is looking at.
+// at least one lane opens a chunk in the span between them and at least one
+// does not. "Opens a chunk" is the same test the board draws with, so the
+// divergence the readout names is always a boundary that is on screen.
 function laneDiffs(){
   const lanes = laneList();
   if (lanes.length < 2) return [];
@@ -1279,19 +1282,22 @@ function laneDiffs(){
   const key = lanes.join("|");
   doc._diffs = doc._diffs || {};
   if (doc._diffs[key]) return doc._diffs[key];
+  const opens = {};
+  for (const arm of lanes) opens[arm] = armOpens(arm);
   const content = doc.units.filter(u => u.t !== "heading");
   const points = [];
+  const cutsIn = (arm, lo, hi) => {
+    for (let j = lo; j <= hi; j++) if (opens[arm].has(j)) return true;
+    return false;
+  };
   for (let k = 1; k < content.length; k++) {
     const left = content[k - 1], right = content[k];
-    const cuts = [];
-    let usable = true;
-    for (const arm of lanes) {
-      const m = D().arms[arm].m;
-      const a = m[left.i], b = m[right.i];
-      if (a === undefined || b === undefined) { usable = false; break; }
-      cuts.push(a !== b);
-    }
-    if (usable && cuts.some(Boolean) && !cuts.every(Boolean)) {
+    // A heading between the two belongs to the boundary: a method that opens
+    // its chunk at the heading cut in the same place as one that opens at the
+    // paragraph, and the reader sees one break, not two.
+    const lo = uidx(left.i) + 1, hi = uidx(right.i);
+    const cuts = lanes.map(arm => cutsIn(arm, lo, hi));
+    if (cuts.some(Boolean) && !cuts.every(Boolean)) {
       points.push({after: left.i, before: right.i, p: right.p,
                    cut: lanes.filter((a, i) => cuts[i]), kept: lanes.filter((a, i) => !cuts[i])});
     }
@@ -1596,19 +1602,40 @@ function armRange(arm){
   });
   return armData._range;
 }
-// Which chunks of one method own one paragraph, in order. `seg` is the
-// authority: `m` records only the FIRST chunk that contains a unit and drops
-// the headings a method keeps out of its unit ids, so a card drawn from `m`
-// alone would put Markdown's boundaries in the wrong places.
-function unitOwners(armData, unit){
-  const rows = armData.seg[unit.i];
-  if (rows && rows.length) {
-    const seen = [];
-    for (const r of rows) if (!seen.includes(r[0])) seen.push(r[0]);
-    return seen.sort((a, b) => a - b);
-  }
-  const c = armData.m[unit.i];
-  return c === undefined ? [] : [c];
+// Which chunks of one method actually CONTAIN a unit, in order.
+//
+// `seg` is not the authority and must never be used for this: it is an
+// offset map, and it records a row for a heading in every chunk that merely
+// reprints it in its heading path -- 503 such headings for Markdown on
+// kkb-2024, in no chunk's unit list at all. Membership is `chunk.u`, which
+// is also what `m` is built from, except that `m` keeps only the first
+// chunk and so cannot describe the size-first splitter's overlap.
+function armMembers(arm){
+  const armData = D().arms[arm];
+  if (armData._members) return armData._members;
+  const map = new Map();
+  armData.chunks.forEach((chunk, index) => {
+    for (const raw of chunk.u) {
+      const id = baseId(raw);
+      let list = map.get(id);
+      if (!list) map.set(id, list = []);
+      if (list[list.length - 1] !== index) list.push(index);
+    }
+  });
+  armData._members = map;
+  return map;
+}
+function unitOwners(arm, unit){ return armMembers(arm).get(unit.i) || []; }
+// Reading-order index of a unit -> the chunk that STARTS there. A chunk
+// starting is a fact about the chunk, not a comparison between two rows,
+// which is what makes it survive overlap.
+function armOpens(arm){
+  const armData = D().arms[arm];
+  if (armData._opens) return armData._opens;
+  const map = new Map();
+  armRange(arm).forEach((range, index) => { if (range && !map.has(range[0])) map.set(range[0], index); });
+  armData._opens = map;
+  return map;
 }
 // Full paragraphs, or the first lines of each: three or four columns need the
 // short form to fit a boundary and its context on one screen.
@@ -1632,14 +1659,25 @@ function syncCompareState(){
 // chunks that actually meet at this point -- never from a template alone.
 function pointFacts(point){
   const doc = D();
-  const at = arm => doc.arms[arm].chunks[doc.arms[arm].m[point.before]];
+  const lo = uidx(point.after) + 1, hi = uidx(point.before);
+  // the chunk this method opened in the span -- the one its card announces
+  const opened = arm => {
+    const opens = armOpens(arm);
+    for (let j = lo; j <= hi; j++) if (opens.has(j)) return doc.arms[arm].chunks[opens.get(j)];
+    return null;
+  };
+  // the chunk this method is still reading, on the far side of the boundary
+  const running = arm => {
+    const own = unitOwners(arm, unitById(point.before) || {i: point.before});
+    return own.length ? doc.arms[arm].chunks[own[own.length - 1]] : null;
+  };
   const cut = point.cut.map(arm => {
-    const chunk = at(arm);
+    const chunk = opened(arm);
     const isCont = chunk && chunk.cp !== null && chunk.cp !== undefined;
     const why = chunk ? (isCont ? (CONT_LABELS[chunk.rs] || "önceki parçanın devamı") : (REASONS[chunk.rs] || {label: chunk.rs}).label) : "";
     return {arm, chunk, why, short: shortReason(chunk)};
   });
-  const kept = point.kept.map(arm => ({arm, chunk: at(arm)}));
+  const kept = point.kept.map(arm => ({arm, chunk: running(arm)}));
   return {cut, kept, decision: pointDecision(point, cut, kept)};
 }
 // What Deep Analysis decided *at this boundary*, read from the chunk whose
@@ -1693,23 +1731,27 @@ function renderDvSum(){
   const quiet = msg => { box.className = "dvsum quiet"; box.innerHTML = msg; };
   if (lanes.length < 2) return quiet("Karşılaştırmak için ikinci bir yöntem seçin — yanına ikinci kolon olarak eklenir.");
   if (!diffs.length) return quiet("Seçili yöntemler bu dokümanı her yerde aynı noktalardan kesiyor: ayrışma yok.");
-  if (!point) return quiet("Bir ayrışma seçin: ← → tuşları, kolonların solundaki numaralar ya da doküman haritası.");
+  if (!point) return quiet("Bir ayrışma seçin: ← → tuşları ya da kolonların solundaki numaralar.");
   const facts = pointFacts(point);
-  const section = docSections().find(s => s.pages.includes(point.p));
-  const ent = (arm, verb, cls, tail) => `<span class="ent" style="${laneVars(arm)}"><i class="dot"></i><b>${esc(modeName(arm).top)}</b>
-    <span class="verb ${cls}">${verb}</span>${tail ? `<span class="m">${tail}</span>` : ""}</span>`;
+  // One sentence, in the words the reader would use. Which chunk, how big and
+  // why are on the cards themselves; the pipeline's reasoning is asked for.
+  const ent = (arm, verb, cls) => `<span class="ent" style="${laneVars(arm)}"><i class="dot"></i><b>${esc(modeName(arm).top)}</b>
+    <span class="verb ${cls}">${verb}</span></span>`;
+  const said = facts.cut.map(c => ent(c.arm, "burada yeni parça açtı", "cut"))
+    .concat(facts.kept.map(k => ent(k.arm, "devam etti", "kept")))
+    .join(`<span class="sep">·</span>`);
   box.className = "dvsum";
-  box.innerHTML = `<span class="ix">Ayrışma ${state.diffIdx + 1} / ${diffs.length}</span>
-    <span class="pg">s. ${point.p}${section ? " · " + esc(section.title) : ""}</span>
-    ${facts.cut.map(c => ent(c.arm, "burada yeni parça açtı", "cut",
-      c.chunk ? `Parça ${c.chunk.num}${c.short ? " · " + esc(c.short) : ""}` : "")).join("")}
-    ${facts.kept.map(k => ent(k.arm, "bölmedi, devam etti", "kept",
-      k.chunk ? `Parça ${k.chunk.num} sürüyor` : "")).join("")}
-    ${facts.decision ? `<span class="dec">${facts.decision}</span>` : ""}`;
+  box.innerHTML = `<span class="ix">${state.diffIdx + 1} / ${diffs.length}</span>
+    <span class="pg">s. ${point.p}</span>${said}
+    ${facts.decision ? `<button class="whybtn" id="dvwhy">${state.whyOpen ? "Gizle" : "Neden?"}</button>` : ""}
+    ${facts.decision && state.whyOpen ? `<span class="dec">${facts.decision}</span>` : ""}`;
+  const why = $("dvwhy");
+  if (why) why.onclick = () => { state.whyOpen = !state.whyOpen; renderDvSum(); };
 }
 
 // The toolbar: which methods are columns, which divergence, which page.
-function renderCompareBar(step){
+// Nothing else -- the rest is behind "Görünüm".
+function renderCompareBar(){
   const lanes = laneList();
   const have = docArms();
   const diffs = stepDiffs();
@@ -1720,7 +1762,10 @@ function renderCompareBar(step){
     const on = lanes.includes(a);
     const at = lanes.indexOf(a);
     return `<button class="lanechip ${on ? "on" : ""}" data-lane="${a}" style="${laneVars(a)}"
-      aria-pressed="${on}" title="${on ? `${esc(modeName(a).top)}: ${at + 1}. kolon — karşılaştırmadan çıkarmak için tıklayın` : "Yeni kolon olarak ekle"}">${
+      aria-pressed="${on}" title="${on ? (lanes.length > 1
+        ? `${esc(modeName(a).top)}: ${at + 1}. kolon — karşılaştırmadan çıkarmak için tıklayın`
+        : `${esc(modeName(a).top)}: tek kolon — son kolon kaldırılamaz`)
+        : "Yeni kolon olarak ekle"}">${
       on ? `<span class="ord">${at + 1}</span>` : `<span class="dot"></span>`}${esc(modeName(a).top)} <span class="n">${D().arms[a].chunks.length}</span></button>`;
   }).join("");
   const off = PRODUCT_ARMS.filter(a => !have.includes(a)).map(a =>
@@ -1736,36 +1781,36 @@ function renderCompareBar(step){
   const short = shortText();
   $("cmpbar").innerHTML = `
     <div class="row">
-      <span class="title"><span class="step">${step}</span>Parçaları karşılaştır</span>
-      <span class="lab">Kolonlar</span>${chips}${off}
-      <span class="grow">${dm ? `<button class="sonuc" id="gosonuc" title="Sonuç bandına in">Sonuç<span class="num"> · ${dm.smellTotal.standard} → ${dm.smellTotal.deep} yapısal problem</span> ↓</button>` : ""}</span>
-    </div>
-    <div class="row">
+      ${chips}${off}
+      <span class="sep"></span>
       <span class="diffstep"><span class="stepnav"><button id="prevdiff" ${diffs.length ? "" : "disabled"} title="Önceki ayrışma (←)">&#8592;</button>
         <button id="nextdiff" ${diffs.length ? "" : "disabled"} title="Sonraki ayrışma (→)">&#8594;</button></span>${counter}${
         info("Ayrışma: yöntemlerin farklı karar verdiği yer — bir kolon burada yeni bir parça açarken bir diğeri aynı parçada devam ediyor. Oklar (ya da ← → tuşları) sırayla hepsini gezer.")}</span>
-      ${pairFilterAvailable() ? `<label class="conttoggle"><input type="checkbox" id="pairchk" ${state.pairOnly ? "checked" : ""}> Yalnız Standard ↔ Deep
-        ${info("Üç ya da dört kolon açıkken ayrışmaların çoğu araştırma kollarından gelir. Bu kutu gezinmeyi ürünün kendi hikâyesiyle sınırlar; kolonlarda hiçbir sınır gizlenmez.")}</label>` : ""}
       <span class="sep"></span>
       <span class="lab">Sayfa</span><span class="stepnav"><button id="prevpage" ${at <= 0 ? "disabled" : ""}>&#8592;</button></span>
       <select id="pagenav">${pageOpts}</select><span class="stepnav"><button id="nextpage" ${at >= pages.length - 1 ? "disabled" : ""}>&#8594;</button></span>
-      <span class="muted">${pages.length} sayfa</span>
-      <span class="grow">
-        <span class="lab">Metin</span><span class="seg2"><button data-short="0" class="${short ? "" : "on"}">Tam</button><button data-short="1" class="${short ? "on" : ""}">Kısa</button></span>
-        <label class="conttoggle"><input type="checkbox" id="foldchk" ${state.foldAgree ? "checked" : ""}> Sadece ayrışmalar
-          ${info("Bütün kolonların aynı kararı verdiği paragraf bloklarını tek satıra katlar; her ayrışmanın çevresinde iki paragraf bağlam kalır. Katlanan blok tıklanınca açılır.")}</label>
-      </span>
-    </div>`;
+      <span class="muted">/ ${pages.length}</span>
+      <span class="grow"><button class="viewbtn ${state.viewOpen ? "on" : ""}" id="viewmenu" aria-expanded="${state.viewOpen}">Görünüm ▾</button></span>
+    </div>
+    ${state.viewOpen ? `<div class="viewpop" id="viewpop">
+      <span class="ttl">Metin</span>
+      <span class="seg2"><button data-short="0" class="${short ? "" : "on"}">Tam</button><button data-short="1" class="${short ? "on" : ""}">Kısa</button></span>
+      <label><input type="checkbox" id="foldchk" ${state.foldAgree ? "checked" : ""} ${lanes.length > 1 ? "" : "disabled"}> Yalnız ayrışan bölümleri göster</label>
+      ${pairFilterAvailable() ? `<label><input type="checkbox" id="pairchk" ${state.pairOnly ? "checked" : ""}> Yalnız Standard ↔ Deep ayrışmaları gez</label>` : ""}
+      ${dm ? `<button class="sonuc" id="gosonuc" style="align-self:flex-start">Sonuç bandına in ↓</button>` : ""}
+    </div>` : ""}`;
   $("cmpbar").querySelectorAll("button[data-lane]").forEach(el => { el.onclick = () => toggleLane(el.dataset.lane); });
   $("cmpbar").querySelectorAll("button[data-short]").forEach(el => {
     el.onclick = () => { state.short = el.dataset.short === "1"; state.tall = new Set(); render(); };
   });
+  $("viewmenu").onclick = () => { state.viewOpen = !state.viewOpen; renderCompareBar(); };
   $("prevdiff").onclick = () => stepLaneDiff(-1);
   $("nextdiff").onclick = () => stepLaneDiff(1);
   $("pagenav").onchange = e => goPage(Number(e.target.value));
   $("prevpage").onclick = () => goPage(pages[Math.max(0, at - 1)]);
   $("nextpage").onclick = () => goPage(pages[Math.min(pages.length - 1, at + 1)]);
-  $("foldchk").onchange = e => { state.foldAgree = e.target.checked; state.unfolded = new Set(); render(); };
+  const fold = $("foldchk");
+  if (fold) fold.onchange = e => { state.foldAgree = e.target.checked; state.unfolded = new Set(); render(); };
   const pc = $("pairchk");
   // Switching the walk keeps the reader where they are: the boundary they
   // were standing on stays current whenever it survives the filter.
@@ -1792,6 +1837,22 @@ function goPage(p){
 function stepLaneDiff(delta){
   const diffs = stepDiffs();
   if (!diffs.length) return;
+  if (state.diffIdx < 0) {
+    // Standing on a page with no divergence -- most of a long document --
+    // the arrows must go to the nearest one, not wrap to the far end.
+    if (delta > 0) {
+      const next = diffs.findIndex(d => d.p >= state.page);
+      state.diffIdx = next >= 0 ? next : 0;
+    } else {
+      let prev = -1;
+      diffs.forEach((d, i) => { if (d.p <= state.page) prev = i; });
+      state.diffIdx = prev >= 0 ? prev : diffs.length - 1;
+    }
+    state.page = diffs[state.diffIdx].p;
+    state.unfolded = new Set();
+    render();
+    return;
+  }
   state.diffIdx = (state.diffIdx + delta + diffs.length) % diffs.length;
   state.page = diffs[state.diffIdx].p;
   state.unfolded = new Set();
@@ -1800,10 +1861,12 @@ function stepLaneDiff(delta){
 
 const NUMS = ["", "bir", "iki", "üç", "dört"];
 function renderPresentation(){
+  // The comparison is the screen, not a numbered step in a story; the story
+  // starts underneath it.
   let step = 0;
   const hasStory = Boolean(deepMeta()) || isLegacyAgentic();
   syncCompareState();
-  renderCompareBar(++step);
+  renderCompareBar();
   renderDvSum();
   renderBoard();
   renderPresDetail();
@@ -1848,7 +1911,7 @@ function boardWindow(page, diffs, cur, lanes){
       for (const uid of [cur.after, cur.before]) {
         const unit = unitById(uid);
         if (!unit) continue;
-        for (const c of unitOwners(doc.arms[arm], unit)) {
+        for (const c of unitOwners(arm, unit)) {
           const range = armRange(arm)[c];
           if (!range) continue;
           if (range[0] < from) from = range[0];
@@ -1873,9 +1936,13 @@ function boardWindow(page, diffs, cur, lanes){
 // the chunks that own it. A range owned by two chunks is a real overlap --
 // the size-first splitter carries a tail forward -- and is drawn as one, so
 // the shared characters are printed once and shaded, never repeated.
-function unitPieces(armData, unit){
-  const rows = armData.seg[unit.i];
-  if (!rows || !rows.length) return null;
+// The character ranges of one paragraph, per chunk. Only chunks that really
+// contain the unit may draw a range: a heading's provenance rows would
+// otherwise slice a paragraph for a chunk that never held it.
+function unitPieces(arm, unit){
+  const owners = unitOwners(arm, unit);
+  const rows = (D().arms[arm].seg[unit.i] || []).filter(r => owners.includes(r[0]));
+  if (!rows.length) return null;
   const stops = [...new Set(rows.reduce((acc, r) => acc.concat([r[1], r[2]]), []))].sort((a, b) => a - b);
   const out = [];
   for (let i = 0; i < stops.length - 1; i++) {
@@ -1890,31 +1957,36 @@ function unitPieces(armData, unit){
   return out.length ? out : null;
 }
 
-// One method's column over the window: which chunk each paragraph enters and
-// leaves in, the chunk it was in just before the window, and the pieces to
-// draw when a boundary falls inside a paragraph.
+// One method's column over the window: which chunks own each paragraph,
+// which of them START there, the chunk the paragraph is read in, the chunk
+// still running into the window, and the pieces to draw when a boundary
+// falls inside a paragraph.
 function laneCells(arm, rows, from){
-  const doc = D(), armData = doc.arms[arm];
-  const owners = rows.map(r => unitOwners(armData, r.unit));
-  const pieces = rows.map(r => unitPieces(armData, r.unit));
-  const ent = new Array(rows.length), ext = new Array(rows.length);
-  for (let k = 0; k < rows.length; k++) {
-    ent[k] = owners[k].length ? owners[k][0] : undefined;
-    ext[k] = owners[k].length ? owners[k][owners[k].length - 1] : undefined;
-  }
-  // A unit no chunk claims (a heading a method keeps out of both maps) is
-  // read with the chunk that follows it, as the reader would read it.
+  const doc = D();
+  const range = armRange(arm);
+  const owners = rows.map(r => unitOwners(arm, r.unit));
+  const pieces = rows.map(r => unitPieces(arm, r.unit));
+  const opens = rows.map((r, k) => owners[k].filter(c => range[c] && range[c][0] === from + k));
+  // Which card a paragraph is READ in. Membership decides it -- the newest
+  // chunk that owns it, so a shared paragraph carries on into the later one.
+  // A heading no unit list claims still sits inside somebody's text, and
+  // `seg` is where that shows; only when even that is silent does the row
+  // borrow the chunk below it, or above it at the end of the window.
+  const segOwner = k => {
+    const seg = D().arms[arm].seg[rows[k].unit.i];
+    return seg && seg.length ? seg[seg.length - 1][0] : undefined;
+  };
+  const at = owners.map((own, k) => own.length ? own[own.length - 1] : segOwner(k));
   let below;
-  for (let k = rows.length - 1; k >= 0; k--) {
-    if (ent[k] !== undefined) below = ent[k];
-    else { ent[k] = below; ext[k] = below; }
-  }
+  for (let k = rows.length - 1; k >= 0; k--) { if (at[k] !== undefined) below = at[k]; else at[k] = below; }
+  let above;
+  for (let k = 0; k < rows.length; k++) { if (at[k] !== undefined) above = at[k]; else at[k] = above; }
   let before;
   for (let i = from - 1; i >= 0 && before === undefined; i--) {
-    const own = unitOwners(armData, doc.units[i]);
+    const own = unitOwners(arm, doc.units[i]);
     if (own.length) before = own[own.length - 1];
   }
-  return {ent, ext, owners, pieces, before};
+  return {at, owners, opens, pieces, before};
 }
 
 // The board: one grid, one column per method, one row per paragraph.
@@ -1925,7 +1997,7 @@ function renderBoard(){
   const all = doc.units;
   const page = pageUnits(state.page);
   bd.style.setProperty("--n", lanes.length);
-  if (!page.length) { bd.innerHTML = `<div class="empty">Bu sayfada birim yok.</div>`; renderDocMap(); return; }
+  if (!page.length) { bd.innerHTML = `<div class="empty">Bu sayfada birim yok.</div>`; return; }
   const diffs = stepDiffs();
   const cur = state.diffIdx >= 0 ? diffs[state.diffIdx] : null;
   const win = boardWindow(page, diffs, cur, lanes);
@@ -1936,34 +2008,44 @@ function renderBoard(){
   const lane = {};
   for (const arm of lanes) lane[arm] = laneCells(arm, rows, from);
   const sel = selArm();
-  const startsAt = (arm, k) => {
-    const L = lane[arm];
-    return L.ent[k] !== undefined && L.ent[k] !== (k > 0 ? L.ext[k - 1] : L.before);
-  };
+  // A chunk starts here, or it does not. Asking the chunk rather than
+  // comparing two rows is what makes this survive the size-first overlap,
+  // where consecutive paragraphs are owned by the same two chunks.
+  const startsAt = (arm, k) => lane[arm].opens[k].length > 0;
+  const prevChunk = (arm, k) => (k > 0 ? lane[arm].at[k - 1] : lane[arm].before);
   // The chunks that meet at the current divergence are what the reader was
   // sent here to look at, so they are the only ones drawn in colour.
   const foc = {};
   for (const arm of lanes) {
     const set = new Set();
     if (cur) {
-      const a = unitById(cur.after), b = unitById(cur.before);
-      const oa = a ? unitOwners(doc.arms[arm], a) : [], ob = b ? unitOwners(doc.arms[arm], b) : [];
-      if (oa.length) set.add(oa[oa.length - 1]);
-      if (ob.length) set.add(ob[0]);
+      const lo = uidx(cur.after) + 1, hi = uidx(cur.before);
+      const opens = armOpens(arm);
+      for (let j = lo; j <= hi; j++) if (opens.has(j)) { set.add(opens.get(j)); break; }
+      for (const uid of [cur.after, cur.before]) {
+        const unit = unitById(uid);
+        const own = unit ? unitOwners(arm, unit) : [];
+        if (own.length) set.add(own[own.length - 1]);
+      }
     }
     foc[arm] = set;
   }
   // A divergence is defined between two CONTENT units, and headings can sit
   // between them; its badge belongs on the row where a cutting column really
-  // opens a chunk, not on an arbitrary offset from the lead-in.
+  // opens a chunk. `laneDiffs` is defined by that same test, so inside the
+  // window such a row always exists -- and a badge is never placed on a row
+  // that carries no boundary, which would show the reader another one.
   const dvAt = new Map();
   diffs.forEach((point, idx) => {
     const lo = uidx(point.after) - from + 1, hi = uidx(point.before) - from;
-    let row = -1;
-    for (let k = Math.max(1, lo); k <= Math.min(rows.length - 1, hi) && row < 0; k++) {
-      if (point.cut.some(arm => lanes.includes(arm) && startsAt(arm, k))) row = k;
+    // A boundary can spread over the span: one method opens at the heading,
+    // another at the paragraph under it. The badge goes where the most of
+    // them open, so the row it marks shows as much of the split as exists.
+    let row = -1, best = 0;
+    for (let k = Math.max(1, lo); k <= Math.min(rows.length - 1, hi); k++) {
+      const n = point.cut.filter(arm => lanes.includes(arm) && startsAt(arm, k)).length;
+      if (n > best) { best = n; row = k; }
     }
-    if (row < 0 && lo > 0 && lo < rows.length) row = lo;
     if (row > 0 && !dvAt.has(row)) dvAt.set(row, {point, idx});
   });
   const num = (arm, c) => doc.arms[arm].chunks[c] ? "Parça " + doc.arms[arm].chunks[c].num : "";
@@ -1987,7 +2069,7 @@ function renderBoard(){
     let hasNote = false;
     for (const arm of lanes) {
       const p = lane[arm].pieces[k];
-      const prev = k > 0 ? lane[arm].ext[k - 1] : lane[arm].before;
+      const prev = prevChunk(arm, k);
       // A note says only what the boundary row above cannot: a chunk that
       // starts inside a block this row will not slice, or a run two chunks
       // really share. An ordinary chunk start is already drawn as one.
@@ -2007,35 +2089,50 @@ function renderBoard(){
     }
     return {slice, stops: [...stops].sort((a, b) => a - b), notes, hasNote};
   });
-  // "Sadece ayrışmalar": keep every divergence with two paragraphs of context.
+  // "Sadece ayrışmalar" keeps every row the BOARD disagrees on, with two
+  // paragraphs of context. Keeping only the rows `laneDiffs` recorded would
+  // fold away a boundary one method places at a heading -- and then claim,
+  // on the folded line, that the methods agreed there.
   let keep = null;
-  if (state.foldAgree && lanes.length > 1 && dvAt.size) {
-    keep = new Set();
-    for (const [k] of dvAt) for (let j = Math.max(0, k - 2); j <= Math.min(rows.length - 1, k + 2); j++) keep.add(j);
+  if (state.foldAgree && lanes.length > 1) {
+    const split = [];
+    for (let k = 1; k < rows.length; k++) {
+      const opens = lanes.map(arm => startsAt(arm, k));
+      if (opens.some(Boolean) && !opens.every(Boolean)) split.push(k);
+    }
+    if (split.length) {
+      keep = new Set();
+      for (const k of split) for (let j = Math.max(0, k - 2); j <= Math.min(rows.length - 1, k + 2); j++) keep.add(j);
+    }
   }
 
   const cellCls = (arm, k, extra) => {
     const L = lane[arm], own = L.owners[k] || [];
-    const c = L.ent[k];
+    const c = L.at[k];
     return ["cell", extra, c === undefined ? "none" : (c % 2 ? "alt" : ""),
-      [...foc[arm]].some(f => f === c || f === L.ext[k] || own.includes(f)) ? "foc" : "",
-      arm === sel && state.selChunk !== null && (c === state.selChunk || L.ext[k] === state.selChunk || own.includes(state.selChunk)) ? "sel" : "",
+      [...foc[arm]].some(f => f === c || own.includes(f)) ? "foc" : "",
+      arm === sel && state.selChunk !== null && (c === state.selChunk || own.includes(state.selChunk)) ? "sel" : "",
       rows[k] && rows[k].ctx ? "ctx" : ""].filter(Boolean).join(" ");
   };
-  const openCell = (arm, k, chunk, cont, extra) => {
-    const why = chunk ? (REASONS[chunk.rs] || {label: chunk.rs}).label : "";
+  // `idx` is the chunk this cell announces: the one that opens here, or the
+  // one already running when the card is only being carried in.
+  // A card says its number and, in two words, why it starts where it does.
+  // Its size, its section and the pipeline's decision are in the drawer,
+  // one click away, because they are not what the comparison is about.
+  const openCell = (arm, k, idx, cont, extra) => {
+    const chunk = idx === undefined ? null : doc.arms[arm].chunks[idx];
+    const reason = chunk ? (REASONS[chunk.rs] || {}) : {};
+    const why = reason.short || reason.label || "";
     if (cont) {
-      const range = chunk ? armRange(arm)[lane[arm].ent[k]] : null;
-      const back = range ? from - range[0] : 0;
       return `<div class="${cellCls(arm, k, extra)}" style="${laneVars(arm)}">
         <div class="open cont"><span class="num">${chunk ? "Parça " + chunk.num : "—"}</span><span class="why">${
-          chunk ? (back > 0 ? `${back} paragraf önce başladı, burada sürüyor` : "yukarıdan sürüyor") : "bu yöntemde parça yok"}</span></div></div>`;
+          chunk ? "yukarıdan sürüyor" : "bu yöntemde parça yok"}</span></div></div>`;
     }
     return `<div class="${cellCls(arm, k, extra)}" style="${laneVars(arm)}">
       ${k > 0 || lane[arm].before !== undefined ? `<div class="close${k === 0 ? " dash" : ""}"></div>` : ""}<div class="gap"></div>
-      <button class="open" data-chunk="${lane[arm].ent[k]}" data-arm="${arm}"
-        title="${esc(modeName(arm).top)} · Parça ${chunk.num} · ${chunk.n} token · ${esc(why)}">
-        <span class="num">Parça ${chunk.num}</span><span class="why">${esc(why)}</span><span class="tk">${chunk.n} tk</span></button></div>`;
+      <button class="open" data-chunk="${idx}" data-arm="${arm}"
+        title="${esc(modeName(arm).top)} · Parça ${chunk.num} · ${chunk.n} token · ${esc(reason.label || "")} — detay için tıklayın">
+        <span class="num">Parça ${chunk.num}</span><span class="why">${esc(why)}</span></button></div>`;
   };
   // A boundary row: whoever cut closes a card and opens the next one,
   // whoever did not runs a card straight through the same height.
@@ -2046,11 +2143,10 @@ function renderBoard(){
     let out = `<div class="gut ${mark}"${dv ? ` data-diff="${dv.idx}"` : ""}>${dv
       ? `<button class="dvchip" data-godiff="${dv.idx}" title="Ayrışma ${dv.idx + 1} / ${diffs.length} — buraya git">${dv.idx + 1}</button>` : ""}</div>`;
     for (const arm of lanes) {
-      const c = lane[arm].ent[k];
-      const chunk = c === undefined ? null : doc.arms[arm].chunks[c];
-      if (startsAt(arm, k) && chunk) { out += openCell(arm, k, chunk, false, mark); continue; }
-      const prev = k > 0 ? lane[arm].ext[k - 1] : lane[arm].before;
-      const running = prev === undefined ? null : doc.arms[arm].chunks[prev];
+      const opensHere = lane[arm].opens[k];
+      if (opensHere.length) { out += openCell(arm, k, opensHere[0], false, mark); continue; }
+      const runIdx = lane[arm].at[k] !== undefined ? lane[arm].at[k] : prevChunk(arm, k);
+      const running = runIdx === undefined ? null : doc.arms[arm].chunks[runIdx];
       out += `<div class="${cellCls(arm, k, mark)}" style="${laneVars(arm)}"><div class="thru">${
         dv ? `<span class="lbl">${running ? `Parça ${running.num} sürüyor` : "parça yok"}</span>` : ""}</div></div>`;
     }
@@ -2067,12 +2163,12 @@ function renderBoard(){
   const cellBody = (arm, k, unit) => {
     const L = lane[arm];
     const plan = rowPlan[k];
-    if (L.ent[k] === undefined) {
+    if (L.at[k] === undefined) {
       return `${plan.hasNote ? seamLine(arm, "") : ""}<div class="miss">${
         unit.t === "heading" ? "başlık · parçaya sayılmadı" : "bu yöntemde parça yok"}</div>`;
     }
     const pieces = L.pieces[k];
-    const prev = k > 0 ? L.ext[k - 1] : L.before;
+    const prev = prevChunk(arm, k);
     if (plan.slice) {
       // Sliced at the union of every column's offsets, so the same character
       // starts a new block in every column and the row stays level.
@@ -2109,7 +2205,7 @@ function renderBoard(){
       clippable ? `<button class="tall" data-tall="${esc(row.unit.i)}" title="${opened ? "Kısalt" : "Paragrafın tamamını göster"}">${opened ? "▴" : "▾"}</button>` : ""}</div>`;
     for (const arm of lanes) {
       out += `<div class="${cellCls(arm, k, "ur" + (clip ? " clip" : ""))}" style="${laneVars(arm)}${short ? ";--cliph:118px" : ""}"
-        data-uid="${esc(row.unit.i)}" data-arm="${arm}"${lane[arm].ent[k] !== undefined ? ` data-chunk="${lane[arm].ent[k]}"` : ""}>
+        data-uid="${esc(row.unit.i)}" data-arm="${arm}"${lane[arm].at[k] !== undefined ? ` data-chunk="${lane[arm].at[k]}"` : ""}>
         <div class="ck">${cellBody(arm, k, row.unit)}</div></div>`;
     }
     return out;
@@ -2117,21 +2213,16 @@ function renderBoard(){
 
   const first = uidx(page[0].i), last = uidx(page[page.length - 1].i);
   const edge = (label, p) => `<div class="wide edge"><button data-page="${p}">${esc(label)}</button></div>`;
-  const seen = arm => {
-    const set = new Set();
-    for (let k = 0; k < rows.length; k++) for (const c of (lane[arm].owners[k] || [])) set.add(c);
-    return set.size;
-  };
   let out = `<div class="colhead gut"></div>` + lanes.map(arm => `<div class="colhead" style="${laneVars(arm)}">
       <span class="dot"></span><span class="nm">${esc(modeName(arm).top)}</span>
-      <span class="n">${doc.arms[arm].chunks.length} parça · burada ${seen(arm)}</span>
+      <span class="n">${doc.arms[arm].chunks.length} parça</span>
       ${lanes.length > 1 ? `<button class="drop" data-drop="${arm}" title="Bu kolonu kaldır">&times;</button>` : ""}</div>`).join("");
   if (from < first) out += edge(`← s. ${all[from].p} sonu`, all[from].p);
   // The opening row says which chunk each column is already inside.
   out += `<div class="gut bd"></div>` + lanes.map(arm => {
-    const c = lane[arm].ent[0];
-    const chunk = c === undefined ? null : doc.arms[arm].chunks[c];
-    return startsAt(arm, 0) && chunk ? openCell(arm, 0, chunk, false, "bd") : openCell(arm, 0, chunk, true, "bd");
+    const opensHere = lane[arm].opens[0];
+    return opensHere.length ? openCell(arm, 0, opensHere[0], false, "bd")
+      : openCell(arm, 0, lane[arm].at[0], true, "bd");
   }).join("");
 
   let k = 0, openUntil = -1, lastPage = null;
@@ -2158,14 +2249,9 @@ function renderBoard(){
     lastPage = rows[k].unit.p;
     k++;
   }
-  // The closing row: a card left open says how much further it really runs.
-  out += `<div class="gut bd"></div>` + lanes.map(arm => {
-    const c = lane[arm].ext[rows.length - 1];
-    const range = c === undefined ? null : armRange(arm)[c];
-    const more = range ? range[1] - to : 0;
-    return `<div class="${cellCls(arm, rows.length - 1, "bd")}" style="${laneVars(arm)}"><div class="close dash"></div>${
-      more > 0 ? `<div class="tail">${num(arm, c)} · ${more} paragraf daha sürüyor</div>` : ""}</div>`;
-  }).join("");
+  // The closing row: a dashed edge, because the document goes on.
+  out += `<div class="gut bd"></div>` + lanes.map(arm =>
+    `<div class="${cellCls(arm, rows.length - 1, "bd")}" style="${laneVars(arm)}"><div class="close dash"></div></div>`).join("");
   if (to > last) out += edge(`s. ${all[to].p} başı →`, all[to].p);
   bd.innerHTML = out;
 
@@ -2175,7 +2261,17 @@ function renderBoard(){
     b.onclick = () => { state.diffIdx = Number(b.dataset.godiff); state.page = diffs[state.diffIdx].p; state.unfolded = new Set(); render(); };
   });
   bd.querySelectorAll("button[data-unfold]").forEach(b => {
-    b.onclick = () => { const top = bd.scrollTop; state.unfolded.add(b.dataset.unfold); renderBoard(); bd.scrollTop = top; };
+    // Rows open above the reader as often as below, so the anchor is the
+    // boundary they are standing on, not the raw scroll offset.
+    b.onclick = () => {
+      const anchor = bd.querySelector(`.gut[data-diff="${state.diffIdx}"]`);
+      const was = anchor ? anchor.offsetTop - bd.scrollTop : null;
+      state.unfolded.add(b.dataset.unfold);
+      renderBoard();
+      const now = bd.querySelector(`.gut[data-diff="${state.diffIdx}"]`);
+      if (now && was !== null) bd.scrollTop = Math.max(0, now.offsetTop - was);
+      else focusBoard();
+    };
   });
   bd.querySelectorAll("button[data-tall]").forEach(b => {
     b.onclick = () => {
@@ -2188,11 +2284,10 @@ function renderBoard(){
   bd.querySelectorAll("[data-chunk][data-arm]").forEach(el => {
     el.onclick = e => { e.stopPropagation(); pickChunk(el.dataset.arm, Number(el.dataset.chunk)); };
   });
-  renderDocMap();
 }
 
 // A chunk is picked from its head or from any paragraph it owns; the whole
-// card lights up in its own column and the panel explains that boundary.
+// card lights up in its own column and the drawer explains that boundary.
 function pickChunk(arm, idx){
   state.selArm = arm;
   state.selChunk = idx;
@@ -2200,41 +2295,10 @@ function pickChunk(arm, idx){
   renderBoard();
   renderPresDetail();
   bd.scrollTop = top;
+  openDetail();
 }
-
-// The whole document as one vertical strip: where the divergences are, and
-// where the reader is. Click to go there.
-function renderDocMap(){
-  const box = $("docmap");
-  const doc = D();
-  const U = doc.units.length;
-  const diffs = stepDiffs();
-  const page = pageUnits(state.page);
-  const W = 26;
-  let svg = `<svg viewBox="0 0 ${W} ${U}" preserveAspectRatio="none">`;
-  const tick = Math.max(1, Math.round(U / 320));
-  if (diffs.length > 320) {
-    const bins = 160, size = U / bins, counts = new Array(bins).fill(0);
-    for (const d of diffs) counts[Math.min(bins - 1, Math.floor(uidx(d.before) / size))]++;
-    const max = Math.max(...counts);
-    counts.forEach((c, b) => { if (c) svg += `<rect x="5" y="${b * size}" width="${(W - 5) * c / max}" height="${size}" fill="#94a3b8"><title>${c} ayrışma</title></rect>`; });
-  } else {
-    diffs.forEach((d, i) => { svg += `<rect x="5" y="${uidx(d.before)}" width="${W - 5}" height="${tick}" fill="${i === state.diffIdx ? "#0f172a" : "#94a3b8"}"/>`; });
-  }
-  if (page.length) svg += `<rect x="0" y="${uidx(page[0].i)}" width="${W}" height="${Math.max(tick, uidx(page[page.length - 1].i) - uidx(page[0].i) + 1)}" fill="rgba(29,78,216,.16)" stroke="rgba(29,78,216,.55)" stroke-width="0.6" vector-effect="non-scaling-stroke"/>`;
-  if (state.diffIdx >= 0 && diffs[state.diffIdx]) svg += `<rect x="0" y="${uidx(diffs[state.diffIdx].before)}" width="${W}" height="${tick * 1.8}" fill="#0f172a"/>`;
-  box.innerHTML = svg + `</svg>`;
-  box.onclick = e => {
-    const r = box.getBoundingClientRect();
-    const idx = Math.min(U - 1, Math.max(0, Math.floor((e.clientY - r.top) / r.height * U)));
-    let best = -1, dist = Infinity;
-    diffs.forEach((d, i) => { const di = Math.abs(uidx(d.before) - idx); if (di < dist) { dist = di; best = i; } });
-    state.unfolded = new Set();
-    if (best >= 0 && dist <= U / 100) { state.diffIdx = best; state.page = diffs[best].p; }
-    else { state.page = doc.units[idx].p; state.diffIdx = diffs.findIndex(d => d.p === state.page); }
-    render();
-  };
-}
+function openDetail(){ if (state.selChunk !== null) $("presdetail").classList.remove("hidden"); }
+function closeDetail(){ $("presdetail").classList.add("hidden"); }
 
 function expansionBudget(){ const budgets = D().meta.budgets || {}; return budgets.hard_max_tokens || 1126; }
 function jumpToChunk(idx, arm){
@@ -2249,6 +2313,7 @@ function jumpToChunk(idx, arm){
   if (chunk.pg.length) state.page = chunk.pg[0];
   render();
   $("stage").scrollIntoView({block: "start"});
+  openDetail();
 }
 
 function sectionStory(si){
@@ -3158,7 +3223,11 @@ function selectDoc(docId){
   state.armB = hasArm("structure-only") && state.arm !== "structure-only"
     ? "structure-only" : (docArms().find(a => a !== state.arm) || state.arm);
   state.chat.turns = []; state.chat.arm = null;
-  state.selArm = state.arm; state.lanes = null; state.page = null; state.unfolded = new Set();
+  state.selArm = state.arm; state.lanes = null; state.page = null;
+  // Unit ids are per document, not unique across them: `p-00992` exists in
+  // all three, so a set kept across a switch pre-opens a stranger.
+  state.unfolded = new Set(); state.tall = new Set(); state.whyOpen = false;
+  closeDetail();
   if (isLive() && state.qsub === "gold") state.qsub = "chat";
   syncDocOptions();
   render();
