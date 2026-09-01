@@ -56,6 +56,10 @@ class IndexedChunk:
     heading: str | None
     section_path: tuple[str, ...]
     unit_ids: tuple[str, ...]
+    #: A retrieval-only rendering of a table this chunk carries, when the
+    #: chunker produced one. Never rendered into the answer context: ``text``
+    #: remains the only thing a citation can point at.
+    search_text: str | None = None
 
     @classmethod
     def from_row(cls, index: int, row: Mapping[str, Any]) -> "IndexedChunk":
@@ -69,6 +73,7 @@ class IndexedChunk:
             heading=row.get("heading"),
             section_path=tuple(paths[0]) if paths and paths[0] else (),
             unit_ids=tuple(str(u) for u in (row.get("unit_ids") or [])),
+            search_text=str(row["search_text"]) if row.get("search_text") else None,
         )
 
 
@@ -101,10 +106,16 @@ class ChunkIndex:
     def build(self) -> "ChunkIndex":
         started = time.perf_counter()
         fold = FOLDS[self.settings.fold]
+        # BM25 reads the table's rendering *in addition to* its markdown, so
+        # nothing that matched before can stop matching. The dense leg reads it
+        # *instead*: one vector cannot hold both a page of pipes and the
+        # sentences derived from it, and the sentences are what a question
+        # looks like.
         documents = [
             RetrievalDocument(
                 chunk_id=chunk.chunk_id,
-                text=fold(chunk.text),
+                text=fold(chunk.text if chunk.search_text is None
+                          else chunk.text + "\n" + chunk.search_text),
                 unit_ids=chunk.unit_ids,
                 pages=chunk.pages,
                 token_count=chunk.token_count,
@@ -113,7 +124,9 @@ class ChunkIndex:
         ]
         hits = misses = calls = 0
         if self.embedder is not None:
-            vectors = self.embedder.embed([chunk.text for chunk in self.chunks])
+            vectors = self.embedder.embed(
+                [chunk.search_text or chunk.text for chunk in self.chunks]
+            )
             usage = self.embedder.last_usage
             if usage is not None:
                 hits, misses, calls = usage.cache_hits, usage.cache_misses, usage.provider_calls

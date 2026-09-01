@@ -46,6 +46,7 @@ from . import deep_proposer as dp
 from . import deep_verifier as dv
 from .agentic_chunker import CallOutcome
 from .llm_boundary_judge import BoundaryJudgeModel, OpenAICompatibleJudgeProvider
+from . import table_search_text
 from .models import RawDocumentUnit
 from .structural_chunker import _sections
 from .structural_chunker import chunk_units as structural_chunk_units
@@ -453,9 +454,16 @@ def chunk_document(
     if error:
         result.error = error
         result.summary["fallback_reason"] = error
+    # A chunk carrying a table gets a second, searchable representation of it.
+    # Deep only: Standard returns above, before this point, so the frozen
+    # structure-first arm is byte-identical to what it always was. ``text`` is
+    # untouched, so the answer model and every citation still read the table
+    # exactly as the document wrote it.
+    enriched = table_search_text.enrich_rows(result.rows, units)
     report = {
         **result.summary,
         "uses_llm": bool(result.votes),
+        "table_search_text_chunks": enriched,
     }
     return ProductChunkingResult(
         mode=mode, status=status, rows=result.rows, report=report, deep=result, error=error
