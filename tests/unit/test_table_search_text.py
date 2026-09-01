@@ -131,16 +131,58 @@ def test_deep_produces_a_search_text_and_standard_does_not():
 
 
 def test_the_index_reads_the_rendering_and_the_context_never_does():
-    """BM25 gets the rendering beside the markdown, the dense leg instead of
-    it, and the answer context keeps the raw text on its own."""
+    """Both legs get the rendering beside the markdown -- never instead of it
+    -- and the answer context keeps the raw text on its own."""
     row = {"chunk_id": "c1", "text": "|Lisans|212|", "token_count": 4,
            "unit_ids": ["t-0008"], "search_text": "Lisans: Oran (%) = 77"}
     chunk = IndexedChunk.from_row(0, row)
     assert chunk.text == "|Lisans|212|", "context text is the document's own"
     assert chunk.search_text == "Lisans: Oran (%) = 77"
+    # What is searched is the chunk's own text plus the rendering. A chunk is
+    # never searched for under less than the words the document gave it.
+    assert "|Lisans|212|" in chunk.retrieval_text
+    assert "Lisans: Oran (%) = 77" in chunk.retrieval_text
 
     plain = IndexedChunk.from_row(0, {"chunk_id": "c2", "text": "abc", "unit_ids": []})
     assert plain.search_text is None
+    assert plain.retrieval_text == "abc"
+
+
+# The shape a financial note takes, and the one the rendering used to lose: the
+# label column's header cell carries the row labels the layout model merged into
+# it, one column's two values arrive in a single cell, and a deduction is
+# written as a parenthesised negative.
+MERGED_LABEL_TABLE = "\n".join([
+    "|**Satislar ve satislarin maliyeti**<br>Satis gelirleri<br>Satis iadeleri(-)"
+    "|**1 Ocak-**<br>**31 Aralik 2024**|",
+    "|---|---|",
+    "||3.560.086.540<br>(16.923.281)|",
+    "|**Toplam**|**3.543.163.259**|",
+])
+
+
+def test_a_header_too_long_to_name_a_column_is_kept_rather_than_dropped():
+    """The label column's header is the only place the row labels are written.
+    It is too long to be a column name -- repeated onto every row it would
+    swamp the index -- so it is kept once, on a line of its own."""
+    row = {"heading": None, "section_paths": [], "unit_ids": ["t-0008"]}
+    text = search_text_for(row, [_unit(1, "t-0008", "table", MERGED_LABEL_TABLE)])
+
+    assert "Satis gelirleri" in text and "Satis iadeleri(-)" in text
+    assert text.count("Satis gelirleri") == 1, "kept once, never repeated per row"
+
+
+def test_a_cell_of_values_is_a_data_row_not_a_column_name():
+    """A parenthesised negative is a number, and a column's two values joined
+    into one cell are still values: the row is data, so it never runs on into
+    the header and is never repeated as a column's name."""
+    row = {"heading": None, "section_paths": [], "unit_ids": ["t-0008"]}
+    text = search_text_for(row, [_unit(1, "t-0008", "table", MERGED_LABEL_TABLE)])
+
+    assert "Sutunlar: 1 Ocak- 31 Aralik 2024" in text, "the values are not a name"
+    assert text.count("3.560.086.540") == 1
+    assert "1 Ocak- 31 Aralik 2024: 3.560.086.540 (16.923.281)" in text
+    assert "Toplam: 1 Ocak- 31 Aralik 2024 = 3.543.163.259" in text
 
 
 @pytest.mark.parametrize("table_text", ["", "not a table at all", "|||\n|---|"])

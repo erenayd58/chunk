@@ -52,14 +52,22 @@ MAX_HEADER_ROWS = 4
 #: header it would be repeated onto every row below it and swamp the index.
 #: Past this width the column is treated as having no name, and its values are
 #: kept on their own -- which is what a form's label/value rows want anyway.
+#: The text itself is still header text the document printed, so it is kept on
+#: a line of its own: only the repetition is refused, never the words.
 MAX_HEADER_CHARS = 60
 
 _EMPHASIS = re.compile(r"[*_]{1,3}")
 _SEPARATOR_CELL = re.compile(r"^:?-{2,}:?$")
 _LEADERS = re.compile(r"[.…]{3,}")
-#: A cell that *is* a number, rather than one that merely contains a digit:
-#: "4,3", "%122,8" and "212" are values; "(2023) Baslangic" is a label.
-_NUMERIC_CELL = re.compile(r"^[%+-]?\d[\d.,\s]*%?$")
+#: One number as a cell writes it -- "4,3", "%122,8", "212" -- and the
+#: parenthesised negative an accounting table uses for a deduction.
+_NUMBER = r"[%+-]?\d[\d.,]*%?|\(\s*[%+-]?\d[\d.,]*%?\s*\)"
+#: A cell that *is* value(s), rather than one that merely contains a digit. A
+#: layout model joins a column's numbers into one cell, so a whitespace-
+#: separated run of them is still data: "3.560.086.540 (16.923.281)" is one
+#: column of a two-line row, not a column name. "(2023) Baslangic" stays a
+#: label, because a cell is data only when *every* token in it is a number.
+_NUMERIC_CELL = re.compile(rf"^(?:{_NUMBER})(?:\s+(?:{_NUMBER}))*$")
 
 
 def _clean(cell: str) -> str:
@@ -124,12 +132,21 @@ def _filled(cells: Sequence[str]) -> list[tuple[int, str]]:
     return [(index, cell) for index, cell in enumerate(cells) if cell]
 
 
-def _headers(rows: Sequence[Sequence[str]], start: int) -> tuple[dict[int, str], int]:
+def _headers(
+    rows: Sequence[Sequence[str]], start: int
+) -> tuple[dict[int, str], list[str], int]:
     """Column names, read down as many rows as the header is split over.
 
     A header row is one with no value in it. The run stops at the first row
     that carries a number, because that row is data -- which is also what
     makes this work on a header the layout model broke across four lines.
+
+    A name too long to be a column name is not a name, but it is still text
+    the document printed in its header -- most often a label column whose row
+    labels the layout model merged into one cell. It is returned separately,
+    to be kept on a line of its own: repeated onto every row it would swamp
+    the index, dropped it would take with it the words the table names its
+    own rows with.
     """
     merged: dict[int, list[str]] = {}
     index = start
@@ -140,12 +157,17 @@ def _headers(rows: Sequence[Sequence[str]], start: int) -> tuple[dict[int, str],
         for column, cell in _filled(cells):
             merged.setdefault(column, []).append(cell)
         index += 1
-    headers = {}
-    for column, parts in merged.items():
+    headers: dict[int, str] = {}
+    oversized: list[str] = []
+    for column, parts in sorted(merged.items()):
         name = " ".join(parts)
-        if name and len(name) <= MAX_HEADER_CHARS:
+        if not name:
+            continue
+        if len(name) <= MAX_HEADER_CHARS:
             headers[column] = name
-    return headers, index
+        else:
+            oversized.append(name)
+    return headers, oversized, index
 
 
 def _table_lines(table_text: str) -> list[str]:
@@ -171,19 +193,29 @@ def _table_lines(table_text: str) -> list[str]:
         if len(captions) > 1:
             lines.append("Bant: " + ", ".join(captions[1:]))
 
-    headers, data_start = _headers(rows, body_start)
+    headers, oversized, data_start = _headers(rows, body_start)
     if headers:
         lines.append("Sutunlar: " + ", ".join(
             headers[column] for column in sorted(headers) if headers[column]))
+    for name in oversized:
+        # Header text too long to name a column: kept whole, and kept once.
+        lines.append("Basliklar: " + name)
 
     for cells in rows[data_start:]:
         filled = _filled(cells)
         if not filled:
             continue
         if len(filled) == 1:
+            column, value = filled[0]
+            if _is_numeric(value):
+                # A row the layout model left no label in: the value belongs to
+                # its own column, not to a band it does not name.
+                header = headers.get(column)
+                lines.append(f"{header}: {value}" if header else value)
+                continue
             # A band label between data rows: it names what follows, so it is
             # kept on its own line rather than becoming a label with no value.
-            lines.append(filled[0][1] + ":")
+            lines.append(value + ":")
             continue
         label = filled[0][1]
         pairs = []

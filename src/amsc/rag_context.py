@@ -28,6 +28,36 @@ from typing import Any, Mapping, Sequence
 from .chunk_relations import derive_continuations, expand_context
 from .rag_index import IndexedChunk
 from .retrieval_pipeline import RetrievalHit
+from .table_view import CONTEXT_HEADER
+
+_counter: Any = None
+
+
+def _count(text: str) -> int:
+    """cl100k tokens -- the chunker's own counter; words if tiktoken is absent."""
+    global _counter
+    if _counter is None:
+        try:
+            from .tokenization import TiktokenTokenCounter
+
+            _counter = TiktokenTokenCounter("cl100k_base")
+        except Exception:  # pragma: no cover - tiktoken is a hard dependency
+            _counter = False
+    return int(_counter.count(text)) if _counter else max(1, len(text.split()))
+
+
+def _context_tokens(chunk: IndexedChunk) -> int:
+    """What one chunk costs the context budget.
+
+    Its own tokens, plus the table reading when it carries one: the budget
+    pays for what is actually rendered, so a reading cannot slip past the
+    limit. A chunk with no reading -- every Markdown and Standard chunk, and
+    every table Deep could not read with certainty -- costs exactly what it
+    always did.
+    """
+    if not chunk.table_view:
+        return chunk.token_count
+    return chunk.token_count + _count(CONTEXT_HEADER + "\n" + chunk.table_view)
 
 
 @dataclass(frozen=True)
@@ -65,6 +95,11 @@ class ContextBlock:
     dense_rank: int | None = None
     bm25_rank: int | None = None
     rrf_score: float | None = None
+    #: The chunk's table reading, rendered beneath ``text`` and never into it.
+    #: ``token_count`` above stays the chunk's own, which is what the source
+    #: payload and every citation report; the reading's cost is counted in the
+    #: context's ``total_tokens``.
+    table_view: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -113,7 +148,11 @@ class AssembledContext:
             if block.pages:
                 where.append("sayfa " + ", ".join(str(p) for p in block.pages))
             header = f"[{block.label}]" + (f" ({'; '.join(where)})" if where else "")
-            parts.append(f"{header}\n{block.text.strip()}")
+            body = block.text.strip()
+            if block.table_view:
+                # Beneath the document's own table, and saying what it is.
+                body += "\n\n" + CONTEXT_HEADER + "\n" + block.table_view
+            parts.append(f"{header}\n{body}")
         return "\n\n".join(parts)
 
 
@@ -169,10 +208,10 @@ def assemble_context(
     for group in groups:
         seed_hit = group["hits"][0]
         members = group["members"]
-        cost = sum(chunks[i].token_count for i in members)
+        cost = sum(_context_tokens(chunks[i]) for i in members)
         if total + cost > settings.max_context_tokens:
             seed_index = by_id[seed_hit.chunk_id].index
-            seed_cost = chunks[seed_index].token_count
+            seed_cost = _context_tokens(chunks[seed_index])
             if total + seed_cost > settings.max_context_tokens:
                 dropped.append({"chunk_id": seed_hit.chunk_id, "rank": seed_hit.rank, "reason": "budget"})
                 continue
@@ -203,6 +242,7 @@ def assemble_context(
                     pages=chunk.pages,
                     role=role,
                     seed_chunk_id=seed_hit.chunk_id,
+                    table_view=chunk.table_view,
                     rank=hit.rank if hit else None,
                     dense_rank=hit.dense_rank if hit else None,
                     bm25_rank=hit.bm25_rank if hit else None,

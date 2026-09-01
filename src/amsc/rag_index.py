@@ -60,6 +60,24 @@ class IndexedChunk:
     #: chunker produced one. Never rendered into the answer context: ``text``
     #: remains the only thing a citation can point at.
     search_text: str | None = None
+    #: A readable rendering of the one table this chunk carries, when Deep
+    #: Analysis could pair every label, value and column with certainty. It is
+    #: an answer-context aid only: it is never indexed -- see
+    #: :attr:`retrieval_text` -- and never what a citation points at.
+    table_view: str | None = None
+
+    @property
+    def retrieval_text(self) -> str:
+        """What both retrieval legs index for this chunk.
+
+        The rendering is indexed *beside* the document's own text, never
+        instead of it: every term that matched the raw table still matches,
+        and the sentences a table sits under stay in the vector. ``text``
+        remains the only thing a citation can point at.
+        """
+        if not self.search_text:
+            return self.text
+        return self.text + "\n" + self.search_text
 
     @classmethod
     def from_row(cls, index: int, row: Mapping[str, Any]) -> "IndexedChunk":
@@ -74,6 +92,7 @@ class IndexedChunk:
             section_path=tuple(paths[0]) if paths and paths[0] else (),
             unit_ids=tuple(str(u) for u in (row.get("unit_ids") or [])),
             search_text=str(row["search_text"]) if row.get("search_text") else None,
+            table_view=str(row["table_view"]) if row.get("table_view") else None,
         )
 
 
@@ -106,16 +125,14 @@ class ChunkIndex:
     def build(self) -> "ChunkIndex":
         started = time.perf_counter()
         fold = FOLDS[self.settings.fold]
-        # BM25 reads the table's rendering *in addition to* its markdown, so
-        # nothing that matched before can stop matching. The dense leg reads it
-        # *instead*: one vector cannot hold both a page of pipes and the
-        # sentences derived from it, and the sentences are what a question
-        # looks like.
+        # Both legs read the table's rendering *in addition to* the markdown,
+        # so nothing that matched before can stop matching. A rendering the
+        # parse read badly can then only add noise; it can never take the
+        # chunk's own words out of the representation that is searched.
         documents = [
             RetrievalDocument(
                 chunk_id=chunk.chunk_id,
-                text=fold(chunk.text if chunk.search_text is None
-                          else chunk.text + "\n" + chunk.search_text),
+                text=fold(chunk.retrieval_text),
                 unit_ids=chunk.unit_ids,
                 pages=chunk.pages,
                 token_count=chunk.token_count,
@@ -125,7 +142,7 @@ class ChunkIndex:
         hits = misses = calls = 0
         if self.embedder is not None:
             vectors = self.embedder.embed(
-                [chunk.search_text or chunk.text for chunk in self.chunks]
+                [chunk.retrieval_text for chunk in self.chunks]
             )
             usage = self.embedder.last_usage
             if usage is not None:

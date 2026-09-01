@@ -46,7 +46,7 @@ from . import deep_proposer as dp
 from . import deep_verifier as dv
 from .agentic_chunker import CallOutcome
 from .llm_boundary_judge import BoundaryJudgeModel, OpenAICompatibleJudgeProvider
-from . import table_search_text
+from . import table_search_text, table_view
 from .models import RawDocumentUnit
 from .structural_chunker import _sections
 from .structural_chunker import chunk_units as structural_chunk_units
@@ -460,10 +460,16 @@ def chunk_document(
     # untouched, so the answer model and every citation still read the table
     # exactly as the document wrote it.
     enriched = table_search_text.enrich_rows(result.rows, units)
+    # And a second rendering, for reading rather than for searching: the answer
+    # context carries it beside the raw markdown so a value cannot be read out
+    # from under the wrong period. Produced only where the table's own
+    # structure makes the pairing certain, so most tables have none.
+    readable = table_view.enrich_rows(result.rows, units)
     report = {
         **result.summary,
         "uses_llm": bool(result.votes),
         "table_search_text_chunks": enriched,
+        "table_view_chunks": readable,
     }
     return ProductChunkingResult(
         mode=mode, status=status, rows=result.rows, report=report, deep=result, error=error
