@@ -11,7 +11,14 @@ Everything else (ids, strategies, decision records) is behind progressive
 disclosure.
 
 Build and serve (the existing server takes any viewer path; Viewer v2 keeps
-its own build untouched):
+its own build untouched). With no trees at all it builds the product shell --
+a page that carries no corpus of its own and reads every document from the
+RAG console at runtime, which is the only build a fresh clone can make,
+because the frozen research trees are not in version control:
+
+    py -3.11 -m amsc.viewer_v3 --output artifacts/viewer-v3/index.html
+
+Adding trees embeds them, which is what the research build does:
 
     py -3.11 -m amsc.viewer_v3 `
       --benchmark kkb-2024=artifacts/chunk-benchmark-v5/kkb-2024 `
@@ -66,7 +73,9 @@ def build_viewer(
 
     Same inputs as the v2 build (minus the research-only ``--agentic`` slot):
     ``benchmarks`` maps a document id to a frozen chunk-benchmark tree,
-    ``deep`` to a packaged Deep Analysis tree. The per-document payload is
+    ``deep`` to a packaged Deep Analysis tree. Both may be empty, which builds
+    the product shell: no embedded corpus, every document read live from the
+    console. The per-document payload is
     exactly ``viewer_v2.load_corpus`` output, so a live document fetched at
     runtime through ``/api/live-document`` has the same shape as an embedded
     one and the page needs no second reader.
@@ -74,8 +83,15 @@ def build_viewer(
     deep = dict(deep or {})
     labels = dict(labels or {})
     documents = list(benchmarks) + [doc for doc in deep if doc not in benchmarks]
-    if not documents:
-        raise ValueError("at least one benchmark tree or packaged deep tree is required")
+    # No documents is a legitimate build, and the only one a clean checkout can
+    # make: the frozen benchmark and Deep trees are git-ignored research output
+    # that cannot be committed, so requiring one of them left the product's own
+    # page buildable on exactly one machine. Nothing the page needs for a live
+    # document comes from an embedded one -- the method order, labels and
+    # summaries below are build-time constants, and every corpus-driven view
+    # reads ``DATA.docOrder``, which is then simply empty. Served, the page
+    # lists the console's knowledge bases and fetches their payloads over the
+    # server's existing relays, which is what the product uses it for.
     output = Path(output)
     if "evaluation" in output.parts:
         raise ValueError("refusing to write the viewer into evaluation/ (frozen)")
@@ -146,9 +162,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             (spec.partition("=")[0].strip(), spec.partition("=")[2].strip()) for spec in args.label
         )
     }
-    if not benchmarks and not deep:
-        parser.error("give at least one --benchmark DOC=DIR or --deep DOC=DIR")
-
     path = build_viewer(
         benchmarks,
         args.output,
@@ -157,7 +170,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         labels=labels,
         write_catalog=not args.no_catalog,
     )
-    print(json.dumps({"written": str(path)}, ensure_ascii=False))
+    # The count is reported because zero is a meaningful, and easily
+    # unintended, answer: it is the product shell rather than a failed build.
+    embedded = len(set(benchmarks) | set(deep))
+    print(json.dumps({"written": str(path), "embedded_documents": embedded}, ensure_ascii=False))
     return 0
 
 

@@ -13,7 +13,7 @@ import re
 from test_viewer_v2 import make_tree
 
 from amsc import viewer_v2
-from amsc.viewer_v3 import METHOD_LABELS, build_viewer
+from amsc.viewer_v3 import METHOD_LABELS, build_viewer, main
 
 
 def _build(tmp_path):
@@ -113,3 +113,63 @@ def test_writing_into_evaluation_is_refused(tmp_path):
         assert "evaluation" in str(error)
     else:  # pragma: no cover
         raise AssertionError("expected the evaluation/ guard to refuse")
+
+
+# --- the build a clean checkout can run ------------------------------------
+
+
+def test_a_page_with_no_embedded_corpus_is_still_a_product_page(tmp_path):
+    """The frozen benchmark and Deep trees are git-ignored research output, so
+    requiring one of them left the product's own Viewer buildable on exactly
+    one machine. A shell carries everything a live document needs."""
+    output = tmp_path / "shell" / "index.html"
+
+    build_viewer({}, output, root=tmp_path)
+
+    html_text = output.read_text(encoding="utf-8")
+    assert "__VIEWER_DATA__" not in html_text
+    data = _payload(html_text)
+    assert data["docs"] == {} and data["docOrder"] == []
+    assert data["generator"] == "amsc.viewer_v3"
+    # The method universe is build-time and owes nothing to an embedded corpus.
+    assert data["methodLabels"] == METHOD_LABELS
+    assert data["methodOrder"] and set(data["methodSummaries"]) == set(data["methodOrder"])
+    # And the page still knows how to reach the console for its documents.
+    for endpoint in ("/api/workspace", "/api/live-document"):
+        assert endpoint in html_text, f"{endpoint} is how a live document arrives"
+    catalog = json.loads((output.parent / "catalog.json").read_text(encoding="utf-8"))
+    assert catalog["documents"] == {} and catalog["generator"] == "amsc.viewer_v3"
+
+
+def test_the_shell_build_is_deterministic(tmp_path):
+    first = tmp_path / "one" / "index.html"
+    second = tmp_path / "two" / "index.html"
+    build_viewer({}, first, root=tmp_path)
+    build_viewer({}, second, root=tmp_path)
+    assert first.read_bytes() == second.read_bytes()
+
+
+def test_the_cli_builds_the_shell_with_no_tree_arguments(tmp_path, capsys):
+    """``python -m amsc.viewer_v3 --output ...`` is the whole fresh-clone
+    build; it used to exit with "give at least one --benchmark DOC=DIR"."""
+    output = tmp_path / "cli" / "index.html"
+
+    assert main(["--output", str(output), "--root", str(tmp_path)]) == 0
+
+    assert output.is_file()
+    assert json.loads(capsys.readouterr().out) == {
+        "written": str(output), "embedded_documents": 0,
+    }
+
+
+def test_a_named_tree_is_still_embedded(tmp_path, capsys):
+    """The research build is unchanged: naming a tree still embeds it, and the
+    count says so."""
+    tree = make_tree(tmp_path)
+    output = tmp_path / "with-corpus" / "index.html"
+
+    assert main(["--benchmark", f"doc={tree}", "--output", str(output),
+                 "--root", str(tmp_path)]) == 0
+
+    assert json.loads(capsys.readouterr().out)["embedded_documents"] == 1
+    assert list(_payload(output.read_text(encoding="utf-8"))["docs"]) == ["doc"]
