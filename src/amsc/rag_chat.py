@@ -31,19 +31,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from . import methods
 from .rag_answer import AnswerProvider, answer as generate_answer, build_answer_provider
 from .rag_context import AssembledContext, ContextSettings, assemble_context
 from .rag_embeddings import CachedEmbeddings, build_embedding_provider
 from .rag_index import ChunkIndex, IndexedChunk, RetrievalSettings, index_rows
 from .retrieval_pipeline import RetrievalHit
 
-ARM_LABELS = {
-    "markdown": "Markdown",
-    "hybrid": "Hybrid",
-    "structure-only": "Structure-only",
-    "agentic": "Agentic Chunker",
-}
-ARM_ORDER = ("markdown", "hybrid", "structure-only", "agentic")
+#: Product names and order, from the registry: a source card names a method
+#: exactly as the page that showed the chunk does.
+ARM_LABELS = methods.LABELS
+ARM_ORDER = methods.ORDER
 
 STATUS_OK = "ok"
 STATUS_INSUFFICIENT = "insufficient"

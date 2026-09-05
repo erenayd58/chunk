@@ -51,6 +51,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from . import methods
+
 TOKEN_BUDGET_CONTINUATION = "TOKEN_BUDGET_CONTINUATION"
 SECTION_LABEL_CONTINUATION = "SECTION_LABEL_CONTINUATION"
 MARKDOWN_SPLIT_CONTINUATION = "MARKDOWN_SPLIT_CONTINUATION"
@@ -147,8 +149,7 @@ def derive_continuations(
                     # LLM SPLIT vote); the chunk rows do not record which, so
                     # the relation refuses to claim "greedy".
                     "not_recorded_greedy_or_arbitrated"
-                    if kind in ("hybrid_h1", "agentic_structure_llm")
-                    and reason == "budget_split"
+                    if _arbitrates(kind) and reason == "budget_split"
                     else "greedy"
                 ),
                 **({"document_id": document_id} if document_id else {}),
@@ -307,7 +308,19 @@ def expand_context(
 # sidecar derivation over a frozen benchmark tree
 # --------------------------------------------------------------------------
 
-ARMS = ("markdown", "hybrid", "structure-only")
+#: The earlier research arm (``amsc.agentic_chunker``), which is not a
+#: registered product method but whose trees the Viewer v2 still reads.
+LEGACY_AGENTIC_KIND = "agentic_structure_llm"
+
+
+def _arbitrates(kind: str) -> bool:
+    """A budget cut of this kind may have been chosen by an arbitration --
+    the registry says so for a registered method; the legacy research arm
+    is named here because it is not registered."""
+    return kind == LEGACY_AGENTIC_KIND or methods.kind_arbitrates(kind)
+
+
+ARMS = methods.benchmark_arms()
 
 
 def derive_tree(benchmark_dir: Path, output_dir: Path) -> dict[str, Any]:

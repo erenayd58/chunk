@@ -236,6 +236,7 @@ V1'de `hard_max_tokens=1126`, varsayılan `tiktoken:cl100k_base` sayacına göre
 - [Bağlam ve kararlar](docs/kararlar-ve-baglam.md)
 - [Seçilen çözüm](docs/secilen-cozum.md)
 - [V1/V2/V3 implementasyon planı ve mimarisi](docs/implementasyon-plani.md)
+- [Yeni bir parçalama yöntemi eklemek](docs/adding-a-chunker.md) — tek kayıt: `src/amsc/methods.py`
 
 ## Test
 

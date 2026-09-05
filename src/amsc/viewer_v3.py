@@ -39,26 +39,18 @@ import json
 from pathlib import Path
 from typing import Mapping, Sequence
 
+from . import methods
 from .viewer_v2 import _catalog, load_corpus
 from .viewer_v3_template import TEMPLATE
 
-#: Product order and product names -- one name per method, everywhere.
-METHOD_ORDER = ("markdown", "hybrid", "structure-only", "agentic")
-METHOD_LABELS = {
-    "markdown": "Markdown",
-    "hybrid": "Hybrid",
-    "structure-only": "Standard",
-    "agentic": "Deep Analysis",
-}
-#: One sentence per method, for the picker. Presence in a document is always
-#: read from the document's own arms; these sentences only describe a method
-#: that is actually there.
-METHOD_SUMMARIES = {
-    "markdown": "Metni sabit boyutta keser; bölüm yapısına bakmaz.",
-    "hybrid": "Yapıyı takip eder; bütçeyi aşan bölümlerde kesim yerini anlam benzerliğiyle seçer.",
-    "structure-only": "Dokümanın başlık yapısını takip eder; yalnız çok büyüyen bölümler bölünür.",
-    "agentic": "Standard'ın bıraktığı kötü sınırları arar ve düzeltir; kararsız yerlerde modele danışır.",
-}
+#: Product order, product names and one-line summaries -- read from the
+#: method registry (``amsc.methods``), which is where a method is added. The
+#: page embeds them at build time; presence in a document is always read
+#: from the document's own arms, so these only describe a method that is
+#: actually there. Live views: a method registered after import is listed.
+METHOD_ORDER = methods.ORDER
+METHOD_LABELS = methods.LABELS
+METHOD_SUMMARIES = methods.SUMMARIES
 
 
 def build_viewer(
@@ -109,8 +101,13 @@ def build_viewer(
         "docs": docs,
         "docOrder": documents,
         "methodOrder": list(METHOD_ORDER),
-        "methodLabels": METHOD_LABELS,
-        "methodSummaries": METHOD_SUMMARIES,
+        "methodLabels": dict(METHOD_LABELS),
+        "methodSummaries": dict(METHOD_SUMMARIES),
+        # What the page needs to treat a method by what it *is* rather than
+        # by its name: which one is the orchestration, which partition it
+        # starts from, what it needs to run. A new partition method needs
+        # nothing here; the page reads its capabilities like any other's.
+        "methodMeta": methods.meta(),
         "generator": "amsc.viewer_v3",
     }
     payload = json.dumps(

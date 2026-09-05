@@ -37,6 +37,7 @@ from typing import Any, Mapping, Sequence
 from . import boundary_quality as bq
 from . import chunk_quality
 from . import deep_analysis as da
+from . import methods
 from .agentic_benchmark import _evaluate_gold
 from .chunk_benchmark import normalize_unit_ids_for_retrieval
 from .chunk_mapping import base_unit_id, map_chunks
@@ -47,7 +48,7 @@ from .models import RawDocumentUnit
 from .structural_chunker import _sections
 from .tokenization import TiktokenTokenCounter, TokenCounter
 
-ARM_KIND = "deep_analysis"
+ARM_KIND = methods.DEEP_KIND
 GENERATOR = "amsc.deep_arm"
 
 #: Section-level outcomes, in the order the counts are reported.

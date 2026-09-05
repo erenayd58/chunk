@@ -496,6 +496,13 @@ let WS = null, wsAt = 0, pollTimer = null;
 const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const mLabel = (a) => (DATA.methodLabels || {})[a] || a;
 const mSummary = (a) => (DATA.methodSummaries || {})[a] || "";
+/* What a method *is*, from the build-time registry: the page keys Deep
+   Analysis behaviour on the deep flag and the baseline on its declared
+   baseline, so a newly registered partition method needs no edit here. */
+const mMeta = (a) => (DATA.methodMeta || {})[a] || {};
+const isDeep = (a) => !!mMeta(a).deep;
+const DEEP = (DATA.methodOrder || []).find(isDeep) || "agentic";
+const BASE = mMeta(DEEP).baseline || "structure-only";
 const fmtPages = (pg) => !pg || !pg.length ? "" : (pg.length === 1 ? "Sayfa " + pg[0] : "Sayfa " + pg[0] + "–" + pg[pg.length - 1]);
 const secOf = (c) => (c.sd && c.sd.length ? c.sd.join(" › ") : (c.hh || null));
 
@@ -628,7 +635,7 @@ function renderBar() {
     chips.hidden = false;
     chips.innerHTML = avail.map((a) => {
       const at = S.sel.indexOf(a);
-      const note = a === "agentic" ? deepNote(S.doc) : null;
+      const note = isDeep(a) ? deepNote(S.doc) : null;
       return `<button class="chip${at >= 0 ? " on" : ""}" data-m="${a}">` +
         (at >= 0 && S.sel.length > 1 ? `<span class="ord">${at + 1}</span>` : "") +
         esc(mLabel(a)) + (note ? `<span class="note">${esc(note)}</span>` : "") + `</button>`;
@@ -690,7 +697,7 @@ function renderStage() {
       <p>${S.doc.meta && S.doc.meta.pageCount ? S.doc.meta.pageCount + " sayfa · " : ""}Bir parçalama yöntemi seçin — ikincisini seçtiğinizde aynı sayfa yan yana karşılaştırılır.</p>
       ${steps(2)}<div class="mcards">` +
       avail.map((a) => {
-        const note = a === "agentic" ? deepNote(S.doc) : null;
+        const note = isDeep(a) ? deepNote(S.doc) : null;
         return `<button class="mcard" data-m="${a}"><span class="n">${esc(mLabel(a))}` +
           (note ? `<span class="note">${esc(note)}</span>` : "") + `</span>` +
           (mSummary(a) ? `<span class="s">${esc(mSummary(a))}</span>` : "") + `</button>`;
@@ -744,7 +751,7 @@ function renderBoard(st) {
   if (n > 1) {
     h += `<div class="grow">` + (gutter ? `<div class="gut chead"></div>` : "");
     for (const a of arms) {
-      const note = a === "agentic" ? deepNote(doc) : null;
+      const note = isDeep(a) ? deepNote(doc) : null;
       h += `<div class="chead">${esc(mLabel(a))}${note ? `<span class="note">${esc(note)}</span>` : ""}</div>`;
     }
     h += `</div>`;
@@ -913,7 +920,7 @@ function qDefaults() {
   const avail = qArmOptions();
   S.q.arms = (S.q.arms || []).filter((a) => avail.indexOf(a) >= 0);
   if (!S.q.arms.length && avail.length)
-    S.q.arms = [avail.indexOf("agentic") >= 0 ? "agentic" : avail[0]];
+    S.q.arms = [avail.indexOf(DEEP) >= 0 ? DEEP : avail[0]];
   // KB-wide search runs one method at a time.
   if (qTarget().kind === "kb" && S.q.arms.length > 1) S.q.arms = [S.q.arms[0]];
   if (!S.q.topk)
@@ -1467,7 +1474,7 @@ function benchMethodsPanel(doc) {
     const frag = arm.sq && arm.sq.fragmentation;
     const head = arm.chunks.length ? arm.chunks.filter((c) => c.hd).length / arm.chunks.length : null;
     let dur = null;
-    if (a === "agentic") dur = deepSeconds(doc.meta.deep);
+    if (isDeep(a)) dur = deepSeconds(doc.meta.deep);
     else if (lm && lm[a] && typeof lm[a].seconds === "number") dur = lm[a].seconds;
     else if (tm[a] && tm[a].chunk_ms_median != null) dur = tm[a].chunk_ms_median / 1000;
     if (dur != null) anyDur = true;
@@ -1497,8 +1504,8 @@ function benchTimingPanel(doc) {
       `<td>${fmt1(t.chunk_ms_median)}</td><td>${fmt1(t.index_build_ms)}</td>` +
       `<td>${t.search_p90_ms != null ? t.search_p90_ms.toFixed(2) : "—"}</td></tr>`;
   }).join("");
-  const dt = doc.arms.agentic && doc.arms.agentic.tim;
-  if (dt) body += `<tr><td>${esc(mLabel("agentic"))}</td><td>—</td>` +
+  const dt = doc.arms[DEEP] && doc.arms[DEEP].tim;
+  if (dt) body += `<tr><td>${esc(mLabel(DEEP))}</td><td>—</td>` +
     `<td>${fmt1(dt.index_build_ms)}</td><td>${dt.search_p90_ms != null ? dt.search_p90_ms.toFixed(2) : "—"}</td></tr>`;
   const parse = tm.parse;
   return `<div class="hpanel">${MARKS}<div class="hphead"><span class="t">Zamanlama (ms)</span>` +
@@ -1684,7 +1691,7 @@ const dbgMatch = (st, f) => f === "all"
 
 function dbgJump(pg) {
   if (pg == null || !S.doc) return;
-  const arms = ["structure-only", "agentic"].filter((a) => S.doc.arms[a]);
+  const arms = [BASE, DEEP].filter((a) => S.doc.arms[a]);
   if (arms.length) S.sel = arms;
   S.mode = "incele"; S.diffIdx = -1;
   buildRows(); S.page = pg;
@@ -1779,8 +1786,8 @@ function renderDebug(st) {
   // -- 01 pipeline: only measured numbers, only recorded times --------------
   const parse = tm.parse;
   let stdDur = null;
-  if (tm["structure-only"] && tm["structure-only"].chunk_ms_median != null) stdDur = tm["structure-only"].chunk_ms_median / 1000;
-  else if (lm && lm["structure-only"] && typeof lm["structure-only"].seconds === "number") stdDur = lm["structure-only"].seconds;
+  if (tm[BASE] && tm[BASE].chunk_ms_median != null) stdDur = tm[BASE].chunk_ms_median / 1000;
+  else if (lm && lm[BASE] && typeof lm[BASE].seconds === "number") stdDur = lm[BASE].seconds;
   const steps = [];
   steps.push({ n: "01", nm: "Parser", t: parse && parse.parse_ms ? fmtDur(parse.parse_ms / 1000) : null,
     ds: (doc.meta.pageCount || "?") + " sayfa · " + (doc.meta.unitCount || "?") + " birim" +
@@ -1789,7 +1796,7 @@ function renderDebug(st) {
     ? { n: "02", nm: "Yapısal sınır", t: stdDur != null ? fmtDur(stdDur) : null,
         ds: sc.standard_kept + " bölüm dokunulmadan geçti · " + (sc.sections || "?") + " bölüm" }
     : { n: "02", nm: "Yapısal sınır", t: stdDur != null ? fmtDur(stdDur) : null,
-        ds: doc.arms["structure-only"] ? doc.arms["structure-only"].chunks.length + " parça üretildi" : "bu dokümanda koşmadı", dim: !doc.arms["structure-only"] });
+        ds: doc.arms[BASE] ? doc.arms[BASE].chunks.length + " parça üretildi" : "bu dokümanda koşmadı", dim: !doc.arms[BASE] });
   steps.push(sc
     ? { n: "03", nm: "Kural katmanı", t: dp && dp.timing && dp.timing.selection != null ? fmtDur(dp.timing.selection) : null,
         ds: sc.deterministic_improved + " bölümde sınır düzeltildi" }

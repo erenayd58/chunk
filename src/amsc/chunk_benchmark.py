@@ -48,7 +48,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 import yaml
 
-from . import chunk_quality, chunk_viewer, hybrid_chunker, markdown_chunker, structural_chunker
+from . import chunk_quality, chunk_viewer, methods
 from .cache import FileEmbeddingCache
 from .chunk_mapping import base_unit_id, map_chunks
 from .config import V4Config
@@ -67,7 +67,10 @@ from .retrieval_benchmark import (
 from .retrieval_pipeline import DeterministicBM25, RetrievalDocument, RetrievalHit
 from .tokenization import TiktokenTokenCounter, TokenCounter
 
-ARMS = ("markdown", "hybrid", "structure-only")
+#: The compared arms: the registry's benchmark arms, in the benchmark's own
+#: order. The set is a contract of the frozen checkpoint (see
+#: ``validate_arms``); the *dispatch* of each arm's kind is the registry's.
+ARMS = methods.benchmark_arms()
 LABELS = {
     "markdown": "Markdown (size-first)",
     "hybrid": "Hybrid (structure + H1)",
@@ -129,7 +132,10 @@ class SourceConfig(_Strict):
 
 
 class ArmConfig(_Strict):
-    kind: Literal["markdown_recursive", "hybrid_h1", "structure_first"]
+    #: A registered partition method's kind (``amsc.methods``). Validated
+    #: against the registry rather than a literal list, so a new method is
+    #: benchmarkable the moment it is registered.
+    kind: str
     chunk_size_tokens: int | None = Field(default=None, ge=1)
     chunk_overlap_tokens: int | None = Field(default=None, ge=0)
     #: Take the section decision from the canonical's ``opens_section`` rather
@@ -139,12 +145,18 @@ class ArmConfig(_Strict):
 
     @model_validator(mode="after")
     def validate_kind_fields(self) -> "ArmConfig":
+        try:
+            method = methods.by_kind(self.kind)
+        except methods.UnknownMethod as unknown:
+            raise ValueError(str(unknown)) from None
+        if method.partition is None:
+            raise ValueError(f"{self.kind} is an orchestration, not a benchmark arm")
         sizing = (self.chunk_size_tokens, self.chunk_overlap_tokens)
-        if self.kind == "markdown_recursive":
+        if method.sized:
             if any(value is None for value in sizing):
-                raise ValueError("markdown_recursive needs chunk_size and chunk_overlap")
+                raise ValueError(f"{self.kind} needs chunk_size and chunk_overlap")
             if self.respect_semantic_roles:
-                raise ValueError("markdown_recursive has no section machine to inform")
+                raise ValueError(f"{self.kind} has no section machine to inform")
         elif any(value is not None for value in sizing):
             raise ValueError(f"{self.kind} takes its sizes from the shared token budget")
         return self
@@ -364,54 +376,38 @@ def run_arm(
     *,
     boundary_embedder: Any | None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any], Mapping[str, tuple[int, int]] | None]:
-    """Produce one arm's chunks, its diagnostics and its rendered unit spans."""
-    settings = config.arms[arm]
-    budget = config.tokens
-    if settings.kind == "markdown_recursive":
-        document = markdown_chunker.render_markdown(units)
-        rows = markdown_chunker.chunk_units(
-            units,
-            counter=counter,
-            chunk_size_tokens=int(settings.chunk_size_tokens or 0),
-            chunk_overlap_tokens=int(settings.chunk_overlap_tokens or 0),
-            hard_max_tokens=budget.hard_max_tokens,
-        )
-        return (
-            rows,
-            {
-                "chunk_size_tokens": settings.chunk_size_tokens,
-                "chunk_overlap_tokens": settings.chunk_overlap_tokens,
-                "tuning_status": markdown_chunker.TUNING_STATUS,
-                "size_configuration_note": (
-                    "Frozen for this benchmark so every arm shares one token "
-                    "budget; not a reproduction of any library default."
-                ),
-            },
-            dict(document.spans),
-        )
-    if settings.kind == "structure_first":
-        rows = structural_chunker.chunk_units(
-            units,
-            counter=counter,
-            min_tokens=budget.min_tokens,
-            target_tokens=budget.target_tokens,
-            soft_max_tokens=budget.soft_max_tokens,
-            hard_max_tokens=budget.hard_max_tokens,
-            respect_semantic_roles=settings.respect_semantic_roles,
-        )
-        return rows, {"respect_semantic_roles": settings.respect_semantic_roles}, None
+    """Produce one arm's chunks, its diagnostics and its rendered unit spans.
 
-    result = hybrid_chunker.chunk_units(
+    Dispatch is the registry's: the arm's ``kind`` names a registered
+    partition method and :func:`amsc.methods.partition` runs it. Nothing here
+    knows which engine is which; a registered method is a benchmarkable one.
+    """
+    settings = config.arms[arm]
+    method = methods.by_kind(settings.kind)
+    options: dict[str, Any] = {}
+    if method.sized:
+        options = {
+            "chunk_size_tokens": int(settings.chunk_size_tokens or 0),
+            "chunk_overlap_tokens": int(settings.chunk_overlap_tokens or 0),
+        }
+    result = methods.partition(
+        method.key,
         units,
         counter=counter,
+        budget=config.tokens.model_dump(),
         boundary_embedder=boundary_embedder,
-        min_tokens=budget.min_tokens,
-        target_tokens=budget.target_tokens,
-        soft_max_tokens=budget.soft_max_tokens,
-        hard_max_tokens=budget.hard_max_tokens,
         respect_semantic_roles=settings.respect_semantic_roles,
+        **options,
     )
-    return result.chunks, result.diagnostics, None
+    diagnostics = dict(result.diagnostics)
+    if method.sized:
+        # The benchmark's own note about the sizes it froze; the engine does
+        # not know it is being benchmarked.
+        diagnostics["size_configuration_note"] = (
+            "Frozen for this benchmark so every arm shares one token "
+            "budget; not a reproduction of any library default."
+        )
+    return result.rows, diagnostics, result.spans
 
 
 def time_arm(
@@ -594,13 +590,14 @@ def measure_cold_embedding(
     config: ChunkBenchmarkConfig,
     units: Sequence[RawDocumentUnit],
     counter: TokenCounter,
+    arm: str = "hybrid",
 ) -> dict[str, Any]:
-    """Time the hybrid arm against an empty embedding cache.
+    """Time an embedding arm against an empty embedding cache.
 
-    Cold and warm only differ for the arm that loads a model; the other two are
-    reported as ``cold_equals_warm``. The temporary cache keeps the shared
-    ``.cache/boundary-embeddings`` -- which the frozen V1-V4 runs also use --
-    untouched.
+    Cold and warm only differ for an arm that loads a model (the registry's
+    ``needs_embedder``); the others are reported as ``cold_equals_warm``. The
+    temporary cache keeps the shared ``.cache/boundary-embeddings`` -- which
+    the frozen V1-V4 runs also use -- untouched.
     """
     with tempfile.TemporaryDirectory(prefix="amsc-cold-") as temporary:
         settings = V4Config.from_yaml(root / config.boundary_embedding.config)
@@ -616,19 +613,17 @@ def measure_cold_embedding(
         )
         cold = CachedSemanticBoundaryEmbedder(delegate, FileEmbeddingCache(temporary))
         start = time.perf_counter_ns()
-        result = hybrid_chunker.chunk_units(
+        result = methods.partition(
+            arm,
             units,
             counter=counter,
+            budget=config.tokens.model_dump(),
             boundary_embedder=cold,
-            min_tokens=config.tokens.min_tokens,
-            target_tokens=config.tokens.target_tokens,
-            soft_max_tokens=config.tokens.soft_max_tokens,
-            hard_max_tokens=config.tokens.hard_max_tokens,
         )
         elapsed = (time.perf_counter_ns() - start) / 1_000_000.0
     return {
         "chunk_ms_cold": elapsed,
-        "embedded_piece_count": result.diagnostics["embedded_piece_count"],
+        "embedded_piece_count": result.diagnostics.get("embedded_piece_count"),
         "note": (
             "Empty embedding cache, model already loaded. Written to a temporary "
             "directory so the shared boundary-embedding cache is not disturbed."
@@ -763,11 +758,11 @@ def run_benchmark(
             "search_p50_ms": latency["search_median_ms"],
             "search_p90_ms": latency["search_p90_ms"],
             "search_latency": latency,
-            "uses_embeddings": arm == "hybrid",
-            "cold_equals_warm": arm != "hybrid",
+            "uses_embeddings": methods.get(arm).needs_embedder,
+            "cold_equals_warm": not methods.get(arm).needs_embedder,
         }
-        if arm == "hybrid" and measure_cold_embedding_time:
-            timing[arm]["cold"] = measure_cold_embedding(root, config, units, counter)
+        if methods.get(arm).needs_embedder and measure_cold_embedding_time:
+            timing[arm]["cold"] = measure_cold_embedding(root, config, units, counter, arm=arm)
         _write_json(arm_dir / "timing.json", timing[arm])
 
     comparison, comparison_summary = arm_comparison(output, gold)

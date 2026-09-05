@@ -57,11 +57,15 @@ import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from . import methods
 from .chunk_relations import continuation_groups, derive_continuations
 from .viewer_v2_template import TEMPLATE
 
-ARM_ORDER = ("markdown", "hybrid", "structure-only")
-PRODUCT_ARM_ORDER = ("markdown", "hybrid", "structure-only", "agentic")
+#: The frozen benchmark's three arms, in the benchmark's order, and the four
+#: product methods -- both read from the registry so this reader cannot
+#: disagree with the builders and the console about what a method is called.
+ARM_ORDER = methods.benchmark_arms()
+PRODUCT_ARM_ORDER = methods.ORDER
 
 ARM_LABELS = {
     "markdown": "Markdown",
@@ -687,9 +691,9 @@ def _oversized_units(units_raw: Sequence[dict], hard_max_tokens: int) -> dict[st
 
 
 #: Arm kinds a packaged directory may declare, so an extra arm cannot be
-#: labelled with a mechanism the boundary-reason reader does not know.
-ARM_KINDS = {"markdown": "markdown_recursive", "hybrid": "hybrid_h1",
-             "structure-only": "structure_first", "agentic": "deep_analysis"}
+#: labelled with a mechanism the boundary-reason reader does not know. A
+#: live view of the registry: a method registered there is accepted here.
+ARM_KINDS = methods.KINDS
 
 
 def load_corpus(
