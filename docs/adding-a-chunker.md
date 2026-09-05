@@ -5,9 +5,10 @@ Konsolun gönderdiği tel adı (`structure-only`), paketlenmiş `mapping.json`'�
 bildirdiği motor türü (`structure_first`), her ekranda görünen ürün adı
 (`Standard`), tek cümlelik özet ve yeteneklerin (embedder gerekir mi, modele
 danışır mı, benchmark kolu mu) hepsi oradaki bir `ChunkMethod` kaydıdır.
-Viewer v3 builder'ı, Viewer v2 okuyucusu, chunk benchmark'ı, ilişki türeticisi
-ve chat_rag konsolu listelerini bu kayıttan okur. Yeni bir yöntemin başka hiçbir
-dosyaya adının yazılması gerekmez.
+Viewer v3 builder'ı, Viewer okuyucusu (`amsc.viewer_corpus`), chunk benchmark'ı,
+ilişki türeticisi ve chat_rag konsolu listelerini bu kayıttan okur. Yeni bir
+yöntemin başka hiçbir dosyaya adının yazılması gerekmez -- Viewer'a özel bir
+liste de yoktur; sınırın tamamı `docs/viewer-architecture.md`'de.
 
 ## Üç adım
 

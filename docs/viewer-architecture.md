@@ -1,0 +1,267 @@
+# Viewer architecture — who owns what, and how a document reaches the page
+
+Written for the engineer who has to change something in the Viewer and does not
+want to trace two repositories first. Practical only; the product story is in
+[viewer-v3.md](viewer-v3.md).
+
+## The two repositories
+
+| | `chunk` (this repo) | `chat_rag` (the console) |
+|---|---|---|
+| owns | chunking methods, the payload reader, the Viewer pages, the Viewer's own server | the documents, their ingest, the packaging lifecycle, the console API |
+| holds no | product state — no uploads, no per-document status | copy of a chunker, a method list or a payload shape |
+| the seam | `amsc.methods` (method identity) and `amsc.viewer_corpus` (payload shape) | reads both; states neither |
+
+The rule that keeps it clean: **product state never moves into the library, and
+the library's knowledge is never restated in the console.** When the two must
+agree, the console reads `amsc`.
+
+## The layers in `chunk`
+
+```
+amsc.methods            the registry: which methods exist, what each one is
+    |                   (Phase 5 -- the single source of method identity)
+amsc.viewer_corpus      the reader: artifact trees -> one payload shape
+    |                   load_corpus() and catalog(). Renders no page.
+    +-- amsc.viewer_v3      the product page   (built and served by start-demo)
+    +-- amsc.viewer_v2      the research page  (compatibility, see below)
+    |
+amsc.viewer_server      the service: serves a page, relays the console
+```
+
+`viewer_corpus` is the whole cross-repository contract. Both pages read it, and
+so does `chat_rag`'s packaging worker — which is why a live document and a
+frozen benchmark document have exactly the same shape and the page needs no
+second reader.
+
+## The build: what creates Viewer v3
+
+One command, one input set, one output directory:
+
+```powershell
+py -3.11 -m amsc.viewer_v3 --output artifacts/viewer-v3/index.html
+```
+
+| | |
+|---|---|
+| inputs (required) | tracked source only: `viewer_v3.py`, `viewer_v3_template.py`, `viewer_corpus.py`, `methods.py` |
+| inputs (optional) | `--benchmark DOC=DIR`, `--deep DOC=DIR` — frozen research trees, embedded into the page |
+| outputs | `artifacts/viewer-v3/index.html` and `catalog.json` beside it |
+| owner of the optional inputs | the research runs (`amsc.chunk_benchmark`, `amsc.deep_run`). They are git-ignored and a fresh clone has none |
+
+With no trees this is the **product shell**: a page with no embedded corpus that
+reads every document live from the console. That is the only build a clean
+checkout can make, and it is what the product uses.
+`chat_rag/start-demo.ps1` runs exactly this command when
+`artifacts/viewer-v3/index.html` is missing, so a fresh clone needs no manual
+build step. A page that is already there is served as it is — that is how a
+research build with embedded trees survives a restart.
+
+**Nothing generated is in version control.** `artifacts/` is git-ignored here,
+`artifacts/viewer-live/` in `chat_rag`. Two tests hold that line:
+`chunk/tests/unit/test_viewer_boundary.py::test_no_generated_viewer_output_is_in_version_control`
+and its `chat_rag` counterpart.
+
+| kind | where | rebuilt by |
+|---|---|---|
+| tracked source | `src/amsc/*.py` | — |
+| build artifact | `artifacts/viewer-v3/{index.html,catalog.json}` | `python -m amsc.viewer_v3` |
+| runtime state | `chat_rag/artifacts/viewer-live/<key>/` | an ingest, or `resume_incomplete()` |
+| disposable cache | `chat_rag` parser cache, `.cache/rag-embeddings/` | itself |
+
+## Where Viewer v3 gets its data
+
+Two sources, one shape.
+
+```
+embedded (build time)   frozen research trees -> viewer_corpus.load_corpus -> DATA.docs
+live (runtime)          the RAG console, through the Viewer's own server
+```
+
+The browser only ever talks to `amsc.viewer_server` (default `:8765`). It never
+addresses the console, so there is no CORS grant and no console address in the
+page.
+
+```
+browser
+  |
+  +-- GET  /                          the built page
+  +-- GET  /api/workspace             -> console GET  /api/demo/workspace
+  +-- GET  /api/live-document?doc=    -> console GET  /api/demo/viewer-analysis/<id>/payload
+  +-- POST /api/live-prepare          -> console POST /api/demo/viewer-analysis/<id>
+  +-- POST /api/retrieve|chat|compare    local ChatEngine; on an unseen live
+                                         document it first pulls the rows from
+                                         console GET .../chunks and indexes them
+  +-- GET  /api/health, /api/docs, /api/chunk   this process's own catalog
+```
+
+So there is one path per question:
+
+| the page needs | it asks | authoritative source |
+|---|---|---|
+| available documents | `/api/workspace` | the console's `DocumentTracker` + analysis states |
+| methods and their metadata | embedded `methodOrder/methodLabels/methodSummaries/methodMeta` | `amsc.methods` at build time; `/api/demo/methods` for availability on this machine |
+| chunk boundaries, units, pages | `/api/live-document` (or the embedded payload) | `viewer_corpus.load_corpus` |
+| chunk rows to retrieve over | `/api/retrieve` → console `.../chunks` | the packaged `chunks.jsonl` |
+| comparison / debug / benchmark | the same payload | one payload, several views |
+
+## What runs after ingest (the packaging lifecycle)
+
+All of it in `chat_rag/components/viewer/analysis.py`, one background worker
+thread, one build at a time per document.
+
+```
+upload / ingest finishes
+   |
+   v  app.stage_viewer_analysis()
+analysis.stage(units, deep_result, methods)     <- request thread, serialisation only
+   |    writes units.jsonl (the canonical) and, on a Deep upload, the run tree
+   |    writes state.json  status=pending
+   v
+analysis.enqueue(key)                            <- at most one job per key in flight
+   |
+   v  the worker
+analysis._build(key)
+   |    status=running
+   |    Deep first (its packaging also writes the Standard partition)
+   |    then every other requested method over the SAME canonical
+   |    viewer_corpus.load_corpus(...)  ->  viewer-payload.json   <- PUBLICATION
+   |    status=ready | failed
+   v
+browser reads it through /api/demo/viewer-analysis/<id>/payload
+```
+
+Identity is the **content hash**, not the upload id: the same PDF uploaded twice
+is one analysis directory that answers for both `doc_id`s. That is why staging
+twice is idempotent and why a second upload adds variants rather than a document.
+
+**No second provider call, ever.** A Deep Analysis run made during ingest is
+taken off the chunker as-is. A Deep variant asked for later, with no run to
+reuse, runs the deterministic contract (`use_llm=False`) and is recorded as
+exactly that. Held by
+`chat_rag/tests/unit/test_viewer_packaging_offline.py`, which packages with the
+network stubbed out entirely.
+
+### What survives what
+
+| situation | behaviour |
+|---|---|
+| restart during packaging | `resume_incomplete()` re-queues every `pending`/`running` record, and every `ready` one whose payload is missing. Disk is the authority; a finished document is not rebuilt |
+| packaging failure | the state goes `failed` with the error; **the last published payload is untouched** and still served. One variant failing does not fail the others |
+| missing/corrupt Viewer state | an unreadable `state.json` reports `failed`, and is never merged over (that would silently drop `doc_ids`). A `ready` record with no payload is demoted to `pending` |
+| document deleted while packaging | the delete wins: the key is marked revoked, and the build removes its own output on the way out — otherwise the build's next write recreates the directory the delete removed |
+| same document staged twice | one key, one directory; a build already in flight is not queued again |
+| concurrent reads during publication | one `RLock` per key covers reads *and* writes of `state.json` and `viewer-payload.json` (on Windows an open reader is enough to break the writer's rename) |
+| temp files | records are written `<name>.<pid>.<tid>.tmp` and renamed. `sweep_scratch()` runs at the start of `resume_incomplete()` and removes orphans |
+
+The per-document build lock is deliberately *not* the state lock: a build holds
+its lock for minutes and a status poll must not queue behind it.
+
+## V2 / V3 status
+
+| piece | status | why |
+|---|---|---|
+| `amsc.viewer_corpus` | **load-bearing, shared** | the reader both pages and the console use. Was inside `viewer_v2.py`; that is why everything touching a payload used to import the v2 page |
+| `amsc.viewer_v2` + `viewer_v2_template` | **compatibility** | the research build with the `--agentic` provenance arm, and a manual fallback page. Not on the product path, not served by `start-demo`. Page builder only |
+| `amsc.chunk_viewer` | **load-bearing, research** | the per-run inspector `amsc.chunk_benchmark` writes into every benchmark tree. Older than both pages, unrelated to the product path |
+| `viewer_v3` importing `viewer_v2` | **removed** | it was importing a private `_catalog` and pulling a 230 KB template into every consumer of a payload |
+
+Nothing was deleted. The v2 names callers still reach for
+(`ARM_KINDS`, `load_corpus`, `display_html`, …) stay importable from
+`amsc.viewer_v2` as re-exports of the reader's own objects, and a test asserts
+they are the *same objects*, so they cannot fork.
+
+## Releasing a change that crosses both repos
+
+`chat_rag` consumes this library as a **pinned dependency**, not as a sibling
+checkout (`chat_rag/requirements.txt`: `amsc-poc @ git+...@<commit>`), and
+`chat_rag/tests/unit/test_amsc_pin.py` checks every `from amsc... import` in
+product code against that commit *and* against this checkout's HEAD. A
+developer's editable install hides the difference; that test is what stops it.
+
+So a change that adds or moves an `amsc` symbol the console imports lands in
+three steps, in this order:
+
+1. commit it here;
+2. push, and note the commit;
+3. bump the pin in `chat_rag/requirements.txt` to that commit.
+
+Until steps 1-3 are done, `test_amsc_pin` fails naming the missing symbol.
+That is the check working, not a broken test: the console would not install
+against the pinned library. Do not add a fallback import to quiet it -- the
+fallback is what made the old dependency invisible in the first place.
+
+## How a new chunker reaches the Viewer
+
+Nothing Viewer-specific. Following `docs/adding-a-chunker.md`:
+
+1. write a partition function;
+2. add one `ChunkMethod` to `_BUILTIN` in `amsc/methods.py`;
+3. write a test.
+
+From there: `viewer_v3` embeds it in `methodOrder`/`methodLabels`/`methodMeta`
+because it reads the registry; the page keys behaviour off `methodMeta` flags
+(`deep`, `baseline`) rather than off names; `viewer_corpus` accepts an arm
+packaged under its kind; the console offers it (`components/viewer/methods.py`
+adds only availability and product order); and the packager runs it over the
+canonical like any other. Held end to end by
+`chunk/tests/unit/test_methods_registry.py::test_a_registered_method_reaches_every_consumer_with_no_other_edit`.
+
+**Deep Analysis is the one exception**, and only where it has to be: it is an
+orchestration over a baseline partition, so it carries extra status (which model
+ran, how many calls, the decision story) that a partition method has none of.
+The page finds it by the registry's `deep` flag, never by its name.
+
+## Debugging a failed package
+
+1. **What does the console think?**
+   `GET /api/demo/viewer-analysis/<doc_id>` — `status`, `error`, `methods` (per
+   variant), `ready_methods`, `failed_methods`. A `failed` here with a working
+   `/payload` means a *rebuild* failed and the last good analysis is still up.
+2. **What is on disk?**
+   `chat_rag/artifacts/viewer-live/<key>/` — `state.json` (with a `traceback`
+   when the worker caught it), `units.jsonl` (the canonical), `run/` (the Deep
+   tree), `variants/<method>/chunks.jsonl`, `viewer-payload.json`. No payload
+   file means nothing was ever published.
+3. **Which method?** `state.json` → `methods.<key>.error`. One variant failing
+   leaves the others `ready`; the document stays open on what worked.
+4. **Retry** with `POST /api/demo/viewer-analysis/<doc_id>` (re-queues) or
+   `POST .../methods {"methods": [...]}` (adds variants). Neither re-parses the
+   PDF: the canonical is on disk.
+5. **Common causes.** No canonical and no way to recover one — a document
+   ingested before this packaging existed, whose parser-cache entry is gone.
+   Hybrid unavailable — the sentence-embedding model is not downloaded on this
+   machine; `GET /api/demo/methods` says so with the reason.
+6. **The logs.** `chat_rag/logs/` (`ViewerAnalysis`) for the worker;
+   `viewer.err.log` under the launcher's log directory for the Viewer server.
+7. **The page shows nothing.** Check `/api/workspace` through the Viewer server,
+   not the console: an unreachable console is a rendered state
+   (`connected: false` with a reason), not an error.
+
+## The files to know
+
+| path | what |
+|---|---|
+| `chunk/src/amsc/methods.py` | the method registry — method identity |
+| `chunk/src/amsc/viewer_corpus.py` | the payload reader — the cross-repo contract |
+| `chunk/src/amsc/viewer_v3.py` + `viewer_v3_template.py` | the product page and its build |
+| `chunk/src/amsc/viewer_server.py` | the service the browser talks to |
+| `chunk/src/amsc/viewer_v2.py` + `viewer_v2_template.py` | the research/fallback page |
+| `chat_rag/components/viewer/analysis.py` | packaging lifecycle and state |
+| `chat_rag/components/viewer/methods.py` | this deployment's view of the registry |
+| `chat_rag/app.py` (`/api/demo/*`) | the console API the Viewer server relays |
+| `chat_rag/start-demo.ps1` | builds the shell if missing, starts both processes |
+
+## Tests that hold this
+
+```powershell
+# chunk
+py -3.11 -m pytest tests/unit/test_viewer_boundary.py tests/unit/test_viewer_v3.py `
+                   tests/unit/test_viewer_v2.py tests/unit/test_methods_registry.py `
+                   tests/integration/test_viewer_v2_build.py
+
+# chat_rag
+py -3.11 -m pytest tests/unit/test_viewer_boundary.py tests/unit/test_viewer_analysis.py `
+                   tests/unit/test_viewer_api_shapes.py tests/unit/test_viewer_packaging_offline.py `
+                   tests/unit/test_viewer_state_concurrency.py tests/unit/test_demo_workspace.py
+```

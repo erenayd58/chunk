@@ -1,9 +1,12 @@
 """Viewer v3 -- the chunking inspection product page.
 
-A separate product experience over the same data Viewer v2 reads: the same
-``load_corpus`` payloads, the same catalog writer, the same server and the
-same live-workspace endpoints. This module is a second **pure reader** with
-its own template -- it changes nothing in Viewer v2, the pipeline or any API.
+The product page: the one ``start-demo.ps1`` builds and serves. It is a
+**page builder only** -- every document payload it embeds, and every payload
+it receives at runtime for a live document, is read by
+:mod:`amsc.viewer_corpus`, the reader both Viewer pages and the RAG
+console's packaging worker share. Viewer v2 (:mod:`amsc.viewer_v2`) is a
+second page over that same reader, kept for the research build; nothing
+here touches it, the pipeline or any API.
 
 The page answers one question before all others: *where does a chunk start,
 where does it end, and how do two methods cut the same content differently?*
@@ -40,7 +43,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from . import methods
-from .viewer_v2 import _catalog, load_corpus
+from .viewer_corpus import catalog, load_corpus
 from .viewer_v3_template import TEMPLATE
 
 #: Product order, product names and one-line summaries -- read from the
@@ -68,9 +71,9 @@ def build_viewer(
     ``deep`` to a packaged Deep Analysis tree. Both may be empty, which builds
     the product shell: no embedded corpus, every document read live from the
     console. The per-document payload is
-    exactly ``viewer_v2.load_corpus`` output, so a live document fetched at
-    runtime through ``/api/live-document`` has the same shape as an embedded
-    one and the page needs no second reader.
+    exactly ``viewer_corpus.load_corpus`` output, so a live document fetched
+    at runtime through ``/api/live-document`` has the same shape as an
+    embedded one and the page needs no second reader.
     """
     deep = dict(deep or {})
     labels = dict(labels or {})
@@ -118,10 +121,9 @@ def build_viewer(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(document, encoding="utf-8", newline="\n")
     if write_catalog:
-        catalog = _catalog(docs, benchmarks, deep, {}, Path(root))
-        catalog["generator"] = "amsc.viewer_v3"
+        index = catalog(docs, benchmarks, deep, {}, Path(root), generator="amsc.viewer_v3")
         (output.parent / "catalog.json").write_text(
-            json.dumps(catalog, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
             newline="\n",
         )

@@ -1,6 +1,13 @@
-"""A small local server that gives the Viewer v2 HTML a live RAG backend.
+"""The Viewer's service layer: a local server that gives the page a backend.
 
-    GET  /                      the viewer (built by amsc.viewer_v2)
+Serves whatever Viewer page it is pointed at -- ``start-demo.ps1`` points it
+at the Viewer v3 build -- and is the *only* thing the browser talks to. Two
+kinds of route: this process's own frozen corpus and chat engine, and relays
+to the RAG console for everything about a live document. The page never
+addresses the console directly, so there is no CORS grant, no console address
+in the browser and no second data path.
+
+    GET  /                      the viewer page (built by amsc.viewer_v3)
     GET  /api/health            models, documents, arms, index state
     GET  /api/docs              the catalog
     GET  /api/workspace         the RAG console's live knowledge bases
@@ -14,7 +21,9 @@
 
 The HTML works without this server -- Sunum, Debug and Benchmark are
 offline, and Sorgu falls back to the frozen gold-query view -- and gains the
-chat when served from here. Keys never reach the page: the browser talks to
+chat, and the live workspace, when served from here. A page built with no
+embedded corpus (the shell build, which is the only build a fresh clone can
+make) has nothing to show until it is served from here. Keys never reach the page: the browser talks to
 this process, this process talks to the providers, and only the providers'
 model ids are ever sent back. Standard library only, so the demo has no
 extra dependency to install.
