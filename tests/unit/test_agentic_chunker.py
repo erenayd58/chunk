@@ -20,7 +20,6 @@ from amsc.agentic_chunker import (
     apply_guard,
     build_artifact,
     coherence_threshold,
-    collect_votes,
     run_agentic,
     section_call_plan,
     slice_units_by_pages,

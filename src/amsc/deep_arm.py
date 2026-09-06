@@ -52,8 +52,7 @@ from .chunk_mapping import (
     normalize_unit_ids_for_retrieval,
 )
 from .deep_pipeline import run_standard
-from .evaluation import sha256_file
-from .io import load_jsonl_units
+from .io import load_jsonl_units, sha256_file
 from .models import RawDocumentUnit
 from .structural_chunker import _sections
 from .tokenization import TiktokenTokenCounter, TokenCounter

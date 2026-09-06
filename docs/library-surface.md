@@ -15,7 +15,7 @@ and, on the console side, `chat_rag/tests/unit/test_amsc_surface.py`.
 | **service** | the Viewer's own server process; product code, but a separate process the console never imports | declared |
 | **research** | experiments, benchmarks, the frozen evaluator's runners, preparation tools | declared |
 | **legacy** | kept only so an import path or a comparison keeps working | declared |
-| **unused** | no importer anywhere, no entry point; a deletion candidate | declared, with evidence |
+| **unused** | no importer anywhere, no entry point; a deletion candidate | declared, with evidence (empty since Phase 8) |
 
 Product is derived on purpose. A new internal helper becomes product simply by
 being imported by something already on the path — no list to update. What
@@ -62,15 +62,15 @@ release any cross-repo change needs (see
 
 ## Careful with these
 
-Four product modules have a research heritage. The module as a whole is not a
+Two product modules have a research heritage. The module as a whole is not a
 product API; only the named symbols are. `surface.MIXED` carries the same list
-in code.
+in code. It was four until Phase 8 moved the provider transport and the
+parallel-call machinery out of `agentic_chunker` and `llm_boundary_judge` into
+`provider_calls`, which took both of those off the product path entirely.
 
 | module | what product uses, and only that |
 |---|---|
-| `agentic_chunker` | `CallOutcome`, `collect_votes` — the cache-aware parallel provider-call machinery Deep Analysis's proposer and verifier run on. The rest is the Agentic Chunker research arm |
-| `llm_boundary_judge` | `BoundaryJudgeModel`, `OpenAICompatibleJudgeProvider` — the provider transport the console wraps in its own budget and guard. The rest is the v1 per-boundary judge, superseded by Deep Analysis |
-| `evaluation` | `sha256_file`, `_median`, `_nearest_rank` — **deliberately** shared, so a structural-quality number computed for a live document matches one computed for the frozen corpus. Pinned by `tests/unit/test_chunk_quality.py` |
+| `evaluation` | `_median`, `_nearest_rank` — **deliberately** shared, so a structural-quality number computed for a live document matches one computed for the frozen corpus. Pinned by `tests/unit/test_chunk_quality.py` |
 | `chunker` | nothing directly. It is on the product path only because `amsc/__init__` exports `V1Chunker`/`V2Chunker`/`V3Chunker` as part of the package's public API. New product code should use `structural_chunker`, `deep_pipeline` or `v4_chunker` |
 
 ## Where new code goes
@@ -107,17 +107,13 @@ If the tree is ever reorganised, `surface.py` is the map to do it from.
 
 ## Known mixed areas, and what is left
 
-* `agentic_chunker` and `llm_boundary_judge` really should be split — the
-  provider transport and the parallel-call machinery are product
-  infrastructure sitting inside two research arms. That is a behavioural
-  refactor with real risk, not a boundary declaration, so it is recorded here
-  rather than done.
 * `evaluation`'s two percentile helpers are shared on purpose and pinned by a
   test; extracting them would need that contract restated, not removed.
 * `rag_index` (Viewer service) reads the frozen benchmark's Turkish fold table
   from `chunk_benchmark` by design, so the Viewer's chat tokenises exactly as
   the benchmark did. This is why `service` is its own status rather than part
   of `product`.
-* `parent_expansion` has no importer anywhere in either repository and no
-  entry point. It is declared `unused` and left in place; deleting it is
-  dead-code work.
+* `unused` is empty. `parent_expansion` held it — no importer anywhere in
+  either repository, no entry point — and Phase 8 deleted it. The status stays
+  declared so the next such module has somewhere to sit while the deletion is
+  decided.

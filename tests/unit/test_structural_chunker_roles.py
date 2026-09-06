@@ -10,7 +10,7 @@ from __future__ import annotations
 from amsc.models import RawDocumentUnit, SemanticRole, UnitType
 from amsc.structural_chunker import chunk_units
 
-from tests.conftest import WordTokenCounter
+from conftest import WordTokenCounter
 
 
 def unit(unit_id, order, text, unit_type=UnitType.PARAGRAPH, section=("A",),

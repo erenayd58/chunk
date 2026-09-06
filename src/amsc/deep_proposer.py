@@ -47,7 +47,6 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from . import boundary_quality as bq
-from .agentic_chunker import CallOutcome, collect_votes
 from .deep_analysis import (
     DeepConfig,
     ROLE_COMPLETE,
@@ -60,8 +59,8 @@ from .deep_analysis import (
     _head_cost,
     standard_groups,
 )
-from .llm_boundary_judge import BoundaryJudgeModel
 from .models import RawDocumentUnit
+from .provider_calls import BoundaryJudgeModel, CallOutcome, collect_votes
 from .structural_chunker import Piece, Section, _sections
 from .tokenization import TokenCounter
 
@@ -132,10 +131,6 @@ class PlannedProposal:
     prompt: str
     prompt_sha256: str
     prompt_chars: int
-
-    @property
-    def candidates(self) -> tuple[PlannedBoundary, ...]:  # collect_votes compatibility
-        return self.boundaries
 
 
 def _excerpt(text: str) -> str:

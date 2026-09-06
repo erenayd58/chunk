@@ -17,10 +17,9 @@ from .evaluation import (
     load_annotations,
     load_jsonl_objects,
     match_boundaries,
-    sha256_file,
     validate_annotations,
 )
-from .io import load_jsonl_units
+from .io import load_jsonl_units, sha256_file
 from .models import RawDocumentUnit, UnitType
 
 

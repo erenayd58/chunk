@@ -62,8 +62,8 @@ from .chunk_mapping import (
 )
 from .config import V4Config
 from .embeddings import CachedSemanticBoundaryEmbedder, SentenceTransformerBoundaryEmbedder
-from .evaluation import load_jsonl_objects, sha256_file
-from .io import load_jsonl_units
+from .evaluation import load_jsonl_objects
+from .io import load_jsonl_units, sha256_file
 from .models import RawDocumentUnit, UnitType
 from .retrieval_benchmark import (
     RetrievalGoldSet,

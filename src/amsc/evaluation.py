@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from dataclasses import dataclass
-import hashlib
 import json
 import math
 from pathlib import Path
@@ -12,7 +11,7 @@ from typing import Any, Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .io import load_jsonl_units
+from .io import load_jsonl_units, sha256_file
 from .models import RawDocumentUnit, UnitType
 
 
@@ -89,14 +88,6 @@ class PredictionExtraction:
     gap_indices: frozenset[int]
     forced_same_source_chunk_boundaries: int
     forced_split_fragment_count: int
-
-
-def sha256_file(path: str | Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def load_annotations(path: str | Path) -> CheckpointAnnotations:

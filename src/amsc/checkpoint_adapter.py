@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-import hashlib
 import importlib
 import json
 from pathlib import Path
@@ -16,7 +15,7 @@ from .checkpoint_layout import (
     LayoutBox,
     load_checkpoint_layout_profile,
 )
-from .io import validate_document_units
+from .io import sha256_file, validate_document_units
 from .models import RawDocumentUnit, SemanticRole, SourceSpan, UnitType
 from .visual_grid import (
     BBox,
@@ -1138,14 +1137,6 @@ class ExtractionManifestWriter:
             newline="\n",
         )
         return destination
-
-
-def sha256_file(path: str | Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def extract_canonical_units(

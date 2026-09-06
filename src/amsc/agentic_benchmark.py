@@ -45,8 +45,7 @@ from .chunk_benchmark import (
 )
 from . import chunk_quality
 from .chunk_mapping import map_chunks
-from .evaluation import sha256_file
-from .io import load_jsonl_units
+from .io import load_jsonl_units, sha256_file
 from .tokenization import TokenCounter
 
 CANDIDATE_ID = "agentic"

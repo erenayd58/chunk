@@ -18,7 +18,7 @@ import json
 import re
 
 from amsc import deep_pipeline as pipe
-from amsc.agentic_chunker import collect_votes
+from amsc.provider_calls import collect_votes
 
 from test_deep_pipeline import CONFIG, COUNTER, corpus
 

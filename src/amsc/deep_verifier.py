@@ -37,9 +37,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-from .agentic_chunker import CallOutcome, collect_votes
 from .deep_analysis import DeepConfig
-from .llm_boundary_judge import BoundaryJudgeModel
+from .provider_calls import BoundaryJudgeModel, CallOutcome, collect_votes
 from .structural_chunker import RENDER_SEPARATOR, Piece, Section, _render
 
 PROMPT_TEMPLATE_VERSION = "deep-verifier-v1"
@@ -135,10 +134,6 @@ class PlannedComparison:
     prompt: str
     prompt_sha256: str
     prompt_chars: int
-
-    @property
-    def candidates(self) -> tuple[()]:  # collect_votes compatibility
-        return ()
 
 
 def plan_comparisons(

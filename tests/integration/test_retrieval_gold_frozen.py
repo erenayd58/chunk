@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from amsc.evaluation import sha256_file
+from amsc.io import sha256_file
 from amsc.io import load_jsonl_units
 from amsc.retrieval_benchmark import RetrievalGoldSet, _validate_gold
 

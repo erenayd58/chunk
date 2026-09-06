@@ -18,9 +18,7 @@ import pytest
 
 from amsc.llm_boundary_judge import (
     ELISION,
-    JUDGE_ADAPTER_STATUS,
     JudgeConfig,
-    OpenAICompatibleJudgeProvider,
     ProductChunkingMode,
     audit_rows,
     chunk_units_with_judge,
@@ -471,24 +469,11 @@ def test_the_judged_walk_is_deterministic():
     assert run() == run()
 
 
-# --- the adapter and the key ------------------------------------------------
-
-
-def test_the_adapter_is_marked_not_verified_and_hardcodes_no_model():
-    assert OpenAICompatibleJudgeProvider.status == JUDGE_ADAPTER_STATUS
-    with pytest.raises(TypeError):
-        OpenAICompatibleJudgeProvider(endpoint="https://example.invalid/v1")  # model required
-
-
-def test_the_key_env_is_configurable_and_a_missing_key_is_loud(monkeypatch):
-    monkeypatch.delenv("MINIMAX_API_KEY", raising=False)
-    provider = OpenAICompatibleJudgeProvider(
-        "company/minimax-class-model",
-        endpoint="https://gateway.example.invalid/v1/chat/completions",
-        api_key_env="MINIMAX_API_KEY",
-    )
-    with pytest.raises(RuntimeError, match="MINIMAX_API_KEY"):
-        provider.complete("prompt")
+# --- the key ----------------------------------------------------------------
+#
+# The adapter itself moved to ``amsc.provider_calls``; its own contract is
+# checked in ``test_provider_calls.py``. What stays here is the claim about
+# *this* module: a key in the environment reaches no prompt and no audit row.
 
 
 def test_no_key_reaches_prompts_or_audit(monkeypatch):

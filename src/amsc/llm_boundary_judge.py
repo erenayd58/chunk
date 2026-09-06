@@ -56,7 +56,8 @@ keeps the shared skeleton honest.
 environment variable at request time and is never written to disk, artifacts
 or any viewer HTML; browsers never call a model. The provider interface is
 generative-model-agnostic (MiniMax-class models included) and no model name
-is hardcoded -- :class:`OpenAICompatibleJudgeProvider` requires the model id
+is hardcoded -- :class:`amsc.provider_calls.OpenAICompatibleJudgeProvider`,
+the transport this module and Deep Analysis share, requires the model id
 explicitly and is **NOT VERIFIED** against any live service. Embeddings play
 no role here: Qwen3-Embedding-8B is reserved as a future *retrieval*
 embedding candidate, and the embedding-assisted hybrid stays a research
@@ -66,14 +67,13 @@ baseline in :mod:`amsc.hybrid_chunker` / :mod:`amsc.semantic_assist`.
 from __future__ import annotations
 
 import json
-import os
 import re
-import urllib.request
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Protocol, Sequence
+from typing import Any, Sequence
 
 from .models import RawDocumentUnit
+from .provider_calls import BoundaryJudgeModel
 from .structural_chunker import (
     RENDER_SEPARATOR,
     Piece,
@@ -114,21 +114,6 @@ class ProductChunkingMode(str, Enum):
 
     STANDARD = "standard"
     DEEP_ANALYSIS = "deep_analysis"
-
-
-class BoundaryJudgeModel(Protocol):
-    """A generative model that answers one bounded prompt with text.
-
-    Provider-agnostic on purpose: anything that can complete a prompt --
-    an OpenAI-compatible endpoint, a MiniMax-class company model, a test
-    double -- fits. The judge builds the prompt and parses the answer; the
-    provider only transports.
-    """
-
-    @property
-    def model_id(self) -> str: ...
-
-    def complete(self, prompt: str) -> str: ...
 
 
 @dataclass(frozen=True)
@@ -621,71 +606,3 @@ def audit_rows(result: JudgeChunkResult) -> list[dict[str, Any]]:
             }
         )
     return rows
-
-
-# --------------------------------------------------------------------------
-# provider adapter (backend-only; NOT VERIFIED against any live service)
-# --------------------------------------------------------------------------
-
-JUDGE_ADAPTER_STATUS = "adapter_only_not_verified"
-
-
-class OpenAICompatibleJudgeProvider:
-    """Chat-completions transport for the judge. Backend ingest only.
-
-    No model is hardcoded: ``model`` is required, and the key's environment
-    variable name is configurable so a company deployment (a MiniMax-class
-    model behind a different gateway) needs no code change. Only the minimal
-    OpenAI-compatible payload is sent (``model`` + ``messages``); nothing else
-    about the provider is assumed. The key is read from the environment at
-    request time, used in the Authorization header, and never persisted.
-    """
-
-    status = JUDGE_ADAPTER_STATUS
-
-    def __init__(
-        self,
-        model: str,
-        *,
-        endpoint: str,
-        api_key_env: str = "OPENROUTER_API_KEY",
-        timeout_seconds: float = 120.0,
-    ) -> None:
-        self.model = model
-        self.endpoint = endpoint
-        self.api_key_env = api_key_env
-        self.timeout_seconds = timeout_seconds
-
-    @property
-    def model_id(self) -> str:
-        return self.model
-
-    def _key(self) -> str:
-        key = os.environ.get(self.api_key_env, "").strip()
-        if not key:
-            raise RuntimeError(
-                f"{self.api_key_env} is not set; the boundary judge cannot run "
-                "without it (and it is never stored)"
-            )
-        return key
-
-    def complete(self, prompt: str) -> str:
-        request = urllib.request.Request(
-            self.endpoint,
-            data=json.dumps(
-                {"model": self.model, "messages": [{"role": "user", "content": prompt}]}
-            ).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {self._key()}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-        try:
-            return payload["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as error:
-            raise RuntimeError(
-                "judge endpoint returned an unexpected shape; refusing to guess"
-            ) from error

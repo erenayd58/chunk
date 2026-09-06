@@ -1,10 +1,32 @@
+"""Reading and writing the artifact files: canonical units in, chunks out.
+
+One owner for the file-level side of an artifact, including its content
+hash: a manifest that records ``units_sha256`` and a benchmark that verifies
+it must agree byte for byte, so the digest is computed in one place rather
+than reimplemented beside each writer.
+"""
+
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Iterable
 
 from .models import ChunkingResult, RawDocumentUnit
+
+
+def sha256_file(path: str | Path) -> str:
+    """The SHA-256 of a file's bytes, read in 1 MiB blocks.
+
+    The identity every artifact manifest is pinned by. Streamed rather than
+    read whole because the canonical corpora are large enough to matter.
+    """
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def load_jsonl_units(path: str | Path) -> list[RawDocumentUnit]:

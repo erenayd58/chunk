@@ -28,7 +28,6 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from . import deep_analysis as da
-from .agentic_chunker import load_response_cache
 from .deep_pipeline import (
     DEFAULT_ENDPOINT,
     REFERENCE_MODEL,
@@ -37,7 +36,7 @@ from .deep_pipeline import (
     run_deep_analysis,
 )
 from .io import load_jsonl_units
-from .llm_boundary_judge import OpenAICompatibleJudgeProvider
+from .provider_calls import OpenAICompatibleJudgeProvider, load_response_cache
 from .tokenization import TiktokenTokenCounter
 
 __all__ = ["DEFAULT_ENDPOINT", "REFERENCE_MODEL", "refuse_output", "run", "write_tree", "main"]

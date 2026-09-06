@@ -19,10 +19,9 @@ from .evaluation import (
     evaluate_checkpoint,
     load_annotations,
     load_jsonl_objects,
-    sha256_file,
 )
 from .failure_analysis import DiagnosticRun, RunDiagnostics, analyze_run
-from .io import load_jsonl_units
+from .io import load_jsonl_units, sha256_file
 from .merge import SemanticSafeMergeResolver, V4ChunkDraft
 from .models import BoundaryEvidence, ChunkBoundary, ContentUnit, RawDocumentUnit
 from .scale_calibration import (

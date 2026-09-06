@@ -14,8 +14,8 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 import yaml
 
-from .evaluation import load_jsonl_objects, sha256_file
-from .io import load_jsonl_units
+from .evaluation import load_jsonl_objects
+from .io import load_jsonl_units, sha256_file
 from .legacy_chat_rag import (
     LegacyChatRAGCanonicalAdapter,
     LegacyChatRAGProfile,

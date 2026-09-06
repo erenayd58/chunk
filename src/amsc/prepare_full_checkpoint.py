@@ -17,7 +17,6 @@ from .checkpoint_adapter import (
     PyMuPDF4LLMExtractor,
     SectionHierarchyBuilder,
     VisualProvenanceWriter,
-    sha256_file,
     unit_type_counts,
 )
 from .checkpoint_layout import (
@@ -26,6 +25,7 @@ from .checkpoint_layout import (
     load_checkpoint_layout_profile,
 )
 from .heading_levels import assign_heading_levels
+from .io import sha256_file
 from .lead_in_headings import demote_lead_ins
 from .models import RawDocumentUnit
 from .numbered_headings import promote_numbered_headings

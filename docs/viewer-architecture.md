@@ -251,6 +251,7 @@ The page finds it by the registry's `deep` flag, never by its name.
 | `chat_rag/components/viewer/methods.py` | this deployment's view of the registry |
 | `chat_rag/app.py` (`/api/demo/*`) | the console API the Viewer server relays |
 | `chat_rag/start-demo.ps1` | builds the shell if missing, starts both processes |
+| `chunk/tools/serve_viewer_v3.ps1` | serves the Viewer **alone**, with `chat_rag/.env`'s keys loaded into that one process. `start-demo.ps1` starts both processes; this is the case it does not cover, and `amsc.viewer_server` deliberately reads no `.env` of its own |
 
 ## Tests that hold this
 

@@ -30,7 +30,9 @@ The five statuses
     working. Not to be built on.
 ``unused``
     No importer anywhere in either repository, and no entry point. A deletion
-    candidate, recorded rather than removed.
+    candidate. Empty as of Phase 8, which deleted the one module that had the
+    status; it stays declared so the next such module has somewhere to sit
+    while the deletion is decided.
 
 The one rule
 ------------
@@ -142,6 +144,12 @@ RESEARCH = frozenset({
     # gold sets and human labelling
     "boundary_preference",
     "gold_repin",
+    # the v1 per-boundary judge and the Agentic arm built on it. Both were on
+    # the product path until Phase 8 moved the provider transport and the
+    # parallel-call machinery they held into `provider_calls`; what is left
+    # here is the research, and Deep Analysis no longer imports either.
+    "llm_boundary_judge",
+    "agentic_chunker",
     # checkpoint preparation for research corpora
     "prepare_checkpoint",
     "checkpoint_qa",
@@ -161,29 +169,26 @@ LEGACY = frozenset({
 })
 
 #: No importer anywhere in either repository, no entry point, not documented.
-#: Recorded rather than deleted: removing it is dead-code work, not boundary
-#: work. Evidence is in ``tests/unit/test_library_surface.py``.
-UNUSED = frozenset({
-    "parent_expansion",
-})
+#: Empty since Phase 8 deleted ``parent_expansion``, the only entry it ever
+#: had. The status stays: it is where a module goes when the evidence says
+#: nothing reaches it and the deletion is a separate decision.
+#: Evidence is in ``tests/unit/test_library_surface.py``.
+UNUSED: frozenset[str] = frozenset()
 
 #: Product modules with a research heritage, and exactly what the product uses
 #: from each. These are the ones to be careful with: the module as a whole is
-#: not a product API, only the named symbols are. Splitting them is worthwhile
-#: and deliberately not done here -- it is a behavioural refactor, not a
-#: boundary declaration.
+#: not a product API, only the named symbols are.
+#:
+#: Phase 8 emptied two of the four entries the right way round -- by moving the
+#: product infrastructure out (``provider_calls``) rather than by declaring the
+#: research modules product -- which took ``agentic_chunker`` and
+#: ``llm_boundary_judge`` off the path entirely. The two that remain are here
+#: because what product uses of them is deliberately shared, not accidentally
+#: reached.
 MIXED: dict[str, str] = {
-    "agentic_chunker":
-        "the Agentic Chunker research arm. Product uses only `CallOutcome` and "
-        "`collect_votes`, the cache-aware parallel provider-call machinery that "
-        "Deep Analysis's proposer and verifier run on.",
-    "llm_boundary_judge":
-        "the v1 per-boundary judge, superseded by Deep Analysis. Product uses "
-        "only `BoundaryJudgeModel` and `OpenAICompatibleJudgeProvider` -- the "
-        "provider transport the console wraps in its own budget and guard.",
     "evaluation":
-        "the frozen boundary/chunk evaluator. Product uses only `sha256_file` "
-        "and the percentile helpers `_median` / `_nearest_rank`, deliberately, "
+        "the frozen boundary/chunk evaluator. Product uses only the percentile "
+        "helpers `_median` / `_nearest_rank`, deliberately, "
         "so a structural-quality number computed for a live document matches "
         "one computed for the frozen corpus. Pinned by "
         "`tests/unit/test_chunk_quality.py`.",

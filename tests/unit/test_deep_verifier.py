@@ -8,7 +8,7 @@ whatever happened to be printed second half the time.
 from __future__ import annotations
 
 from amsc import deep_verifier as dv
-from amsc.agentic_chunker import CallOutcome
+from amsc.provider_calls import CallOutcome
 from amsc.structural_chunker import Section, Piece
 
 

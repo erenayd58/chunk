@@ -44,10 +44,13 @@ from . import boundary_quality as bq
 from . import deep_analysis as da
 from . import deep_proposer as dp
 from . import deep_verifier as dv
-from .agentic_chunker import CallOutcome
-from .llm_boundary_judge import BoundaryJudgeModel, OpenAICompatibleJudgeProvider
 from . import table_search_text, table_view
 from .models import RawDocumentUnit
+from .provider_calls import (
+    BoundaryJudgeModel,
+    CallOutcome,
+    OpenAICompatibleJudgeProvider,
+)
 from .structural_chunker import _sections
 from .structural_chunker import chunk_units as structural_chunk_units
 from .tokenization import TiktokenTokenCounter, TokenCounter

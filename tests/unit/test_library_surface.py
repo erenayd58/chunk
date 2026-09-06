@@ -192,7 +192,11 @@ def test_the_mixed_modules_are_on_the_product_path_and_named():
 
 
 def test_the_unused_module_really_has_no_caller():
-    """``UNUSED`` is evidence, not opinion -- checked against both repos."""
+    """``UNUSED`` is evidence, not opinion -- checked against both repos.
+
+    Empty since Phase 8 deleted ``parent_expansion``; the check stays because
+    it is what makes the status mean something the next time one is declared.
+    """
     for name in surface.UNUSED:
         callers = sorted(module for module, deps in FULL.items() if name in deps)
         assert callers == [], f"{name} is declared unused but {callers} import it"
@@ -258,3 +262,48 @@ def test_importing_the_console_surface_loads_no_research_module():
 def test_every_entry_point_imports(entry):
     """The declared surface is importable -- no stale name, no broken module."""
     __import__(f"amsc.{entry}")
+
+
+def test_every_research_and_legacy_module_still_has_a_caller():
+    """The other half of ``UNUSED``: a declared status is not a hiding place.
+
+    ``research`` and ``legacy`` both mean "off the product path but still
+    reached by something". A module that no longer has an importer, an entry
+    point or a test is neither -- it is unused, and saying so is the point.
+    Deferred imports count, and so does being a documented ``python -m``
+    runner, which is why the whole repository is searched rather than only
+    the import graph.
+    """
+    orphans = []
+    for name in sorted(surface.RESEARCH | surface.LEGACY | surface.SERVICE):
+        if any(name in deps for deps in FULL.values()):
+            continue
+        hits = subprocess.run(
+            ["git", "grep", "-l", "-e", name, "--",
+             ":!src/amsc/" + name + ".py", ":!src/amsc/surface.py",
+             ":!tests/unit/test_library_surface.py"],
+            cwd=SRC.parents[1], capture_output=True, text=True,
+        )
+        if not hits.stdout.strip():
+            orphans.append(name)
+    assert orphans == [], (
+        "declared research/legacy/service but nothing reaches them; they are "
+        f"unused, not off-path: {orphans}"
+    )
+
+
+def test_the_provider_transport_is_not_a_research_module():
+    """Phase 8's boundary move, stated as the invariant it bought.
+
+    Deep Analysis reaches a provider through ``provider_calls``. If it ever
+    reaches one through ``agentic_chunker`` or ``llm_boundary_judge`` again,
+    both research arms come back onto the product path with it -- which is
+    the failure this whole file exists to name.
+    """
+    assert "provider_calls" in PRODUCT
+    for arm in ("agentic_chunker", "llm_boundary_judge"):
+        assert surface.classify(arm) == "research", arm
+        assert arm not in PRODUCT, _why(arm, surface.ENTRY_POINTS, EAGER)
+    assert EAGER["provider_calls"] == set(), (
+        "provider_calls imports amsc modules: " + str(sorted(EAGER["provider_calls"]))
+    )

@@ -71,7 +71,6 @@ import argparse
 import hashlib
 import json
 import math
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -80,13 +79,18 @@ from .llm_boundary_judge import (
     DECISION_KEEP,
     DECISION_SPLIT,
     TUNING_STATUS,
-    BoundaryJudgeModel,
-    OpenAICompatibleJudgeProvider,
     build_window_prompt,
     candidate_labels,
     parse_window_decisions,
 )
 from .models import RawDocumentUnit
+from .provider_calls import (
+    BoundaryJudgeModel,
+    CallOutcome,
+    OpenAICompatibleJudgeProvider,
+    collect_votes,
+    load_response_cache,
+)
 from .structural_chunker import (
     Piece,
     Section,
@@ -307,56 +311,9 @@ def section_call_plan(
 
 
 # --------------------------------------------------------------------------
-# phase 2: parallel vote collection (cache-first, provider optional)
+# phase 2: parallel vote collection -- :func:`amsc.provider_calls.collect_votes`,
+# shared with Deep Analysis's proposer and verifier and imported above.
 # --------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class CallOutcome:
-    call_id: str
-    status: str  # ok | cached | provider_error | replay_miss
-    response: str | None
-
-
-def collect_votes(
-    calls: Sequence[PlannedCall],
-    *,
-    provider: BoundaryJudgeModel | None,
-    cache: Mapping[str, str] | None = None,
-    concurrency: int = 8,
-) -> list[CallOutcome]:
-    """One ``complete()`` per planned call; independent, so concurrent.
-
-    ``cache`` maps prompt_sha256 to a raw response; hits never reach the
-    provider. With ``provider=None`` (replay) a miss becomes
-    ``replay_miss`` -- deterministically equivalent to the original run's
-    provider error. Results are assembled in plan order regardless of
-    completion order.
-    """
-    cache = cache or {}
-    outcomes: dict[str, CallOutcome] = {}
-    to_call: list[PlannedCall] = []
-    for call in calls:
-        if call.prompt_sha256 in cache:
-            outcomes[call.call_id] = CallOutcome(
-                call.call_id, "cached", cache[call.prompt_sha256]
-            )
-        elif provider is None:
-            outcomes[call.call_id] = CallOutcome(call.call_id, "replay_miss", None)
-        else:
-            to_call.append(call)
-
-    def run(call: PlannedCall) -> CallOutcome:
-        try:
-            return CallOutcome(call.call_id, "ok", provider.complete(call.prompt))
-        except Exception:
-            return CallOutcome(call.call_id, "provider_error", None)
-
-    if to_call:
-        with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
-            for outcome in pool.map(run, to_call):
-                outcomes[outcome.call_id] = outcome
-    return [outcomes[call.call_id] for call in calls]
 
 
 # --------------------------------------------------------------------------
@@ -898,18 +855,6 @@ def _write_jsonl(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
             handle.write("\n")
 
 
-def load_response_cache(path: Path) -> dict[str, str]:
-    cache: dict[str, str] = {}
-    if not path.is_file():
-        return cache
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        cache[row["prompt_sha256"]] = row["response"]
-    return cache
-
-
 def _cache_model_id(path: Path) -> str | None:
     """The single model id the cached responses were produced by, if any."""
     if not path.is_file():
@@ -954,8 +899,7 @@ def build_artifact(
 
     Never writes into evaluation/ or a frozen benchmark tree; never writes
     raw prompt text, keys, endpoints, or wall-clock values."""
-    from .evaluation import sha256_file
-    from .io import load_jsonl_units
+    from .io import load_jsonl_units, sha256_file
 
     _refuse_output(output)
     canonical_sha = sha256_file(units_path)
