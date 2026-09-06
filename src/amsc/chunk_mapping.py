@@ -661,3 +661,30 @@ def map_chunks(
     health["units_mapped"] = len(referenced)
     health["units_never_mapped"] = len(units_by_id) - len(referenced)
     return DocumentMapping(chunks=tuple(mapped), health=dict(health))
+
+
+def normalize_unit_ids_for_retrieval(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Reduce a chunk's ``unit_ids`` to canonical ids, keeping the originals.
+
+    ``_to_document`` filters ``unit_ids`` against the canonical corpus, so a
+    fragment id like ``t-00186#f2`` is silently dropped. Measured on the frozen
+    2024 corpus, that leaves 15 structure-first chunks with *no* unit ids at all:
+    they can never count as a hit however well their text answers the question,
+    and their page list empties too. The eight units affected are the document's
+    largest tables, which is exactly where the benchmark is hardest.
+
+    So the ids are reduced here, in the open, and the fragment-qualified list is
+    kept under ``fragment_unit_ids`` for the mapping and the viewer. The frozen
+    function is not touched.
+    """
+    normalized = dict(row)
+    original = [str(unit_id) for unit_id in row.get("unit_ids") or []]
+    reduced: list[str] = []
+    for unit_id in original:
+        base = base_unit_id(unit_id)
+        if base not in reduced:
+            reduced.append(base)
+    normalized["unit_ids"] = reduced
+    if any("#" in unit_id for unit_id in original):
+        normalized["fragment_unit_ids"] = original
+    return normalized

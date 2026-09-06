@@ -39,7 +39,7 @@ from __future__ import annotations
 import re
 from typing import Any, Iterable, Mapping, Sequence
 
-from .chunk_benchmark import base_unit_id
+from .chunk_mapping import base_unit_id
 from .models import RawDocumentUnit, UnitType
 
 #: Retrieval-only text is still text: a runaway table would crowd the index

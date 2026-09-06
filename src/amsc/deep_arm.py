@@ -24,6 +24,14 @@ Retrieval numbers come from the frozen evaluator through
 gold set and metric code as the frozen three arms -- and are written beside
 the arm, never into the frozen tree. A page-sliced tree or a different
 canonical is refused. Nothing here calls a model.
+
+Retrieval is the *only* research-side thing this module does, and it happens
+only when a frozen tree is given. The RAG console packages live documents,
+which have no gold set, so its ``package``/``package_arm`` calls never take
+that branch. The import of the scorer is therefore made where it is used
+rather than at module scope, which is what keeps the console's packaging off
+the frozen evaluation stack (``agentic_benchmark`` -> ``chunk_benchmark`` ->
+``retrieval_benchmark`` -> ``legacy_chat_rag``). See :mod:`amsc.surface`.
 """
 
 from __future__ import annotations
@@ -38,9 +46,11 @@ from . import boundary_quality as bq
 from . import chunk_quality
 from . import deep_analysis as da
 from . import methods
-from .agentic_benchmark import _evaluate_gold
-from .chunk_benchmark import normalize_unit_ids_for_retrieval
-from .chunk_mapping import base_unit_id, map_chunks
+from .chunk_mapping import (
+    base_unit_id,
+    map_chunks,
+    normalize_unit_ids_for_retrieval,
+)
 from .deep_pipeline import run_standard
 from .evaluation import sha256_file
 from .io import load_jsonl_units
@@ -430,6 +440,14 @@ def _package_rows(
                 "the frozen benchmark tree pins a different canonical than the "
                 "deep tree; refusing to score against its gold set"
             )
+        # Imported here rather than at module scope: gold scoring is the
+        # research path (it needs a frozen benchmark tree and its gold
+        # set), and ``amsc.agentic_benchmark`` reaches the whole frozen
+        # evaluation stack. The RAG console packages live documents, which
+        # have no gold set, so it never takes this branch -- and with the
+        # import down here it never loads the research modules either.
+        from .agentic_benchmark import _evaluate_gold
+
         retrieval = _evaluate_gold(
             gold_path=root / source["gold_queries"],
             units=units,

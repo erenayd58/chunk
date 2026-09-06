@@ -50,7 +50,16 @@ import yaml
 
 from . import chunk_quality, chunk_viewer, methods
 from .cache import FileEmbeddingCache
-from .chunk_mapping import base_unit_id, map_chunks
+from .chunk_mapping import (
+    base_unit_id,
+    map_chunks,
+    # Re-exported: the unit-id normaliser lives with the rest of the
+    # chunk<->unit resolution now, because the Viewer packager needs it
+    # too and must not import this benchmark to get it. Kept on this
+    # module's surface because the frozen benchmark and its tests
+    # import it from here.
+    normalize_unit_ids_for_retrieval,  # noqa: F401
+)
 from .config import V4Config
 from .embeddings import CachedSemanticBoundaryEmbedder, SentenceTransformerBoundaryEmbedder
 from .evaluation import load_jsonl_objects, sha256_file
@@ -273,33 +282,6 @@ class BM25OnlyIndex:
             )
             for rank, index in enumerate(order[:top_k], start=1)
         ]
-
-
-def normalize_unit_ids_for_retrieval(row: Mapping[str, Any]) -> dict[str, Any]:
-    """Reduce a chunk's ``unit_ids`` to canonical ids, keeping the originals.
-
-    ``_to_document`` filters ``unit_ids`` against the canonical corpus, so a
-    fragment id like ``t-00186#f2`` is silently dropped. Measured on the frozen
-    2024 corpus, that leaves 15 structure-first chunks with *no* unit ids at all:
-    they can never count as a hit however well their text answers the question,
-    and their page list empties too. The eight units affected are the document's
-    largest tables, which is exactly where the benchmark is hardest.
-
-    So the ids are reduced here, in the open, and the fragment-qualified list is
-    kept under ``fragment_unit_ids`` for the mapping and the viewer. The frozen
-    function is not touched.
-    """
-    normalized = dict(row)
-    original = [str(unit_id) for unit_id in row.get("unit_ids") or []]
-    reduced: list[str] = []
-    for unit_id in original:
-        base = base_unit_id(unit_id)
-        if base not in reduced:
-            reduced.append(base)
-    normalized["unit_ids"] = reduced
-    if any("#" in unit_id for unit_id in original):
-        normalized["fragment_unit_ids"] = original
-    return normalized
 
 
 def to_documents(

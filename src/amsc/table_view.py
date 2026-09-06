@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Sequence
 
-from .chunk_benchmark import base_unit_id
+from .chunk_mapping import base_unit_id
 from .models import RawDocumentUnit, UnitType
 from .table_search_text import (
     MAX_HEADER_ROWS,
