@@ -233,10 +233,33 @@ V1'de `hard_max_tokens=1126`, varsayılan `tiktoken:cl100k_base` sayacına göre
 
 ## Dokümanlar
 
+Bu depo, `chat_rag` konsolunun **kütüphane bağımlılığıdır**: konsol onu
+`requirements.txt` içinde sabitlenmiş bir commit'ten kurar. Ürünün tamamı,
+nasıl çalıştırıldığı ve sorun giderme `../chat_rag/README.md` ile
+`../chat_rag/docs/` altındadır.
+
+**Geliştirici yolu**
+
+- [Yeni bir parçalama yöntemi eklemek](docs/adding-a-chunker.md) — uçtan uca:
+  bölümleme + tek kayıt (`src/amsc/methods.py`) + test → konsol → Viewer →
+  benchmark
+- [Kütüphane yüzeyi](docs/library-surface.md) — ürün / servis / araştırma /
+  legacy ayrımı, konsolun neyi import edebileceği, sınırı koruyan testler
+- [Viewer mimarisi](docs/viewer-architecture.md) — iki depo arasında Viewer
+  sahipliği, build girdileri/çıktıları, paketleme yaşam döngüsü, başarısız bir
+  paketin teşhisi
+- [Viewer v3](docs/viewer-v3.md) — ürün sayfasının deneyimi ve veri sözleşmesi
+- [Viewer v2](docs/viewer-v2-poc.md) — uyumluluk/araştırma sayfası (ürün
+  sayfası v3'tür)
+
+**Karar kaydı ve arka plan**
+
 - [Bağlam ve kararlar](docs/kararlar-ve-baglam.md)
 - [Seçilen çözüm](docs/secilen-cozum.md)
 - [V1/V2/V3 implementasyon planı ve mimarisi](docs/implementasyon-plani.md)
-- [Yeni bir parçalama yöntemi eklemek](docs/adding-a-chunker.md) — tek kayıt: `src/amsc/methods.py`
+
+**Depolar arası değişiklik sırası** (chunk commit → push → `chat_rag`
+pin → testler → reproducibility) `../chat_rag/docs/testing.md` içindedir.
 
 ## Test
 
