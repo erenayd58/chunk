@@ -18,9 +18,9 @@ no two controls overlap, the bar clips nothing of its own, the tabs still
 switch screens, the comparison controls still work, and every chip is
 reachable.
 
-They need a browser. ``pip install -e ".[smoke]" && python -m playwright
-install chromium`` provides one; without it these skip, exactly like the
-``tools/viewer_smoke.py`` whose machinery they share.
+They need a browser: ``pip install -e ".[smoke]" && python -m playwright
+install chromium``. Without one they skip -- a layout cannot be measured
+without something to lay it out.
 """
 
 from __future__ import annotations
