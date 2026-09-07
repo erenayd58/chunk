@@ -20,7 +20,9 @@ agree, the console reads `amsc`.
 
 ```
 amsc.methods            the registry: which methods exist, what each one is
-    |                   (Phase 5 -- the single source of method identity)
+    |                   (Phase 5 -- the single source of method identity;
+    |                    served live at /api/methods, so a page built earlier
+    |                    still lists a method registered later)
 amsc.viewer_corpus      the reader: artifact trees -> one payload shape
     |                   load_corpus() and catalog(). Renders no page.
     +-- amsc.viewer_v3      the product page   (built and served by start-demo)
@@ -44,7 +46,7 @@ py -3.11 -m amsc.viewer_v3 --output artifacts/viewer-v3/index.html
 
 | | |
 |---|---|
-| inputs (required) | tracked source only: `viewer_v3.py`, `viewer_v3_template.py`, `viewer_corpus.py`, `methods.py` |
+| inputs (required) | tracked source only: `viewer_v3.py`, `viewer_v3_template.py`, `viewer_corpus.py`, `methods.py`, `chunk_method.py` |
 | inputs (optional) | `--benchmark DOC=DIR`, `--deep DOC=DIR` — frozen research trees, embedded into the page |
 | outputs | `artifacts/viewer-v3/index.html` and `catalog.json` beside it |
 | owner of the optional inputs | the research runs (`amsc.chunk_benchmark`, `amsc.deep_run`). They are git-ignored and a fresh clone has none |
@@ -86,6 +88,7 @@ page.
 browser
   |
   +-- GET  /                          the built page
+  +-- GET  /api/methods               the method registry, as it is NOW
   +-- GET  /api/workspace             -> console GET  /api/demo/workspace
   +-- GET  /api/live-document?doc=    -> console GET  /api/demo/viewer-analysis/<id>/payload
   +-- POST /api/live-prepare          -> console POST /api/demo/viewer-analysis/<id>
@@ -100,7 +103,7 @@ So there is one path per question:
 | the page needs | it asks | authoritative source |
 |---|---|---|
 | available documents | `/api/workspace` | the console's `DocumentTracker` + analysis states |
-| methods and their metadata | embedded `methodOrder/methodLabels/methodSummaries/methodMeta` | `amsc.methods` at build time; `/api/demo/methods` for availability on this machine |
+| methods and their metadata | `/api/methods` at boot, falling back to the embedded `methodOrder/methodLabels/methodSummaries/methodMeta` | `amsc.methods` — live when served, build-time when the page is opened as a file; `/api/demo/methods` for availability on this machine |
 | chunk boundaries, units, pages | `/api/live-document` (or the embedded payload) | `viewer_corpus.load_corpus` |
 | chunk rows to retrieve over | `/api/retrieve` → console `.../chunks` | the packaged `chunks.jsonl` |
 | comparison / debug / benchmark | the same payload | one payload, several views |
@@ -183,8 +186,10 @@ So a change that adds or moves an `amsc` symbol the console imports lands in
 three steps, in this order:
 
 1. commit it here;
-2. push, and note the commit;
-3. bump the pin in `chat_rag/requirements.txt` to that commit.
+2. push;
+3. bump the pin: `python tools/promote_chunk_pin.py` in `chat_rag`, which
+   resolves the sha, refuses one that is unpushed or that HEAD does not
+   contain, rewrites the one requirement line and runs the pin tests.
 
 Until steps 1-3 are done, `test_amsc_pin` fails naming the missing symbol.
 That is the check working, not a broken test: the console would not install
@@ -195,17 +200,31 @@ fallback is what made the old dependency invisible in the first place.
 
 Nothing Viewer-specific. Following `docs/adding-a-chunker.md`:
 
-1. write a partition function;
-2. add one `ChunkMethod` to `_BUILTIN` in `amsc/methods.py`;
+1. write the method module (partition + its `ChunkMethod`, types imported from
+   `amsc.chunk_method`);
+2. import that `ChunkMethod` into `amsc/methods.py` and add it to `_BUILTIN`;
 3. write a test.
 
-From there: `viewer_v3` embeds it in `methodOrder`/`methodLabels`/`methodMeta`
-because it reads the registry; the page keys behaviour off `methodMeta` flags
-(`deep`, `baseline`) rather than off names; `viewer_corpus` accepts an arm
-packaged under its kind; the console offers it (`components/viewer/methods.py`
-adds only availability and product order); and the packager runs it over the
-canonical like any other. Held end to end by
+From there: the page keys behaviour off `methodMeta` flags (`deep`, `baseline`)
+rather than off names; `viewer_corpus` accepts an arm packaged under its kind;
+the console offers it (`components/viewer/methods.py` adds only availability
+and product order); and the packager runs it over the canonical like any
+other. Held end to end by
 `chunk/tests/unit/test_methods_registry.py::test_a_registered_method_reaches_every_consumer_with_no_other_edit`.
+
+**And no rebuild.** The build embeds the registry, which used to mean a new
+method was invisible until somebody remembered `python -m amsc.viewer_v3` — a
+step with no error message, only a missing column. A served page now asks
+`amsc.viewer_server` for `GET /api/methods` at boot and prefers that answer,
+so what the page lists is what the library has registered *now*. The embedded
+copy remains the fallback for a page opened as a file (a research build with
+no server), and an older server without the route changes nothing. Held by
+`test_methods_registry.py::test_a_page_built_before_the_method_existed_still_lists_it_when_served`
+and, from the console side,
+`chat_rag/tests/unit/test_chunker_extension.py::test_the_viewer_is_told_about_it_without_a_page_rebuild`.
+
+Rebuilding the page is still what you do when the *template* changes — the
+page is the template, and no route can serve that.
 
 **Deep Analysis is the one exception**, and only where it has to be: it is an
 orchestration over a baseline partition, so it carries extra status (which model
@@ -243,6 +262,8 @@ The page finds it by the registry's `deep` flag, never by its name.
 | path | what |
 |---|---|
 | `chunk/src/amsc/methods.py` | the method registry — method identity |
+| `chunk/src/amsc/chunk_method.py` | the `ChunkMethod` / `PartitionResult` types — a leaf module, so a method module can import them and the registry can import the method |
+| `chat_rag/tools/promote_chunk_pin.py` | moves the `amsc-poc` pin to a chunk commit and checks it holds |
 | `chunk/src/amsc/viewer_corpus.py` | the payload reader — the cross-repo contract |
 | `chunk/src/amsc/viewer_v3.py` + `viewer_v3_template.py` | the product page and its build |
 | `chunk/src/amsc/viewer_server.py` | the service the browser talks to |

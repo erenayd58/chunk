@@ -19,7 +19,8 @@ import re
 import numpy as np
 import pytest
 
-from amsc import rag_answer, rag_chat, rag_context, rag_embeddings, rag_index
+from amsc import methods, rag_answer, rag_chat, rag_context, rag_embeddings, rag_index
+from amsc.example_chunker import FIXED_WINDOW
 from amsc.viewer_server import console_document, console_prepare, console_workspace, make_server, serve_in_thread
 
 
@@ -234,6 +235,21 @@ def test_the_server_serves_the_viewer_and_the_api(tmp_path):
         conn.request("GET", "/api/chunk?doc=doc&arm=agentic&chunk_id=doc:s-chunk-0002")
         chunk = json.loads(conn.getresponse().read())
         assert chunk["chunk_id"] == "doc:s-chunk-0002" and "197" in chunk["text"]
+        # The method registry, served rather than baked into the page: a
+        # method registered while this server is up is listed by it, which is
+        # what spares the Viewer a rebuild when a chunker is added.
+        conn.request("GET", "/api/methods")
+        served = json.loads(conn.getresponse().read())
+        assert served["order"] == list(methods.ORDER) and served["generator"] == "amsc.methods"
+        methods.register(FIXED_WINDOW)
+        try:
+            conn.request("GET", "/api/methods")
+            after = json.loads(conn.getresponse().read())
+        finally:
+            methods.unregister(FIXED_WINDOW.key)
+        assert after["order"][-1] == "fixed-window"
+        assert after["labels"]["fixed-window"] == "Sabit Pencere"
+        assert after["meta"]["fixed-window"]["kind"] == "fixed_window"
     finally:
         server.shutdown()
         server.server_close()

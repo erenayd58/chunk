@@ -43,29 +43,50 @@ internals.
 Adding a method
 ---------------
 
-1. Write the partition: ``units, counter, budget -> rows`` in the structural
-   row schema (:mod:`amsc.example_chunker` is a complete, minimal one).
-2. Register it below in ``_BUILTIN`` -- one :class:`ChunkMethod` literal.
+1. Write the method module: a partition ``units, counter, budget -> rows``
+   in the structural row schema, and beside it the :class:`ChunkMethod`
+   that describes it. Import the two types from :mod:`amsc.chunk_method`,
+   never from here -- that is what lets this module import yours.
+   :mod:`amsc.example_chunker` is a complete, minimal one: copy it.
+2. Register it: import the method's :class:`ChunkMethod` below and add it
+   to ``_BUILTIN``. That import and that tuple element are the whole entry.
 3. Test it.
 
-Nothing else. The Viewer builds list it, the packager accepts it, the console
-offers it, the benchmark can dispatch it. Registration is explicit and at
-import time on purpose: no directory is scanned and no name is guessed, so
-what is offered is exactly what somebody wrote down. :func:`register` and
+Nothing else. The Viewer lists it (the served page reads this registry at
+request time, so no rebuild), the packager accepts it, the console offers
+it, the benchmark can dispatch it. Registration is explicit and at import
+time on purpose: no directory is scanned and no name is guessed, so what is
+offered is exactly what somebody wrote down. :func:`register` and
 :func:`unregister` exist for a test that wants to prove that path without
 leaving a method behind.
+
+The built-in partitions below are written the other way round -- a thin
+wrapper here, the engine imported inside it -- because they predate the
+registry and their engines are also research entry points that must not be
+loaded to learn a method's name. A new method needs neither the wrapper nor
+the lazy import.
 """
 
 from __future__ import annotations
 
 import threading
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
 from typing import Any, Callable, Iterator, Optional
 
-#: The engine kind of Deep Analysis, named here so the orchestration modules
-#: and the registry entry cannot disagree about it.
-DEEP_KIND = "deep_analysis"
+# The types a method module needs live in a leaf module so that a method can
+# import them and this module can import the method. Re-exported here: every
+# caller that reads ``methods.ChunkMethod`` keeps working.
+from .chunk_method import DEEP_KIND, ChunkMethod, Partition, PartitionResult
+
+__all__ = [
+    "DEEP_KIND", "ChunkMethod", "Partition", "PartitionResult",
+    "UnknownMethod", "NotAPartition",
+    "register", "unregister", "get", "is_known", "by_kind", "methods", "order",
+    "kinds", "partition_methods", "benchmark_arms", "deep_method",
+    "kind_arbitrates", "meta", "partition",
+    "ORDER", "LABELS", "SUMMARIES", "KINDS",
+    "MARKDOWN", "HYBRID", "STANDARD", "DEEP",
+]
 
 
 class UnknownMethod(KeyError):
@@ -85,72 +106,6 @@ class UnknownMethod(KeyError):
 
 class NotAPartition(TypeError):
     """The method exists but is not a partition function (Deep Analysis)."""
-
-
-@dataclass(frozen=True)
-class PartitionResult:
-    """What a partition returns: rows, and whatever it wants recorded.
-
-    ``rows`` are chunk rows in the structural schema (``chunk_id``, ``text``,
-    ``unit_ids``, ``token_count``, ``pages``, ``section_paths``, ``heading``,
-    ``split_strategies``). ``diagnostics`` are counts and settings the
-    benchmark writes into its summary; never content. ``spans`` are the
-    rendered-document spans of a method that chunks a rendering rather than
-    the units (Markdown), which the chunk mapper needs to find each unit.
-    """
-
-    rows: list[dict[str, Any]]
-    diagnostics: dict[str, Any] = field(default_factory=dict)
-    spans: Optional[dict[str, Any]] = None
-
-
-Partition = Callable[..., PartitionResult]
-
-
-@dataclass(frozen=True)
-class ChunkMethod:
-    """One chunking method, as every layer needs to know it."""
-
-    #: The wire id: what a console sends, what the Viewer names the arm.
-    key: str
-    #: The engine kind: what a packaged manifest declares and the
-    #: boundary-reason reader keys on. Two methods may not share one.
-    kind: str
-    #: The product name, one per method, everywhere.
-    label: str
-    #: One sentence for someone choosing it.
-    summary: str
-    #: ``units, counter, budget -> PartitionResult``; ``None`` for an
-    #: orchestration such as Deep Analysis.
-    partition: Optional[Partition] = None
-    #: Needs a sentence-embedding model to run (Hybrid).
-    needs_embedder: bool = False
-    #: May consult a language model (Deep Analysis).
-    uses_model: bool = False
-    #: An orchestration over a baseline partition, not a partition itself.
-    deep: bool = False
-    #: The key of the partition a Deep run starts from and is compared to.
-    baseline: Optional[str] = None
-    #: Takes ``chunk_size_tokens`` / ``chunk_overlap_tokens`` instead of the
-    #: shared min/target/soft/hard budget (Markdown).
-    sized: bool = False
-    #: A same-section budget cut may have been chosen by an arbitration
-    #: rather than greedily; the relation deriver must not claim "greedy".
-    arbitrated_cuts: bool = False
-    #: One of the frozen chunk benchmark's compared arms.
-    benchmark_arm: bool = False
-    #: Default option values for a live (non-benchmark) run of the partition.
-    options: Mapping[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        if not self.key or not self.kind:
-            raise ValueError("a chunking method needs both a key and a kind")
-        if self.deep and self.partition is not None:
-            raise ValueError(f"{self.key!r}: an orchestration is not a partition")
-        if not self.deep and self.partition is None:
-            raise ValueError(f"{self.key!r}: a method that is not deep needs a partition")
-        if self.baseline is not None and not self.deep:
-            raise ValueError(f"{self.key!r}: only a deep method has a baseline")
 
 
 # --------------------------------------------------------------------------
@@ -258,7 +213,8 @@ DEEP = ChunkMethod(
 )
 
 #: The methods the library ships, in the order the Viewer lists them. This
-#: tuple is the registration: add a method here.
+#: tuple is the registration: import a method's ``ChunkMethod`` from its
+#: module and add it here. Nothing else in the library has to learn its name.
 _BUILTIN: tuple[ChunkMethod, ...] = (MARKDOWN, HYBRID, STANDARD, DEEP)
 
 

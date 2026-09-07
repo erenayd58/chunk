@@ -10,6 +10,17 @@ it makes it unknown everywhere again. The fifth method is the shipped
 example (:mod:`amsc.example_chunker`), registered only for the length of a
 test.
 
+**What is pinned and what is not.** The four shipped methods' wire identity
+-- key, engine kind, product label -- is a product contract: renaming one
+breaks a console, a packaged manifest and a Viewer arm at once, so each is
+written down here. The *number* of registered methods is not a contract, and
+nothing below asserts one: the tests are invariants over whatever is
+registered (keys and kinds unique, a non-deep method has a partition, a deep
+one has a baseline that is a registered partition, ``meta()`` describes every
+key), so adding a valid fifth method needs no edit to this file. The one list
+that is deliberately exact is the frozen benchmark's arm set, which is a
+contract about a completed experiment.
+
 Dispatch is also held to the engines it replaced: running Markdown,
 Standard and Hybrid through the registry yields exactly the rows the engine
 functions yield when called directly, so the refactor moved no boundary.
@@ -19,6 +30,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from types import SimpleNamespace
 
 import pytest
@@ -62,23 +74,95 @@ def four_paragraphs():
 
 
 # ------------------------------------------------------------- identity
-def test_the_four_shipped_methods_and_their_identity():
-    assert methods.order() == ("markdown", "hybrid", "structure-only", "agentic")
-    assert methods.kinds() == {
-        "markdown": "markdown_recursive", "hybrid": "hybrid_h1",
-        "structure-only": "structure_first", "agentic": "deep_analysis",
-    }
-    assert dict(methods.LABELS) == {
-        "markdown": "Markdown", "hybrid": "Hybrid",
-        "structure-only": "Standard", "agentic": "Deep Analysis",
-    }
-    assert methods.benchmark_arms() == ("markdown", "hybrid", "structure-only")
-    assert methods.partition_methods() == ("markdown", "hybrid", "structure-only")
-    assert [m.key for m in methods.methods() if m.uses_model] == ["agentic"]
-    assert [m.key for m in methods.methods() if m.needs_embedder] == ["hybrid"]
-    assert [m.key for m in methods.methods() if m.sized] == ["markdown"]
-    kinds = [m.kind for m in methods.methods()]
-    assert len(kinds) == len(set(kinds)), "no two methods share an engine kind"
+#: The wire identity of the methods the library ships: key -> (kind, label).
+#: A rename here is a rename in a console's request, a packaged manifest and a
+#: Viewer arm at once, so it is written down. A statement about these four,
+#: never about how many methods are registered.
+SHIPPED = {
+    "markdown": ("markdown_recursive", "Markdown"),
+    "hybrid": ("hybrid_h1", "Hybrid"),
+    "structure-only": ("structure_first", "Standard"),
+    "agentic": ("deep_analysis", "Deep Analysis"),
+}
+
+
+def test_the_shipped_methods_keep_their_wire_identity():
+    """The four keys, kinds and labels, and the order they are listed in.
+
+    Deliberately not an equality against the whole registry: a fifth method
+    registered beside them is valid and must not fail this.
+    """
+    for key, (kind, label) in SHIPPED.items():
+        assert methods.is_known(key), f"the shipped method {key!r} is gone"
+        assert methods.get(key).kind == kind
+        assert methods.LABELS[key] == label
+    listed = [key for key in methods.order() if key in SHIPPED]
+    assert listed == ["markdown", "hybrid", "structure-only", "agentic"]
+    assert methods.benchmark_arms() == ("markdown", "hybrid", "structure-only"), (
+        "the frozen benchmark's arm set is a contract about a finished experiment"
+    )
+    for key, capability in (("agentic", "uses_model"), ("hybrid", "needs_embedder"),
+                            ("markdown", "sized")):
+        assert getattr(methods.get(key), capability) is True, f"{key}.{capability}"
+    for key in SHIPPED:
+        if key != "agentic":
+            assert methods.get(key).uses_model is False, key
+    for key in SHIPPED:
+        if key != "hybrid":
+            assert methods.get(key).needs_embedder is False, key
+
+
+def test_the_registry_holds_together_whatever_is_in_it():
+    """The invariants a registration has to satisfy -- over every method
+    registered, not over a list of four. This is what a new method is held to
+    instead of being written into a snapshot."""
+    registered = methods.methods()
+    keys = [m.key for m in registered]
+    kinds = [m.kind for m in registered]
+    assert keys == list(methods.ORDER) == list(methods.kinds())
+    assert len(keys) == len(set(keys)), f"two methods share a key: {keys}"
+    assert len(kinds) == len(set(kinds)), f"two methods share an engine kind: {kinds}"
+
+    partitions = set(methods.partition_methods())
+    for method in registered:
+        assert method.key and method.kind, method
+        assert method.label.strip(), f"{method.key} has no product name"
+        assert method.summary.strip(), f"{method.key} has no summary"
+        assert isinstance(method.options, Mapping), method.key
+        if method.deep:
+            assert method.partition is None, f"{method.key} is deep and a partition"
+            assert method.key not in partitions
+            assert method.baseline in partitions, (
+                f"{method.key} starts from {method.baseline!r}, which is not a "
+                "registered partition method"
+            )
+            assert not method.benchmark_arm, "an orchestration is not a benchmark arm"
+        else:
+            assert callable(method.partition), f"{method.key} has no partition callable"
+            assert method.key in partitions
+            assert method.baseline is None
+        # Capability combinations a consumer relies on.
+        assert not (method.needs_embedder and method.deep), method.key
+        assert not (method.sized and method.deep), method.key
+        assert methods.by_kind(method.kind) is method
+        assert methods.kind_arbitrates(method.kind) is method.arbitrated_cuts
+
+    deep = methods.deep_method()
+    assert deep is None or deep.deep
+    assert [m.key for m in registered if m.deep] == ([deep.key] if deep else []), (
+        "at most one orchestration: the page finds it by the flag, not by name"
+    )
+    assert set(methods.benchmark_arms()) <= partitions
+
+    described = methods.meta()
+    assert list(described) == keys, "meta() describes exactly what is registered"
+    for method in registered:
+        assert described[method.key] == {
+            "kind": method.kind, "deep": method.deep, "baseline": method.baseline,
+            "needsEmbedder": method.needs_embedder, "usesModel": method.uses_model,
+            "benchmarkArm": method.benchmark_arm,
+        }
+        assert all(not callable(value) for value in described[method.key].values())
 
 
 def test_deep_analysis_is_an_orchestration_over_standard():
@@ -122,13 +206,14 @@ def test_a_method_literal_is_validated_when_written():
 
 
 def test_a_key_or_kind_collision_is_refused():
+    before = methods.order()
     clash = methods.ChunkMethod(key="twin", kind="structure_first", label="T", summary="",
                                 partition=lambda *a, **k: None)
     with pytest.raises(ValueError, match="which 'structure-only' already uses"):
         methods.register(clash)
     with pytest.raises(ValueError, match="already registered"):
         methods.register(methods.STANDARD)
-    assert methods.order() == ("markdown", "hybrid", "structure-only", "agentic"), "nothing slipped in"
+    assert methods.order() == before, "nothing slipped in"
 
 
 # ------------------------------------------------- dispatch equals engines
@@ -264,6 +349,37 @@ def test_a_registered_method_reaches_every_consumer_with_no_other_edit(fifth, tm
     assert chunk_relations._arbitrates("fixed_window") is False
     assert chunk_relations._arbitrates("hybrid_h1") and chunk_relations._arbitrates("deep_analysis")
     assert chunk_relations._arbitrates(chunk_relations.LEGACY_AGENTIC_KIND)
+
+
+def test_a_page_built_before_the_method_existed_still_lists_it_when_served(fifth, tmp_path):
+    """The Viewer exposure rule: no manual rebuild.
+
+    A built page carries the registry as it was at build time -- that is all a
+    file opened from disk can have. Served, it asks the server for the registry
+    as it is *now*, so a method registered after the page was built is listed
+    without anyone remembering ``python -m amsc.viewer_v3``. Proved from both
+    ends: the stale page really is stale, and the route really is current.
+    """
+    from amsc import viewer_server
+
+    methods.unregister(FIXED_WINDOW.key)          # build the page without it
+    output = tmp_path / "v3" / "index.html"
+    viewer_v3.build_viewer({}, output, root=tmp_path)
+    methods.register(FIXED_WINDOW)                # ...then register it
+
+    embedded = _payload(output.read_text(encoding="utf-8"))
+    assert "fixed-window" not in embedded["methodOrder"], "the built page is stale, as expected"
+
+    served = viewer_server.method_registry_payload()
+    assert served["order"] == list(methods.ORDER) and served["order"][-1] == "fixed-window"
+    assert served["labels"] == dict(methods.LABELS)
+    assert served["summaries"] == dict(methods.SUMMARIES)
+    assert served["meta"] == methods.meta()
+
+    # The page asks for it, and prefers what it gets over what it was built with.
+    page = output.read_text(encoding="utf-8")
+    assert '"/api/methods"' in page and "refreshMethods" in page
+    assert "DATA.methodOrder = m.order" in page
 
 
 def test_once_unregistered_the_method_is_unknown_everywhere(tmp_path):

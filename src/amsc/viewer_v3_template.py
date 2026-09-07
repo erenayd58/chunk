@@ -501,8 +501,16 @@ const mSummary = (a) => (DATA.methodSummaries || {})[a] || "";
    baseline, so a newly registered partition method needs no edit here. */
 const mMeta = (a) => (DATA.methodMeta || {})[a] || {};
 const isDeep = (a) => !!mMeta(a).deep;
-const DEEP = (DATA.methodOrder || []).find(isDeep) || "agentic";
-const BASE = mMeta(DEEP).baseline || "structure-only";
+/* Derived from the method metadata rather than fixed, because that metadata
+   is refreshed from the server at boot (see refreshMethods): a method
+   registered in the library after this page was built must not need a
+   rebuild to be listed. */
+let DEEP = "agentic", BASE = "structure-only";
+function deriveMethods() {
+  DEEP = (DATA.methodOrder || []).find(isDeep) || "agentic";
+  BASE = mMeta(DEEP).baseline || "structure-only";
+}
+deriveMethods();
 const fmtPages = (pg) => !pg || !pg.length ? "" : (pg.length === 1 ? "Sayfa " + pg[0] : "Sayfa " + pg[0] + "–" + pg[pg.length - 1]);
 const secOf = (c) => (c.sd && c.sd.length ? c.sd.join(" › ") : (c.hh || null));
 
@@ -2181,8 +2189,32 @@ document.addEventListener("keydown", (ev) => {
 });
 window.addEventListener("scroll", () => { if (S.open) closePop(); }, { passive: true });
 
+/* ---------------- the method registry, refreshed at runtime ---------------
+   The page embeds the registry as it was at build time, which is all a file
+   opened from disk can have. Served, it asks the server for the registry as
+   it is NOW: a method registered in the library since this page was built is
+   then listed without anybody remembering to rebuild the page. The embedded
+   copy stays the fallback, so an old server (no route) changes nothing. */
+function refreshMethods() {
+  if (!SERVED) return Promise.resolve(false);
+  return fetch("/api/methods").then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    .then((m) => {
+      if (!m || !m.order || !m.order.length) return false;
+      const before = JSON.stringify([DATA.methodOrder, DATA.methodLabels,
+                                     DATA.methodSummaries, DATA.methodMeta]);
+      DATA.methodOrder = m.order;
+      DATA.methodLabels = m.labels || {};
+      DATA.methodSummaries = m.summaries || {};
+      DATA.methodMeta = m.meta || {};
+      deriveMethods();
+      return JSON.stringify([DATA.methodOrder, DATA.methodLabels,
+                             DATA.methodSummaries, DATA.methodMeta]) !== before;
+    });
+}
+
 /* ---------------- init --------------------------------------------------- */
 renderBar(); renderStage();
+refreshMethods().then((changed) => { if (changed) { renderBar(); renderStage(); } });
 if (SERVED) fetchWorkspace();
 </script>
 </body>

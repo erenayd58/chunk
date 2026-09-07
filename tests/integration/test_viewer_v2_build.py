@@ -91,6 +91,22 @@ def test_difference_points_are_deterministic_and_nonempty(viewer_html, tmp_path)
     assert output.read_text(encoding="utf-8") == viewer_html
 
 
+#: ``productArmOrder`` is the chunking-method registry as it stood at build
+#: time, and the registry is expected to grow: registering a method is the
+#: supported extension path (``docs/adding-a-chunker.md``). It is normalised
+#: away below, because a *research* page going stale over it is not a fact
+#: about the page -- v2 uses the list only to order and filter the arms a
+#: document actually has, and a frozen document does not gain one. Left in,
+#: a developer adding a normal chunker got a red suite telling them to
+#: rebuild a legacy page, which is precisely the manual step that should not
+#: exist. Everything else about the artifact is still compared byte for byte.
+_REGISTRY_SNAPSHOT = re.compile(r'"productArmOrder":\[[^\]]*\]')
+
+
+def _without_the_registry_snapshot(html_text: str) -> str:
+    return _REGISTRY_SNAPSHOT.sub('"productArmOrder":[]', html_text)
+
+
 def test_the_checked_in_viewer_artifact_is_current(tmp_path):
     """The published viewer must equal a fresh build made from the same
     inputs it was published with. Those inputs are recorded in the
@@ -98,7 +114,10 @@ def test_the_checked_in_viewer_artifact_is_current(tmp_path):
     whatever composition was published (benchmark trees, packaged Deep
     trees, the legacy agentic tree). Hashes are compared, not the
     multi-megabyte strings -- a failing string diff is what a hang looks
-    like in pytest."""
+    like in pytest.
+
+    The one thing excluded is the embedded method-registry order; see
+    ``_REGISTRY_SNAPSHOT``."""
     import hashlib
 
     published = ROOT / "artifacts" / "viewer-v2" / "index.html"
@@ -122,12 +141,22 @@ def test_the_checked_in_viewer_artifact_is_current(tmp_path):
         write_catalog=False,
     )
     fresh = output.read_text(encoding="utf-8")
-    assert hashlib.sha256(published_text.encode("utf-8")).hexdigest() == hashlib.sha256(
-        fresh.encode("utf-8")
-    ).hexdigest(), (
+    digest = lambda text: hashlib.sha256(  # noqa: E731
+        _without_the_registry_snapshot(text).encode("utf-8")
+    ).hexdigest()
+    assert digest(published_text) == digest(fresh), (
         "artifacts/viewer-v2/index.html is stale; rebuild it with "
         "python -m amsc.viewer_v2"
     )
+
+
+def test_the_staleness_check_ignores_only_the_registry_snapshot():
+    """The normalisation must not be a hole big enough to hide a real change."""
+    page = '<x>{"docOrder":["a"],"productArmOrder":["markdown","hybrid"]}</x>'
+    grown = '<x>{"docOrder":["a"],"productArmOrder":["markdown","hybrid","fifth"]}</x>'
+    changed = '<x>{"docOrder":["b"],"productArmOrder":["markdown","hybrid"]}</x>'
+    assert _without_the_registry_snapshot(page) == _without_the_registry_snapshot(grown)
+    assert _without_the_registry_snapshot(page) != _without_the_registry_snapshot(changed)
 
 
 # --- the continuation layer over the real frozen artifacts ------------------

@@ -80,9 +80,15 @@ parallel-call machinery out of `agentic_chunker` and `llm_boundary_judge` into
   itself needs to import it.
 * **a new research module** — write it and add its name to `RESEARCH` in
   `surface.py`. The completeness test will ask you to if you forget.
-* **a new chunking method** — neither: register it in `amsc.methods`
-  ([adding-a-chunker.md](adding-a-chunker.md)). If the registry loads it on
-  demand rather than at import, add it to `DISPATCHED`.
+* **a new chunking method** — neither. Write the module (copy
+  `example_chunker.py`; its types come from `chunk_method.py`, a leaf module
+  that imports nothing else, which is what lets `methods.py` import your
+  module without a cycle), then import its `ChunkMethod` into `amsc.methods`
+  and add it to `_BUILTIN` ([adding-a-chunker.md](adding-a-chunker.md)). That
+  import makes it product by reachability, so nothing is declared here. Only a
+  method the registry loads *on demand* rather than at import — the three
+  built-ins, whose engines are also research entry points — goes in
+  `DISPATCHED`.
 * **something the product and a benchmark both need** — put it in the product
   module that owns the concept and re-export it from the research module, not
   the other way round. That is how `normalize_unit_ids_for_retrieval` came to

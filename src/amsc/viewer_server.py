@@ -9,6 +9,7 @@ in the browser and no second data path.
 
     GET  /                      the viewer page (built by amsc.viewer_v3)
     GET  /api/health            models, documents, arms, index state
+    GET  /api/methods           the chunking-method registry, as it is now
     GET  /api/docs              the catalog
     GET  /api/workspace         the RAG console's live knowledge bases
     GET  /api/live-document     one console document's viewer payload
@@ -44,6 +45,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Sequence
 
+from . import methods as method_registry
 from .rag_chat import Catalog, ChatEngine, load_config
 
 MAX_BODY_BYTES = 64 * 1024
@@ -98,6 +100,24 @@ def _console_call(
         return {"connected": False, "configured": True, "url": console_url, "reason": str(reason)}
     payload.pop("success", None)
     return {"connected": True, "configured": True, "url": console_url, **payload}
+
+
+def method_registry_payload() -> dict[str, Any]:
+    """The chunking-method registry as this process holds it, right now.
+
+    The page embeds the same four maps at build time, which is all a file
+    opened from disk can carry. Served, it asks for them again here, so a
+    method registered in the library after the page was built is listed
+    without a rebuild -- the one manual step that used to hide a new method
+    from the Viewer. Read from :mod:`amsc.methods`, never restated.
+    """
+    return {
+        "order": list(method_registry.ORDER),
+        "labels": dict(method_registry.LABELS),
+        "summaries": dict(method_registry.SUMMARIES),
+        "meta": method_registry.meta(),
+        "generator": "amsc.methods",
+    }
 
 
 def console_workspace(
@@ -235,6 +255,8 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 self._send_html(self.viewer_path)
             elif route == "/api/health":
                 self._send_json(self.engine.health())
+            elif route == "/api/methods":
+                self._send_json(method_registry_payload())
             elif route == "/api/docs":
                 self._send_json(self.engine.catalog.describe())
             elif route == "/api/workspace":

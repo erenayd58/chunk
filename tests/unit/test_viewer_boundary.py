@@ -174,5 +174,5 @@ def test_the_viewer_sources_that_are_tracked_are_the_ones_a_build_needs():
     tracked = set(_versioned())
     for required in ("src/amsc/viewer_corpus.py", "src/amsc/viewer_v3.py",
                      "src/amsc/viewer_v3_template.py", "src/amsc/viewer_server.py",
-                     "src/amsc/methods.py"):
+                     "src/amsc/methods.py", "src/amsc/chunk_method.py"):
         assert required in tracked, required

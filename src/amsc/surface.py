@@ -51,9 +51,14 @@ Where new code goes
   product path, and add it to :data:`CONSOLE_API` only if ``chat_rag`` itself
   needs to import it;
 * a new **research** module: write it and add its name to :data:`RESEARCH`;
-* a new **chunking method**: it is neither -- register it in
-  :mod:`amsc.methods` (``docs/adding-a-chunker.md``) and, if it is loaded on
-  demand by the registry, add it to :data:`DISPATCHED`.
+* a new **chunking method**: it is neither. Write the module (copy
+  :mod:`amsc.example_chunker`, importing its types from
+  :mod:`amsc.chunk_method`), then import its ``ChunkMethod`` into
+  :mod:`amsc.methods` and add it to ``_BUILTIN`` -- ``docs/adding-a-chunker.md``.
+  That import makes it product by reachability, so it needs no entry here.
+  Only a method the registry loads *on demand* rather than at import (the
+  three built-ins, whose engines are also research entry points) goes in
+  :data:`DISPATCHED`.
 """
 
 from __future__ import annotations
@@ -76,6 +81,8 @@ CONSOLE_API = frozenset({
     "models",
     # chunking
     "methods",              # the method registry -- method identity
+    # ``chunk_method`` (the ChunkMethod / PartitionResult types) is not here:
+    # ``methods`` re-exports both, so the console never imports it directly.
     "structural_chunker",
     "deep_pipeline",        # Deep Analysis, the production entry point
     "deep_analysis",        # its configuration

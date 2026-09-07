@@ -1,8 +1,17 @@
 """The smallest complete chunking method -- the template for a new one.
 
-Copy this file, change the partition, register the result in
-:mod:`amsc.methods`, write a test. That is the whole procedure; nothing in
-the Viewer, the benchmark or the console has to learn the method's name.
+Copy this file, change the partition, add its :class:`ChunkMethod` to
+``_BUILTIN`` in :mod:`amsc.methods` (one import, one tuple element), write a
+test. That is the whole procedure; nothing in the Viewer, the benchmark or
+the console has to learn the method's name.
+
+**The import above the partition is the copyable part.** The types come from
+:mod:`amsc.chunk_method`, a leaf module that imports nothing else in the
+package -- which is what lets ``amsc.methods`` import *this* module to
+register it. Importing them from ``amsc.methods`` instead would make the
+registration a cycle (methods -> your module -> methods) and fail the
+package's import-cycle guard, which is exactly what the earlier version of
+this template did.
 
 The method here packs consecutive content units into a chunk until the
 next unit would push it past the shared target, cutting only at unit
@@ -23,7 +32,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from .methods import ChunkMethod, PartitionResult
+from .chunk_method import ChunkMethod, PartitionResult
 from .models import RawDocumentUnit, UnitType
 
 #: The chunk id infix, so a row says which method wrote it.
@@ -86,8 +95,15 @@ def partition_fixed_window(
     return PartitionResult(rows, {"max_units": max_units})
 
 
-#: The registration a developer adds to ``amsc.methods._BUILTIN``. Kept here,
-#: unregistered, so the tests can prove the path.
+#: The method, declared beside its partition -- which is where a copy of this
+#: file declares its own. Registering it is two lines in ``amsc.methods``::
+#:
+#:     from .example_chunker import FIXED_WINDOW      # beside the other imports
+#:     _BUILTIN = (MARKDOWN, HYBRID, STANDARD, DEEP, FIXED_WINDOW)
+#:
+#: This one is deliberately left *out* of that tuple: the template ships
+#: unregistered so the extension path can be proved by a test without leaving
+#: a fifth product method behind.
 FIXED_WINDOW = ChunkMethod(
     key="fixed-window",
     kind="fixed_window",
