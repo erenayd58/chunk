@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from amsc.io import sha256_file
+from amsc.document.io import sha256_file
 
 
 ROOT = Path(__file__).resolve().parents[2]

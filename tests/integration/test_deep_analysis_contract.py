@@ -8,7 +8,7 @@ per-section selector has to restore deliberately.
 Pins here are *properties*, not numbers: Standard is reproduced byte for byte,
 coverage is unchanged, the hard cap holds, and no section comes out with a
 smell type Standard did not have. The measured improvement is reported by
-``amsc.boundary_quality`` and lives in artifacts, not in an assertion, so a
+``amsc.quality.boundaries`` and lives in artifacts, not in an assertion, so a
 better selector is never blocked by this file.
 """
 
@@ -18,12 +18,12 @@ from pathlib import Path
 
 import pytest
 
-from amsc import boundary_quality as bq
-from amsc import deep_analysis as da
-from amsc.io import load_jsonl_units
-from amsc.structural_chunker import RENDER_SEPARATOR, _render, _sections
-from amsc.structural_chunker import chunk_units as structural_chunk_units
-from amsc.tokenization import TiktokenTokenCounter
+from amsc.quality import boundaries as bq
+from amsc.deep import selector as da
+from amsc.document.io import load_jsonl_units
+from amsc.chunking.structural import RENDER_SEPARATOR, _render, _sections
+from amsc.chunking.structural import chunk_units as structural_chunk_units
+from amsc.document.tokenization import TiktokenTokenCounter
 
 CORPORA = ("data/kkb-2024.units.v3.jsonl", "data/kkb-2022.units.v3.jsonl")
 CONFIG = da.DeepConfig()

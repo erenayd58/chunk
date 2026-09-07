@@ -5,6 +5,11 @@ are legacy and which are unused. These tests make that declaration true rather
 than aspirational, and they do it from the imports themselves -- the point is
 that nobody has to keep a list of product modules up to date.
 
+Modules are named by their dotted path below ``amsc`` (``chunking.registry``,
+``research.benchmark.chunkers``), which is what makes a *package* an
+architectural statement rather than a folder: ``amsc.research`` is off the
+product path module by module, and this file is where that is proved.
+
 Two graphs are used, and the difference matters:
 
 * the **eager** graph -- module-level imports only. This is what actually
@@ -28,34 +33,60 @@ import pytest
 from amsc import surface
 
 SRC = Path(__file__).resolve().parents[2] / "src" / "amsc"
-MODULES = frozenset(p.stem for p in SRC.glob("*.py") if p.stem != "__init__")
+
+
+def _dotted(path: Path) -> str:
+    return ".".join(path.relative_to(SRC).with_suffix("").parts)
+
+
+#: Every importable module, by dotted path. Package ``__init__`` files are not
+#: modules for this purpose: they hold documentation and nothing else, which
+#: ``test_no_package_init_imports_anything`` is what keeps true.
+MODULES = frozenset(_dotted(p) for p in SRC.rglob("*.py") if p.name != "__init__.py")
+INITS = tuple(sorted(SRC.rglob("__init__.py")))
 
 
 # ------------------------------------------------------------------ the graph
 
 
-def _targets(node: ast.AST) -> set[str]:
-    """The ``amsc`` submodules one import statement names."""
-    out: set[str] = set()
+def _resolve(base: tuple[str, ...], names: list[str]) -> set[str]:
+    """``base`` if it is a module, else whichever of ``names`` under it are."""
+    dotted = ".".join(base)
+    if dotted and dotted in MODULES:
+        return {dotted}
+    return {c for c in (".".join(base + (name,)) for name in names) if c in MODULES}
+
+
+def _targets(node: ast.AST, here: tuple[str, ...]) -> set[str]:
+    """The ``amsc`` modules one import statement names, as dotted paths.
+
+    ``here`` is the package the importing module lives in, which is what makes
+    a relative import resolvable.
+    """
+    names = [alias.name for alias in node.names]
     if isinstance(node, ast.ImportFrom):
-        if node.level and node.module:              # from .pkg import x
-            out.add(node.module.split(".")[0])
-        elif node.level and not node.module:        # from . import a, b
-            out |= {alias.name for alias in node.names}
-        elif node.module and node.module.startswith("amsc."):
-            out.add(node.module.split(".", 1)[1].split(".")[0])
+        if node.level:                                      # from ..pkg import x
+            if node.level - 1 > len(here):
+                return set()
+            base = here[: len(here) - (node.level - 1)]
+            if node.module:
+                base += tuple(node.module.split("."))
+            return _resolve(base, names)
+        if node.module and node.module.startswith("amsc."):
+            return _resolve(tuple(node.module.split(".")[1:]), names)
     elif isinstance(node, ast.Import):
-        for alias in node.names:
-            if alias.name.startswith("amsc."):
-                out.add(alias.name.split(".", 1)[1].split(".")[0])
-    return out
+        return {alias.name[len("amsc."):] for alias in node.names
+                if alias.name.startswith("amsc.") and alias.name[len("amsc."):] in MODULES}
+    return set()
 
 
 def _graphs() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
     eager: dict[str, set[str]] = defaultdict(set)
     full: dict[str, set[str]] = defaultdict(set)
-    for name in sorted(MODULES | {"__init__"}):
-        tree = ast.parse((SRC / f"{name}.py").read_text(encoding="utf-8"))
+    for name in sorted(MODULES):
+        path = SRC.joinpath(*name.split(".")).with_suffix(".py")
+        here = tuple(name.split(".")[:-1])
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         at_module_level = set()
         for statement in tree.body:
             if isinstance(statement, (ast.Import, ast.ImportFrom)):
@@ -67,8 +98,8 @@ def _graphs() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
         for node in ast.walk(tree):
             if not isinstance(node, (ast.Import, ast.ImportFrom)):
                 continue
-            for target in _targets(node):
-                if target in MODULES and target != name:
+            for target in _targets(node, here):
+                if target != name:
                     full[name].add(target)
                     if id(node) in at_module_level:
                         eager[name].add(target)
@@ -116,6 +147,18 @@ PRODUCT = _reach(surface.ENTRY_POINTS, EAGER)
 # ------------------------------------------------------------- the invariant
 
 
+def test_the_graph_was_actually_built():
+    """A resolver that resolves nothing would make every test below vacuous."""
+    assert len(MODULES) > 70, sorted(MODULES)
+    # The registry imports the types leaf and every registered method module,
+    # and nothing else -- a fifth method adds a name here, never a package.
+    assert "chunking.method" in EAGER["chunking.registry"]
+    assert all(name.startswith("chunking.") for name in EAGER["chunking.registry"])
+    assert "document.models" in EAGER["document.io"]
+    assert "quality.boundaries" in EAGER["deep.pipeline"]
+    assert len(PRODUCT) > 30, sorted(PRODUCT)
+
+
 def test_the_product_path_reaches_no_research_or_legacy_module():
     """The one rule. Every failure names the import chain that broke it."""
     forbidden = sorted(PRODUCT & (surface.RESEARCH | surface.LEGACY | surface.UNUSED))
@@ -128,8 +171,9 @@ def test_the_product_path_reaches_no_research_or_legacy_module():
 def test_the_product_path_reaches_no_viewer_service_module():
     """The console runs beside the Viewer's server, never inside it.
 
-    Reaching ``rag_index`` from the console would drag the frozen benchmark's
-    BM25 fold table -- and with it ``chunk_benchmark`` -- onto the ingest path.
+    Reaching ``viewer.chat.index`` from the console would drag the frozen
+    benchmark's BM25 fold table -- and with it the whole chunk benchmark --
+    onto the ingest path.
     """
     leaked = sorted(PRODUCT & surface.SERVICE)
     assert leaked == [], "\n".join(
@@ -153,6 +197,19 @@ def test_every_module_off_the_product_path_is_declared():
     )
 
 
+def test_everything_under_the_research_package_is_declared_research():
+    """The package name is a claim; this is the check behind it.
+
+    A module dropped into ``amsc/research/`` is off the product path because
+    ``surface`` says so, not because of where it sits -- and the two must not
+    be allowed to disagree in either direction.
+    """
+    living_there = {name for name in MODULES if name.startswith("research.")}
+    declared = surface.RESEARCH | surface.LEGACY
+    assert sorted(living_there - declared) == [], "under amsc/research but not declared"
+    assert sorted(declared - living_there) == [], "declared research but living elsewhere"
+
+
 def test_no_module_carries_two_statuses():
     groups = {"SERVICE": surface.SERVICE, "RESEARCH": surface.RESEARCH,
               "LEGACY": surface.LEGACY, "UNUSED": surface.UNUSED}
@@ -173,12 +230,12 @@ def test_every_declared_name_is_a_real_module():
 def test_the_console_api_is_a_subset_of_the_product_surface():
     assert surface.CONSOLE_API <= PRODUCT
     assert surface.DISPATCHED <= PRODUCT
-    assert surface.classify("amsc.deep_arm") == "product"
-    assert surface.classify("chunk_benchmark") == "research"
-    assert surface.classify("legacy_chat_rag") == "legacy"
-    assert surface.classify("viewer_server") == "service"
-    assert surface.console_may_import("amsc.viewer_corpus")
-    assert not surface.console_may_import("amsc.chunk_benchmark")
+    assert surface.classify("amsc.deep.arm") == "product"
+    assert surface.classify("research.benchmark.chunkers") == "research"
+    assert surface.classify("research.legacy_chat_rag") == "legacy"
+    assert surface.classify("viewer.server") == "service"
+    assert surface.console_may_import("amsc.viewer.corpus")
+    assert not surface.console_may_import("amsc.research.benchmark.chunkers")
 
 
 def test_the_mixed_modules_are_on_the_product_path_and_named():
@@ -201,8 +258,9 @@ def test_the_unused_module_really_has_no_caller():
         callers = sorted(module for module, deps in FULL.items() if name in deps)
         assert callers == [], f"{name} is declared unused but {callers} import it"
 
+        own = "src/amsc/" + name.replace(".", "/") + ".py"
         hits = subprocess.run(
-            ["git", "grep", "-l", "-e", name, "--", ":!src/amsc/" + name + ".py",
+            ["git", "grep", "-l", "-F", "-e", name, "--", ":!" + own,
              ":!tests/unit/test_library_surface.py", ":!src/amsc/surface.py"],
             cwd=SRC.parents[1], capture_output=True, text=True,
         )
@@ -231,10 +289,39 @@ def test_the_package_has_no_import_cycles():
                 walk(child, stack + [child])
         colour[node] = 2
 
-    for module in sorted(MODULES | {"__init__"}):
+    for module in sorted(MODULES):
         if colour[module] == 0:
             walk(module, [module])
     assert cycles == [], "module-level import cycles: " + "; ".join(sorted(set(cycles)))
+
+
+def test_no_package_init_imports_anything():
+    """A package ``__init__`` documents the package; it does not load it.
+
+    This is what makes ``import amsc.chunking.method`` cost one leaf module
+    rather than a package's worth of engines, and it is why the tree can be
+    reorganised without a re-export layer appearing to hold it together.
+    """
+    importing = []
+    for init in INITS:
+        tree = ast.parse(init.read_text(encoding="utf-8"))
+        if any(isinstance(node, (ast.Import, ast.ImportFrom)) for node in ast.walk(tree)):
+            importing.append(str(init.relative_to(SRC.parents[1])))
+    assert importing == [], f"package __init__ files that import: {importing}"
+
+
+def test_dependencies_point_down_the_layering():
+    """The document contract is the bottom of the graph, and stays there.
+
+    Every other package may import :mod:`amsc.document`; it may import none of
+    them. The same is true of the two leaves the boundary depends on:
+    ``chunking.method`` (so a method module can import it) and ``providers``
+    (so the transport belongs to nobody).
+    """
+    for leaf in ("document.models", "document.io", "document.tokenization",
+                 "chunking.method", "providers"):
+        outward = sorted(d for d in EAGER.get(leaf, ()) if not d.startswith("document."))
+        assert outward == [], f"{leaf} imports upward: {outward}"
 
 
 # ------------------------------------------------------- the surface in fact
@@ -248,7 +335,7 @@ def test_importing_the_console_surface_loads_no_research_module():
         "import importlib, sys, json\n"
         f"for name in {sorted(surface.CONSOLE_API)!r}:\n"
         "    importlib.import_module('amsc.' + name)\n"
-        "loaded = {m.split('.')[1] for m in sys.modules if m.startswith('amsc.') and '.' in m}\n"
+        "loaded = {m[len('amsc.'):] for m in sys.modules if m.startswith('amsc.')}\n"
         f"print(json.dumps(sorted(loaded & set({forbidden!r}))))\n"
     )
     result = subprocess.run([sys.executable, "-c", probe],
@@ -278,9 +365,10 @@ def test_every_research_and_legacy_module_still_has_a_caller():
     for name in sorted(surface.RESEARCH | surface.LEGACY | surface.SERVICE):
         if any(name in deps for deps in FULL.values()):
             continue
+        own = "src/amsc/" + name.replace(".", "/") + ".py"
         hits = subprocess.run(
-            ["git", "grep", "-l", "-e", name, "--",
-             ":!src/amsc/" + name + ".py", ":!src/amsc/surface.py",
+            ["git", "grep", "-l", "-F", "-e", name, "--",
+             ":!" + own, ":!src/amsc/surface.py",
              ":!tests/unit/test_library_surface.py"],
             cwd=SRC.parents[1], capture_output=True, text=True,
         )
@@ -295,15 +383,15 @@ def test_every_research_and_legacy_module_still_has_a_caller():
 def test_the_provider_transport_is_not_a_research_module():
     """Phase 8's boundary move, stated as the invariant it bought.
 
-    Deep Analysis reaches a provider through ``provider_calls``. If it ever
-    reaches one through ``agentic_chunker`` or ``llm_boundary_judge`` again,
-    both research arms come back onto the product path with it -- which is
-    the failure this whole file exists to name.
+    Deep Analysis reaches a provider through :mod:`amsc.providers`. If it ever
+    reaches one through the v1 Agentic arm again, both research arms come back
+    onto the product path with it -- which is the failure this whole file
+    exists to name.
     """
-    assert "provider_calls" in PRODUCT
-    for arm in ("agentic_chunker", "llm_boundary_judge"):
+    assert "providers" in PRODUCT
+    for arm in ("research.agentic.chunker", "research.agentic.judge"):
         assert surface.classify(arm) == "research", arm
         assert arm not in PRODUCT, _why(arm, surface.ENTRY_POINTS, EAGER)
-    assert EAGER["provider_calls"] == set(), (
-        "provider_calls imports amsc modules: " + str(sorted(EAGER["provider_calls"]))
+    assert EAGER["providers"] == set(), (
+        "providers imports amsc modules: " + str(sorted(EAGER["providers"]))
     )

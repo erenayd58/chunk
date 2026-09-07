@@ -11,7 +11,7 @@ import numpy as np
 
 import pytest
 
-from amsc.chunk_benchmark import (
+from amsc.research.benchmark.chunkers import (
     ARMS,
     BM25OnlyIndex,
     ChunkBenchmarkConfig,
@@ -19,11 +19,11 @@ from amsc.chunk_benchmark import (
     run_benchmark,
     to_documents,
 )
-from amsc.chunk_mapping import map_chunks
-from amsc.io import load_jsonl_units
-from amsc.models import UnitType
-from amsc.retrieval_pipeline import RetrievalDocument, RetrievalHit
-from amsc.tokenization import TiktokenTokenCounter
+from amsc.chunking.mapping import map_chunks
+from amsc.document.io import load_jsonl_units
+from amsc.document.models import UnitType
+from amsc.retrieval.pipeline import RetrievalDocument, RetrievalHit
+from amsc.document.tokenization import TiktokenTokenCounter
 
 DOCUMENT_ID = "fixture-doc"
 SECTION_COUNT = 8
@@ -382,7 +382,7 @@ def test_the_harness_adds_nothing_to_the_structure_first_chunker():
     token counts, headings, section paths -- has to survive untouched, or the
     arm is measuring the harness rather than the chunker.
     """
-    from amsc.structural_chunker import chunk_units
+    from amsc.chunking.structural import chunk_units
 
     units = load_jsonl_units("data/kkb-2024.units.jsonl")
     counter = TiktokenTokenCounter("cl100k_base")

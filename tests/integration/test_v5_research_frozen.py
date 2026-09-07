@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from amsc.evaluation import load_jsonl_objects
+from amsc.quality.evaluation import load_jsonl_objects
 
 
 ROOT = Path(__file__).resolve().parents[2]

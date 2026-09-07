@@ -1,11 +1,15 @@
 # Library surface — product, research, legacy
 
 `amsc` started as a research package and became a product dependency along the
-way, so both live in one flat namespace. This note says which is which, and
-where new code goes. The declaration itself is
+way. The package tree now separates the domains
+([package-layout.md](package-layout.md)); this note says which of them a
+*console* may depend on, and where new code goes. The declaration itself is
 [src/amsc/surface.py](../src/amsc/surface.py); the tests that make it true are
 [tests/unit/test_library_surface.py](../tests/unit/test_library_surface.py)
 and, on the console side, `chat_rag/tests/unit/test_amsc_surface.py`.
+
+Modules are named here by their dotted path below `amsc` — `chunking.registry`,
+`research.benchmark.chunkers` — which is what the declaration uses.
 
 ## The five statuses
 
@@ -22,6 +26,12 @@ being imported by something already on the path — no list to update. What
 *must* be declared is anything **off** the path, which is exactly the moment
 someone should be asked what a new module is.
 
+The tree and the declaration say the same thing twice on purpose: everything
+under `amsc/research/` is declared `research` or `legacy`, and
+`test_everything_under_the_research_package_is_declared_research` fails if the
+two ever disagree — in either direction. The package name is the signpost; the
+declaration is the check.
+
 ## The one rule
 
 > Nothing reachable from an entry point may be research, legacy or unused.
@@ -31,8 +41,8 @@ import chain that broke it:
 
 ```
 product code reached modules it must not:
-  chunk_benchmark <- table_view
-  legacy_chat_rag <- retrieval_benchmark <- chunk_benchmark <- table_view
+  research.benchmark.chunkers <- tables.view
+  research.legacy_chat_rag <- research.benchmark.retrieval <- research.benchmark.chunkers <- tables.view
 ```
 
 A second rule keeps the console honest: `chat_rag`'s **product code** may
@@ -46,14 +56,15 @@ never a research or legacy one.
 
 | area | modules |
 |---|---|
-| canonical documents (PDF → units) | `checkpoint_adapter`, `checkpoint_layout`, `prepare_full_checkpoint`, `io`, `models` |
-| chunking | `methods` (the registry — method identity), `structural_chunker`, `deep_pipeline`, `deep_analysis`, `deep_run`, `v4_chunker`, `config`, `tokenization` |
-| embeddings and retrieval | `embeddings`, `cache`, `rag_embeddings`, `retrieval_pipeline` |
-| measurement and presentation | `structural_qa`, `table_view` |
-| the Viewer | `deep_arm`, `viewer_corpus` |
+| canonical documents (PDF → units) | `canonical.adapter`, `canonical.layout`, `canonical.prepare`, `document.io`, `document.models`, `document.tokenization` |
+| chunking | `chunking.registry` (the registry — method identity), `chunking.structural`, `chunking.adaptive.v4`, `chunking.adaptive.config` |
+| Deep Analysis | `deep.pipeline`, `deep.selector`, `deep.run`, `deep.arm` |
+| embeddings and retrieval | `embedding.boundary`, `embedding.cache`, `retrieval.embeddings`, `retrieval.pipeline` |
+| measurement and presentation | `quality.lint`, `tables.view` |
+| the Viewer | `viewer.corpus` |
 
 The bare package (`import amsc`, for the version in the provenance snapshot)
-is always allowed.
+is always allowed, and costs nothing: `amsc/__init__.py` re-exports nothing.
 
 Adding one is a deliberate act: add the name in `surface.py` **here**, commit,
 push, and bump the pin in `chat_rag/requirements.txt` — the same three-step
@@ -65,25 +76,28 @@ release any cross-repo change needs (see
 Two product modules have a research heritage. The module as a whole is not a
 product API; only the named symbols are. `surface.MIXED` carries the same list
 in code. It was four until Phase 8 moved the provider transport and the
-parallel-call machinery out of `agentic_chunker` and `llm_boundary_judge` into
-`provider_calls`, which took both of those off the product path entirely.
+parallel-call machinery out of the v1 Agentic arm into `amsc.providers`, which
+took both of those off the product path entirely.
 
 | module | what product uses, and only that |
 |---|---|
-| `evaluation` | `_median`, `_nearest_rank` — **deliberately** shared, so a structural-quality number computed for a live document matches one computed for the frozen corpus. Pinned by `tests/unit/test_chunk_quality.py` |
-| `chunker` | nothing directly. It is on the product path only because `amsc/__init__` exports `V1Chunker`/`V2Chunker`/`V3Chunker` as part of the package's public API. New product code should use `structural_chunker`, `deep_pipeline` or `v4_chunker` |
+| `quality.evaluation` | `_median`, `_nearest_rank` — **deliberately** shared, so a structural-quality number computed for a live document matches one computed for the frozen corpus. Pinned by `tests/unit/quality/test_chunk_quality.py` |
+| `chunking.adaptive.v1_v3` | nothing directly. It is on the product path only because the `amsc` console script can still run a V1–V3 config. New product code should use `chunking.structural`, `deep.pipeline` or `chunking.adaptive.v4` |
 
 ## Where new code goes
 
-* **a new product module** — write it, import it from something already on the
-  product path. Nothing to declare. Add it to `CONSOLE_API` only if `chat_rag`
-  itself needs to import it.
-* **a new research module** — write it and add its name to `RESEARCH` in
-  `surface.py`. The completeness test will ask you to if you forget.
-* **a new chunking method** — neither. Write the module (copy
-  `example_chunker.py`; its types come from `chunk_method.py`, a leaf module
-  that imports nothing else, which is what lets `methods.py` import your
-  module without a cycle), then import its `ChunkMethod` into `amsc.methods`
+* **a new product module** — write it in the package that owns the concept
+  ([package-layout.md](package-layout.md)) and import it from something already
+  on the product path. Nothing to declare. Add it to `CONSOLE_API` only if
+  `chat_rag` itself needs to import it.
+* **a new research module** — write it under `amsc/research/` and add its
+  dotted name to `RESEARCH` in `surface.py`. Two tests will ask you to if you
+  forget: the completeness check, and the one that says the package and the
+  declaration must agree.
+* **a new chunking method** — neither. Write the module in `amsc/chunking/`
+  (copy `example.py`; its types come from `chunking/method.py`, a leaf module
+  that imports nothing else, which is what lets `chunking/registry.py` import
+  your module without a cycle), then import its `ChunkMethod` into the registry
   and add it to `_BUILTIN` ([adding-a-chunker.md](adding-a-chunker.md)). That
   import makes it product by reachability, so nothing is declared here. Only a
   method the registry loads *on demand* rather than at import — the three
@@ -92,33 +106,37 @@ parallel-call machinery out of `agentic_chunker` and `llm_boundary_judge` into
 * **something the product and a benchmark both need** — put it in the product
   module that owns the concept and re-export it from the research module, not
   the other way round. That is how `normalize_unit_ids_for_retrieval` came to
-  live in `chunk_mapping` (the single chunk↔unit resolver) with
-  `chunk_benchmark` keeping the name on its surface.
+  live in `chunking.mapping` (the single chunk↔unit resolver) with
+  `research.benchmark.chunkers` keeping the name on its surface.
 
-## Why the files did not move
+## Why the declaration survives the tree
 
-Directories would say all of this more loudly, and the cost was too high for
-what it buys:
+The tree answers *where does this live*; only the declaration can answer *may
+the console depend on it*, and only the graph test can answer *did a lazy
+import put research back on the product path*. So both stay:
 
-* about thirty modules are documented `python -m amsc.<module>` entry points
-  (CLAUDE.md, `docs/`), and several write their own dotted name into artifacts
-  (`"generator": "amsc.viewer_v3"`), which tests pin;
-* `pyproject.toml` ships `amsc = "amsc.cli:main"`;
-* moving them would need a re-export shim per module — which is the
-  duplicate-surface problem, not a fix for it.
-
-The declaration plus the graph test gives the same answer to every question a
-directory layout would have answered, and it is checked rather than implied.
-If the tree is ever reorganised, `surface.py` is the map to do it from.
+* `DISPATCHED` names product modules the registry imports **inside a function**
+  — invisible to the tree and to a reader, deliberate in the declaration;
+* `SERVICE` separates the Viewer's server process from the console's surface
+  even though both live under `amsc/viewer/`;
+* `MIXED` names a product module whose *symbols* are the API rather than the
+  module, which no directory can express;
+* `CONSOLE_API` is a cross-repository contract, not a layout.
 
 ## Known mixed areas, and what is left
 
-* `evaluation`'s two percentile helpers are shared on purpose and pinned by a
-  test; extracting them would need that contract restated, not removed.
-* `rag_index` (Viewer service) reads the frozen benchmark's Turkish fold table
-  from `chunk_benchmark` by design, so the Viewer's chat tokenises exactly as
-  the benchmark did. This is why `service` is its own status rather than part
-  of `product`.
+* `quality.evaluation`'s two percentile helpers are shared on purpose and
+  pinned by a test; extracting them would need that contract restated, not
+  removed.
+* `viewer.chat.index` (Viewer service) reads the frozen benchmark's Turkish
+  fold table from `research.benchmark.chunkers` by design, so the Viewer's chat
+  tokenises exactly as the benchmark did. This is why `service` is its own
+  status rather than part of `product`.
+* `deep.arm` imports `research.benchmark.agentic` **inside a function**, to
+  write a comparison summary when one is asked for. It is the one product →
+  research edge left, it is deferred, and the graph test allows it because it
+  is not on the import path of a Deep run. Reversing it (moving the summary
+  writer into `deep`) is open.
 * `unused` is empty. `parent_expansion` held it — no importer anywhere in
   either repository, no entry point — and Phase 8 deleted it. The status stays
   declared so the next such module has somewhere to sit while the deletion is

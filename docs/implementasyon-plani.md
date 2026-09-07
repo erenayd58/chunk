@@ -17,11 +17,11 @@ src/amsc/
   chunker.py       ortak orchestration ile V1/V2/V3 facade'ları
   structure.py     parser-agnostic structural evidence ve bounded support
   strength.py      original/effective threshold-relative strength scorer'ları
-  v4_selection.py  ayrı V4 threshold-relative/raw ablation selector'ı
+  chunking/adaptive/v4_selection.py  ayrı V4 threshold-relative/raw ablation selector'ı
   merge.py         retained-embedding semantic-safe merge resolver
-  v4_chunker.py    V3'ten ayrı V4 orchestration ve A1–A4 composition
+  chunking/adaptive/v4.py    V3'ten ayrı V4 orchestration ve A1–A4 composition
   evaluation.py    deterministic exact/±1 boundary ve chunk metrikleri
-  failure_analysis.py authoritative metricten bağımsız prediction/gold/merge audit
+  research/failure_analysis.py authoritative metricten bağımsız prediction/gold/merge audit
   cli.py           validate/chunk komutları
 ```
 

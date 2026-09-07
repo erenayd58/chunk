@@ -4,20 +4,20 @@ import argparse
 import json
 from pathlib import Path
 
-from .cache import FileEmbeddingCache
-from .chunker import V1Chunker, V2Chunker, V3Chunker
-from .config import V1Config, V2Config, V3Config, V4Config, load_config
-from .embeddings import (
+from .embedding.cache import FileEmbeddingCache
+from .chunking.adaptive.v1_v3 import V1Chunker, V2Chunker, V3Chunker
+from .chunking.adaptive.config import V1Config, V2Config, V3Config, V4Config, load_config
+from .embedding.boundary import (
     CachedSemanticBoundaryEmbedder,
     SentenceTransformerBoundaryEmbedder,
 )
-from .io import (
+from .document.io import (
     load_jsonl_units,
     write_chunking_result,
     write_resolved_config,
 )
-from .tokenization import TiktokenTokenCounter
-from .v4_chunker import V4Chunker
+from .document.tokenization import TiktokenTokenCounter
+from .chunking.adaptive.v4 import V4Chunker
 
 
 def _parser() -> argparse.ArgumentParser:

@@ -5,9 +5,9 @@ import math
 import numpy as np
 import pytest
 
-from amsc.chunker import V3Chunker
-from amsc.config import V3Config
-from amsc.models import RawDocumentUnit
+from amsc.chunking.adaptive.v1_v3 import V3Chunker
+from amsc.chunking.adaptive.config import V3Config
+from amsc.document.models import RawDocumentUnit
 from conftest import StaticBoundaryEmbedder, WordTokenCounter
 
 

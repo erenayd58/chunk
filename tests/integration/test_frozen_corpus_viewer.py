@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from amsc.viewer_corpus import load_corpus
+from amsc.viewer.corpus import load_corpus
 
 ROOT = Path(__file__).resolve().parents[2]
 BENCHMARKS = {
@@ -86,7 +86,7 @@ def test_the_documented_example_link_exists_and_the_banner_variant_does_not(docs
 
 def test_python_expander_reproduces_the_viewer_simulation():
     """expand_context on the frozen chunks equals the JS mirror's answer."""
-    from amsc.chunk_relations import derive_continuations, expand_context
+    from amsc.chunking.relations import derive_continuations, expand_context
 
     tree = BENCHMARKS["kkb-2024"]
     if not (tree / "structure-only" / "chunks.jsonl").is_file():
@@ -126,7 +126,7 @@ def test_python_expander_reproduces_the_viewer_simulation():
 def test_the_checked_in_relation_sidecars_are_current(docs):
     import tempfile
 
-    from amsc.chunk_relations import derive_tree
+    from amsc.chunking.relations import derive_tree
 
     published = ROOT / "artifacts" / "chunk-relations-v1"
     if not (published / "kkb-2024" / "summary.json").is_file():
@@ -139,4 +139,4 @@ def test_the_checked_in_relation_sidecars_are_current(docs):
             for name in sorted(p.name for p in fresh.iterdir()):
                 assert (published / doc / name).read_bytes() == (
                     fresh / name
-                ).read_bytes(), f"{doc}/{name} is stale; re-run amsc.chunk_relations"
+                ).read_bytes(), f"{doc}/{name} is stale; re-run amsc.chunking.relations"

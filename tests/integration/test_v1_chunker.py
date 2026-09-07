@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from amsc.chunker import V1Chunker
-from amsc.config import V1Config
-from amsc.io import load_jsonl_units, write_chunking_result
-from amsc.tokenization import TiktokenTokenCounter
+from amsc.chunking.adaptive.v1_v3 import V1Chunker
+from amsc.chunking.adaptive.config import V1Config
+from amsc.document.io import load_jsonl_units, write_chunking_result
+from amsc.document.tokenization import TiktokenTokenCounter
 from conftest import StaticBoundaryEmbedder, WordTokenCounter
 
 
@@ -108,7 +108,7 @@ def test_v1_persisted_jsonl_is_byte_for_byte_golden(tmp_path) -> None:
 
 
 def test_long_heading_and_content_never_exceed_configured_cap() -> None:
-    from amsc.models import RawDocumentUnit
+    from amsc.document.models import RawDocumentUnit
 
     raw = [
         RawDocumentUnit.model_validate(

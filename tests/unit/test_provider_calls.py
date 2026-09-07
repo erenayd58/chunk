@@ -1,8 +1,8 @@
 """The provider transport and the parallel-call machinery, on their own.
 
 Both were product infrastructure living inside research modules until Phase 8:
-the transport in ``amsc.llm_boundary_judge`` (the superseded v1 judge) and the
-call scheduler in ``amsc.agentic_chunker`` (the Agentic research arm). Deep
+the transport in ``amsc.research.agentic.judge`` (the superseded v1 judge) and the
+call scheduler in ``amsc.research.agentic.chunker`` (the Agentic research arm). Deep
 Analysis needed them and therefore imported both arms, which is what kept two
 large research modules on the product path.
 
@@ -25,7 +25,7 @@ import json
 
 import pytest
 
-from amsc.provider_calls import (
+from amsc.providers import (
     JUDGE_ADAPTER_STATUS,
     CallOutcome,
     OpenAICompatibleJudgeProvider,
@@ -158,7 +158,9 @@ def test_the_cache_file_is_read_as_the_map_collect_votes_takes(tmp_path):
 def test_both_research_arms_still_reach_these_under_their_own_names():
     """The Agentic arm's tests and the v1 judge's docstrings name these on the
     modules they used to live in; the move must not have renamed anything."""
-    from amsc import agentic_chunker, llm_boundary_judge, provider_calls
+    from amsc.research.agentic import chunker as agentic_chunker
+    from amsc.research.agentic import judge as llm_boundary_judge
+    from amsc import providers as provider_calls
 
     assert agentic_chunker.collect_votes is provider_calls.collect_votes
     assert agentic_chunker.CallOutcome is provider_calls.CallOutcome
@@ -192,6 +194,6 @@ def test_the_transport_knows_nothing_about_chunking():
 
 
 def provider_calls_path() -> str:
-    from amsc import provider_calls
+    from amsc import providers as provider_calls
 
     return provider_calls.__file__

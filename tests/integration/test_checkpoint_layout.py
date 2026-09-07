@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from amsc.checkpoint_adapter import PyMuPDF4LLMExtractor, load_layout_backend
+from amsc.canonical.adapter import PyMuPDF4LLMExtractor, load_layout_backend
 
 
 pytestmark = pytest.mark.skipif(

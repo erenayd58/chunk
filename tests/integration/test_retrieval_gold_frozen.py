@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from amsc.io import sha256_file
-from amsc.io import load_jsonl_units
-from amsc.retrieval_benchmark import RetrievalGoldSet, _validate_gold
+from amsc.document.io import sha256_file
+from amsc.document.io import load_jsonl_units
+from amsc.research.benchmark.retrieval import RetrievalGoldSet, _validate_gold
 
 
 ROOT = Path(__file__).resolve().parents[2]

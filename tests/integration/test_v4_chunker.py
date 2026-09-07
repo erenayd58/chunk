@@ -10,14 +10,14 @@ import yaml
 from pydantic import ValidationError
 
 from amsc.cli import main
-from amsc.config import V4Config
-from amsc.io import write_chunking_result
-from amsc.models import (
+from amsc.chunking.adaptive.config import V4Config
+from amsc.document.io import write_chunking_result
+from amsc.document.models import (
     EmbeddingBatch,
     RawDocumentUnit,
     SemanticEmbeddingProvenance,
 )
-from amsc.v4_chunker import V4Chunker, V4Composition
+from amsc.chunking.adaptive.v4 import V4Chunker, V4Composition
 from conftest import WordTokenCounter
 
 

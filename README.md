@@ -78,7 +78,7 @@ V4 bileşimidir. A5 contextualization bu fazda bilinçli olarak uygulanmamışt�
 Frozen evaluator metriklerini değiştirmeden prediction-level audit üretmek için:
 
 ```powershell
-py -3.11 -m amsc.failure_analysis `
+py -3.11 -m amsc.research.failure_analysis `
   --units data/kkb-2024.units.jsonl `
   --annotations evaluation/kkb-2024/checkpoint.annotations.json `
   --run v3=evaluation/kkb-2024/baseline/v3 `
@@ -105,7 +105,7 @@ expansion, contextualization ve reranker kullanılmaz; bütün adaylarda aynı
 `multilingual-e5-base`, Unicode BM25 ve deterministic RRF config'i çalışır:
 
 ```powershell
-py -3.11 -m amsc.run_retrieval_benchmark `
+py -3.11 -m amsc.research.benchmark.run_retrieval `
   --config configs/retrieval-benchmark-v1.yaml `
   --output evaluation/kkb-2024/retrieval-benchmark/results
 ```
@@ -143,7 +143,7 @@ KKB 2024 Faaliyet Raporu için deterministic checkpoint girdisi seçili fiziksel
 sayfalardan üretilebilir:
 
 ```powershell
-py -3.11 -m amsc.prepare_checkpoint `
+py -3.11 -m amsc.research.corpus.prepare_pages `
   --input kkbfaaliyetraporu2024.pdf `
   --output data/kkb-2024.units.jsonl `
   --pages 40-55 `
@@ -212,7 +212,7 @@ garantisi değildir.
 Human-readable checkpoint QA preview üretmek için:
 
 ```powershell
-py -3.11 -m amsc.checkpoint_qa `
+py -3.11 -m amsc.research.corpus.qa `
   --input artifacts/checkpoint-smoke/kkb-2024.pages-40-42.units.jsonl `
   --output artifacts/checkpoint-smoke/kkb-2024.pages-40-42.qa-preview.md
 ```
@@ -240,8 +240,11 @@ nasıl çalıştırıldığı ve sorun giderme `../chat_rag/README.md` ile
 
 **Geliştirici yolu**
 
+- [Paket yerleşimi](docs/package-layout.md) — hangi paket neyin sahibi, import
+  yönü, yeni bir modülün nereye gideceği. Yeni bir dosya eklemeden önce buraya
+  bakın
 - [Yeni bir parçalama yöntemi eklemek](docs/adding-a-chunker.md) — uçtan uca:
-  bölümleme + tek kayıt (`src/amsc/methods.py`) + test → konsol → Viewer →
+  bölümleme + tek kayıt (`src/amsc/chunking/registry.py`) + test → konsol → Viewer →
   benchmark
 - [Kütüphane yüzeyi](docs/library-surface.md) — ürün / servis / araştırma /
   legacy ayrımı, konsolun neyi import edebileceği, sınırı koruyan testler

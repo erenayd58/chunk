@@ -33,7 +33,7 @@ evidence unit'in birden fazla chunk'ta bulunmasını ölçer.
 Config ve komut:
 
 ```powershell
-py -3.11 -m amsc.run_retrieval_benchmark `
+py -3.11 -m amsc.research.benchmark.run_retrieval `
   --config configs/retrieval-benchmark-v1.yaml `
   --output evaluation/kkb-2024/retrieval-benchmark/results
 ```

@@ -1,10 +1,12 @@
 """What in this package is product, what is research, and what may import what.
 
-`amsc` holds a product dependency and a research package in one flat
-namespace. Moving seventy-odd modules apart would break thirty documented
-``python -m amsc.<module>`` entry points and the module names written into
-artifacts, so the boundary is declared here and enforced against the real
-import graph by ``tests/unit/test_library_surface.py``.
+The package tree already separates the domains -- :mod:`amsc.document`,
+:mod:`amsc.canonical`, :mod:`amsc.chunking`, :mod:`amsc.deep`,
+:mod:`amsc.quality`, :mod:`amsc.retrieval`, :mod:`amsc.viewer`,
+:mod:`amsc.research`. What a tree cannot say is which of those a *console*
+may depend on, or that a lazily imported research module is still off the
+product path. That is declared here, by full dotted module name, and enforced
+against the real import graph by ``tests/unit/test_library_surface.py``.
 
 **The one rule: nothing reachable from an entry point may be research, legacy
 or unused.** A module that is *not* reachable from one must be declared below,
@@ -16,8 +18,10 @@ product code, but it runs beside the console rather than inside it, and it is
 separate because it legitimately spans both worlds (its BM25 index uses the
 frozen benchmark's Turkish fold, so a Viewer question is tokenised exactly as
 the benchmark tokenised it). ``research`` is maintained, runnable and off the
-product path. ``legacy`` is kept only so an existing comparison keeps working.
-``unused`` has no importer anywhere and no entry point: a deletion candidate.
+product path; every module under ``amsc.research`` is research by where it
+lives, and this module says so rather than letting the package name imply it.
+``legacy`` is kept only so an existing comparison keeps working. ``unused``
+has no importer anywhere and no entry point: a deletion candidate.
 
 ``docs/library-surface.md`` says where new code goes.
 """
@@ -35,92 +39,94 @@ Status = Literal["product", "service", "research", "legacy", "unused"]
 #: -- every name here is something the console genuinely calls.
 CONSOLE_API = frozenset({
     # canonical documents: PDF -> units
-    "checkpoint_adapter",
-    "checkpoint_layout",
-    "prepare_full_checkpoint",
-    "io",
-    "models",
+    "canonical.adapter",
+    "canonical.layout",
+    "canonical.prepare",
+    "document.io",
+    "document.models",
+    "document.tokenization",
     # chunking
-    "methods",              # the method registry -- method identity
-    # ``chunk_method`` (the ChunkMethod / PartitionResult types) is not here:
-    # ``methods`` re-exports both, so the console never imports it directly.
-    "structural_chunker",
-    "deep_pipeline",        # Deep Analysis, the production entry point
-    "deep_analysis",        # its configuration
-    "deep_run",             # writing a Deep run as a tree
-    "v4_chunker",           # the frozen V4 chunker, offered by the factory
-    "config",               # V4Config and friends
-    "tokenization",
+    "chunking.registry",        # the method registry -- method identity
+    # ``chunking.method`` (the ChunkMethod / PartitionResult types) is not
+    # here: the registry re-exports both, so the console never imports it.
+    "chunking.structural",
+    "chunking.adaptive.v4",     # the frozen V4 chunker, offered by the factory
+    "chunking.adaptive.config",  # V4Config and friends
+    # Deep Analysis
+    "deep.pipeline",            # the production entry point
+    "deep.selector",            # DeepConfig, and the objective it names
+    "deep.run",                 # writing a Deep run as a tree
+    "deep.arm",                 # packaging a run as a Viewer arm
     # embeddings and retrieval
-    "embeddings",           # boundary embedders
-    "cache",
-    "rag_embeddings",       # retrieval embedders
-    "retrieval_pipeline",   # BM25 / hybrid / RRF, the frozen implementations
+    "embedding.boundary",
+    "embedding.cache",
+    "retrieval.embeddings",     # retrieval embedders -- not the boundary ones
+    "retrieval.pipeline",       # BM25 / hybrid / RRF, the frozen implementations
     # measurement and presentation
-    "structural_qa",
-    "table_view",
+    "quality.lint",
+    "tables.view",
     # the Viewer
-    "deep_arm",             # packaging a run as a Viewer arm
-    "viewer_corpus",        # the payload reader both Viewer pages share
+    "viewer.corpus",            # the payload reader the Viewer and console share
 })
 
-#: Product modules loaded **on demand** by :mod:`amsc.methods` when a method is
-#: actually run, rather than imported at module scope. They are product, they
-#: are simply not in the eager closure, so they are named here.
+#: Product modules loaded **on demand** by :mod:`amsc.chunking.registry` when a
+#: method is actually run, rather than imported at module scope. They are
+#: product, they are simply not in the eager closure, so they are named here.
 DISPATCHED = frozenset({
-    "markdown_chunker",
-    "hybrid_chunker",
+    "chunking.markdown",
+    "chunking.hybrid",
 })
 
 #: Every module the product path may start from. The product surface is
 #: whatever these reach; nothing else has to be listed.
 ENTRY_POINTS = CONSOLE_API | DISPATCHED | frozenset({
-    "viewer_v3",        # the Viewer product page and its build
-    "example_chunker",  # the documented template for a new chunking method
-    "cli",              # the ``amsc`` console script
-    "surface",          # this module
+    "viewer.build",      # the Viewer product page and its build
+    "chunking.example",  # the documented template for a new chunking method
+    "cli",               # the ``amsc`` console script
+    "surface",           # this module
 })
 
 #: The Viewer's server process. See the ``service`` status above.
 SERVICE = frozenset({
-    "viewer_server",
-    "rag_chat",
-    "rag_index",
-    "rag_context",
-    "rag_answer",
+    "viewer.server",
+    "viewer.chat.session",
+    "viewer.chat.index",
+    "viewer.chat.context",
+    "viewer.chat.answer",
 })
 
 #: Research: experiments, benchmarks, the frozen evaluator's runners and the
 #: preparation tools around them. Real callers, real value, off the product
-#: path -- and they must stay off it.
+#: path -- and they must stay off it. Everything under ``amsc.research`` is
+#: here; the list is the assertion, the package is only where it lives.
 RESEARCH = frozenset({
-    # the frozen three-arm and retrieval benchmarks
-    "chunk_benchmark",
-    "retrieval_benchmark",
-    "run_retrieval_benchmark",
-    "holdout_benchmark",
-    "run_holdout_benchmark",
-    "agentic_benchmark",
-    "chunk_viewer",          # the per-run inspector chunk_benchmark writes
+    # the frozen three-arm, retrieval and holdout benchmarks
+    "research.benchmark.chunkers",
+    "research.benchmark.retrieval",
+    "research.benchmark.run_retrieval",
+    "research.benchmark.holdout",
+    "research.benchmark.run_holdout",
+    "research.benchmark.agentic",
+    "research.benchmark.inspector",   # the per-run inspector the benchmark writes
     # research phases
-    "phase3c_research",
-    "v5_research",
-    "scale_calibration",
-    "semantic_comparators",
-    "semantic_assist",
-    "failure_analysis",
+    "research.phase3c",
+    "research.v5",
+    "research.scale_calibration",
+    "research.semantic_comparators",
+    "research.semantic_assist",
+    "research.failure_analysis",
     # gold sets and human labelling
-    "boundary_preference",
-    "gold_repin",
+    "research.gold.boundary_preference",
+    "research.gold.repin",
     # the v1 per-boundary judge and the Agentic arm built on it. Both were on
     # the product path until Phase 8 moved the provider transport and the
-    # parallel-call machinery they held into `provider_calls`; what is left
+    # parallel-call machinery they held into `amsc.providers`; what is left
     # here is the research, and Deep Analysis no longer imports either.
-    "llm_boundary_judge",
-    "agentic_chunker",
+    "research.agentic.judge",
+    "research.agentic.chunker",
     # checkpoint preparation for research corpora
-    "prepare_checkpoint",
-    "checkpoint_qa",
+    "research.corpus.prepare_pages",
+    "research.corpus.qa",
 })
 
 #: Legacy: kept for an import path or a comparison, not to be built on.
@@ -128,7 +134,7 @@ LEGACY = frozenset({
     #: A pinned reproduction of the *public* ``MurselTasgin/chat_rag``
     #: chunker, used as a benchmark candidate. Not this product's code, and
     #: not a claim about KKB's production chunker.
-    "legacy_chat_rag",
+    "research.legacy_chat_rag",
 })
 
 #: No importer anywhere in either repository, no entry point, not documented.
@@ -142,25 +148,32 @@ UNUSED: frozenset[str] = frozenset()
 #: product API, only the named symbols are, and each is shared deliberately
 #: rather than reached by accident.
 MIXED: dict[str, str] = {
-    "evaluation":
+    "quality.evaluation":
         "the frozen boundary/chunk evaluator. Product uses only the percentile "
         "helpers `_median` / `_nearest_rank`, deliberately, "
         "so a structural-quality number computed for a live document matches "
         "one computed for the frozen corpus. Pinned by "
         "`tests/unit/test_chunk_quality.py`.",
-    "chunker":
-        "the V1-V3 orchestration, superseded by `structural_chunker`, "
-        "`deep_pipeline` and `v4_chunker`. It is on the product path only "
-        "because `amsc/__init__` exports `V1Chunker`/`V2Chunker`/`V3Chunker` as "
-        "part of the package's public API. New product code should not use it.",
+    "chunking.adaptive.v1_v3":
+        "the V1-V3 orchestration, superseded by `chunking.structural`, "
+        "`deep.pipeline` and `chunking.adaptive.v4`. It is on the product path "
+        "only because the `amsc` console script can still run a V1-V3 config. "
+        "New product code should not use it.",
 }
 
 #: Everything declared, for the completeness check.
 DECLARED = SERVICE | RESEARCH | LEGACY | UNUSED
 
 
+def _name(module: str) -> str:
+    """The dotted path of a submodule, relative to the package."""
+    if module == "amsc":
+        return ""
+    return module[len("amsc."):] if module.startswith("amsc.") else module
+
+
 def classify(module: str) -> Status:
-    """The status of one ``amsc`` submodule, by its bare name.
+    """The status of one ``amsc`` submodule, by its dotted path.
 
     Anything not explicitly declared is ``product``: the product surface is
     derived from the import graph rather than listed, so a new internal helper
@@ -168,7 +181,7 @@ def classify(module: str) -> Status:
     ``tests/unit/test_library_surface.py``, which is what stops an
     *undeclared* research module from passing as product.
     """
-    name = module.split(".")[-1] if module.startswith("amsc") else module
+    name = _name(module)
     if name in SERVICE:
         return "service"
     if name in RESEARCH:
@@ -182,5 +195,4 @@ def classify(module: str) -> Status:
 
 def console_may_import(module: str) -> bool:
     """Whether ``chat_rag``'s product code may import this ``amsc`` module."""
-    name = module.split(".")[-1] if module.startswith("amsc") else module
-    return name in CONSOLE_API
+    return _name(module) in CONSOLE_API

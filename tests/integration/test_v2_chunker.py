@@ -8,12 +8,12 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from amsc.chunker import V1Chunker, V2Chunker
+from amsc.chunking.adaptive.v1_v3 import V1Chunker, V2Chunker
 from amsc.cli import main
-from amsc.config import V1Config, V2Config
-from amsc.io import load_jsonl_units, write_chunking_result
-from amsc.models import RawDocumentUnit
-from amsc.tokenization import TiktokenTokenCounter
+from amsc.chunking.adaptive.config import V1Config, V2Config
+from amsc.document.io import load_jsonl_units, write_chunking_result
+from amsc.document.models import RawDocumentUnit
+from amsc.document.tokenization import TiktokenTokenCounter
 from conftest import StaticBoundaryEmbedder, WordTokenCounter
 
 

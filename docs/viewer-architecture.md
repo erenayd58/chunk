@@ -10,7 +10,7 @@ want to trace two repositories first. Practical only; the product story is in
 |---|---|---|
 | owns | chunking methods, the payload reader, the Viewer pages, the Viewer's own server | the documents, their ingest, the packaging lifecycle, the console API |
 | holds no | product state — no uploads, no per-document status | copy of a chunker, a method list or a payload shape |
-| the seam | `amsc.methods` (method identity) and `amsc.viewer_corpus` (payload shape) | reads both; states neither |
+| the seam | `amsc.chunking.registry` (method identity) and `amsc.viewer.corpus` (payload shape) | reads both; states neither |
 
 The rule that keeps it clean: **product state never moves into the library, and
 the library's knowledge is never restated in the console.** When the two must
@@ -19,18 +19,18 @@ agree, the console reads `amsc`.
 ## The layers in `chunk`
 
 ```
-amsc.methods            the registry: which methods exist, what each one is
+amsc.chunking.registry            the registry: which methods exist, what each one is
     |                   (Phase 5 -- the single source of method identity;
     |                    served live at /api/methods, so a page built earlier
     |                    still lists a method registered later)
-amsc.viewer_corpus      the reader: artifact trees -> one payload shape
+amsc.viewer.corpus      the reader: artifact trees -> one payload shape
     |                   load_corpus() and catalog(). Renders no page.
-    +-- amsc.viewer_v3      the product page   (built and served by start-demo)
+    +-- amsc.viewer.build      the product page   (built and served by start-demo)
     |
-amsc.viewer_server      the service: serves a page, relays the console
+amsc.viewer.server      the service: serves a page, relays the console
 ```
 
-`viewer_corpus` is the whole cross-repository contract. The page reads it, and
+`viewer.corpus` is the whole cross-repository contract. The page reads it, and
 so does `chat_rag`'s packaging worker — which is why a live document and a
 frozen benchmark document have exactly the same shape and the page needs no
 second reader.
@@ -40,15 +40,15 @@ second reader.
 One command, one input set, one output directory:
 
 ```powershell
-py -3.11 -m amsc.viewer_v3 --output artifacts/viewer-v3/index.html
+py -3.11 -m amsc.viewer.build --output artifacts/viewer-v3/index.html
 ```
 
 | | |
 |---|---|
-| inputs (required) | tracked source only: `viewer_v3.py`, `viewer_v3_template.py`, `viewer_corpus.py`, `methods.py`, `chunk_method.py` |
+| inputs (required) | tracked source only: `viewer/build.py`, `viewer/template.py`, `viewer/corpus.py`, `chunking/registry.py`, `chunking/method.py` |
 | inputs (optional) | `--benchmark DOC=DIR`, `--deep DOC=DIR` — frozen research trees, embedded into the page |
 | outputs | `artifacts/viewer-v3/index.html` and `catalog.json` beside it |
-| owner of the optional inputs | the research runs (`amsc.chunk_benchmark`, `amsc.deep_run`). They are git-ignored and a fresh clone has none |
+| owner of the optional inputs | the research runs (`amsc.research.benchmark.chunkers`, `amsc.deep.run`). They are git-ignored and a fresh clone has none |
 
 With no trees this is the **product shell**: a page with no embedded corpus that
 reads every document live from the console. That is the only build a clean
@@ -60,13 +60,13 @@ research build with embedded trees survives a restart.
 
 **Nothing generated is in version control.** `artifacts/` is git-ignored here,
 `artifacts/viewer-live/` in `chat_rag`. Two tests hold that line:
-`chunk/tests/unit/test_viewer_boundary.py::test_no_generated_viewer_output_is_in_version_control`
+`chunk/tests/unit/viewer/test_viewer_boundary.py::test_no_generated_viewer_output_is_in_version_control`
 and its `chat_rag` counterpart.
 
 | kind | where | rebuilt by |
 |---|---|---|
 | tracked source | `src/amsc/*.py` | — |
-| build artifact | `artifacts/viewer-v3/{index.html,catalog.json}` | `python -m amsc.viewer_v3` |
+| build artifact | `artifacts/viewer-v3/{index.html,catalog.json}` | `python -m amsc.viewer.build` |
 | runtime state | `chat_rag/artifacts/viewer-live/<key>/` | an ingest, or `resume_incomplete()` |
 | disposable cache | `chat_rag` parser cache, `.cache/rag-embeddings/` | itself |
 
@@ -75,11 +75,11 @@ and its `chat_rag` counterpart.
 Two sources, one shape.
 
 ```
-embedded (build time)   frozen research trees -> viewer_corpus.load_corpus -> DATA.docs
+embedded (build time)   frozen research trees -> viewer.corpus.load_corpus -> DATA.docs
 live (runtime)          the RAG console, through the Viewer's own server
 ```
 
-The browser only ever talks to `amsc.viewer_server` (default `:8765`). It never
+The browser only ever talks to `amsc.viewer.server` (default `:8765`). It never
 addresses the console, so there is no CORS grant and no console address in the
 page.
 
@@ -102,8 +102,8 @@ So there is one path per question:
 | the page needs | it asks | authoritative source |
 |---|---|---|
 | available documents | `/api/workspace` | the console's `DocumentTracker` + analysis states |
-| methods and their metadata | `/api/methods` at boot, falling back to the embedded `methodOrder/methodLabels/methodSummaries/methodMeta` | `amsc.methods` — live when served, build-time when the page is opened as a file; `/api/demo/methods` for availability on this machine |
-| chunk boundaries, units, pages | `/api/live-document` (or the embedded payload) | `viewer_corpus.load_corpus` |
+| methods and their metadata | `/api/methods` at boot, falling back to the embedded `methodOrder/methodLabels/methodSummaries/methodMeta` | `amsc.chunking.registry` — live when served, build-time when the page is opened as a file; `/api/demo/methods` for availability on this machine |
+| chunk boundaries, units, pages | `/api/live-document` (or the embedded payload) | `viewer.corpus.load_corpus` |
 | chunk rows to retrieve over | `/api/retrieve` → console `.../chunks` | the packaged `chunks.jsonl` |
 | comparison / debug / benchmark | the same payload | one payload, several views |
 
@@ -127,7 +127,7 @@ analysis._build(key)
    |    status=running
    |    Deep first (its packaging also writes the Standard partition)
    |    then every other requested method over the SAME canonical
-   |    viewer_corpus.load_corpus(...)  ->  viewer-payload.json   <- PUBLICATION
+   |    viewer.corpus.load_corpus(...)  ->  viewer-payload.json   <- PUBLICATION
    |    status=ready | failed
    v
 browser reads it through /api/demo/viewer-analysis/<id>/payload
@@ -163,8 +163,8 @@ its lock for minutes and a status poll must not queue behind it.
 
 | piece | status | why |
 |---|---|---|
-| `amsc.viewer_corpus` | **load-bearing, shared** | the reader the page, the server and the console all use. Method identity is `amsc.methods`'; this module restates none of it |
-| `amsc.chunk_viewer` | **load-bearing, research** | the per-run inspector `amsc.chunk_benchmark` writes into every benchmark tree. Older than the product page and unrelated to it |
+| `amsc.viewer.corpus` | **load-bearing, shared** | the reader the page, the server and the console all use. Method identity is `amsc.chunking.registry`'; this module restates none of it |
+| `amsc.research.benchmark.inspector` | **load-bearing, research** | the per-run inspector `amsc.research.benchmark.chunkers` writes into every benchmark tree. Older than the product page and unrelated to it |
 
 There is one page. A second builder over this same reader existed until it
 was removed; nothing in the product served it, and the `--agentic` provenance
@@ -197,21 +197,21 @@ fallback is what made the old dependency invisible in the first place.
 Nothing Viewer-specific. Following `docs/adding-a-chunker.md`:
 
 1. write the method module (partition + its `ChunkMethod`, types imported from
-   `amsc.chunk_method`);
-2. import that `ChunkMethod` into `amsc/methods.py` and add it to `_BUILTIN`;
+   `amsc.chunking.method`);
+2. import that `ChunkMethod` into `src/amsc/chunking/registry.py` and add it to `_BUILTIN`;
 3. write a test.
 
 From there: the page keys behaviour off `methodMeta` flags (`deep`, `baseline`)
-rather than off names; `viewer_corpus` accepts an arm packaged under its kind;
+rather than off names; `viewer.corpus` accepts an arm packaged under its kind;
 the console offers it (`components/viewer/methods.py` adds only availability
 and product order); and the packager runs it over the canonical like any
 other. Held end to end by
-`chunk/tests/unit/test_methods_registry.py::test_a_registered_method_reaches_every_consumer_with_no_other_edit`.
+`chunk/tests/unit/chunking/test_methods_registry.py::test_a_registered_method_reaches_every_consumer_with_no_other_edit`.
 
 **And no rebuild.** The build embeds the registry, which used to mean a new
-method was invisible until somebody remembered `python -m amsc.viewer_v3` — a
+method was invisible until somebody remembered `python -m amsc.viewer.build` — a
 step with no error message, only a missing column. A served page now asks
-`amsc.viewer_server` for `GET /api/methods` at boot and prefers that answer,
+`amsc.viewer.server` for `GET /api/methods` at boot and prefers that answer,
 so what the page lists is what the library has registered *now*. The embedded
 copy remains the fallback for a page opened as a file (a research build with
 no server), and an older server without the route changes nothing. Held by
@@ -257,24 +257,24 @@ The page finds it by the registry's `deep` flag, never by its name.
 
 | path | what |
 |---|---|
-| `chunk/src/amsc/methods.py` | the method registry — method identity |
-| `chunk/src/amsc/chunk_method.py` | the `ChunkMethod` / `PartitionResult` types — a leaf module, so a method module can import them and the registry can import the method |
+| `chunk/src/amsc/chunking/registry.py` | the method registry — method identity |
+| `chunk/src/amsc/chunking/method.py` | the `ChunkMethod` / `PartitionResult` types — a leaf module, so a method module can import them and the registry can import the method |
 | `chat_rag/tools/promote_chunk_pin.py` | moves the `amsc-poc` pin to a chunk commit and checks it holds |
-| `chunk/src/amsc/viewer_corpus.py` | the payload reader — the cross-repo contract |
-| `chunk/src/amsc/viewer_v3.py` + `viewer_v3_template.py` | the product page and its build |
-| `chunk/src/amsc/viewer_server.py` | the service the browser talks to |
+| `chunk/src/amsc/viewer/corpus.py` | the payload reader — the cross-repo contract |
+| `chunk/src/amsc/viewer/build.py` + `viewer/template.py` | the product page and its build |
+| `chunk/src/amsc/viewer/server.py` | the service the browser talks to |
 | `chat_rag/components/viewer/analysis.py` | packaging lifecycle and state |
 | `chat_rag/components/viewer/methods.py` | this deployment's view of the registry |
 | `chat_rag/app.py` (`/api/demo/*`) | the console API the Viewer server relays |
 | `chat_rag/start-demo.ps1` | builds the shell if missing, starts both processes |
-| `chunk/tools/serve_viewer_v3.ps1` | serves the Viewer **alone**, with `chat_rag/.env`'s keys loaded into that one process. `start-demo.ps1` starts both processes; this is the case it does not cover, and `amsc.viewer_server` deliberately reads no `.env` of its own |
+| `chunk/tools/serve_viewer_v3.ps1` | serves the Viewer **alone**, with `chat_rag/.env`'s keys loaded into that one process. `start-demo.ps1` starts both processes; this is the case it does not cover, and `amsc.viewer.server` deliberately reads no `.env` of its own |
 
 ## Tests that hold this
 
 ```powershell
 # chunk
-py -3.11 -m pytest tests/unit/test_viewer_boundary.py tests/unit/test_viewer_v3.py `
-                   tests/unit/test_viewer_corpus.py tests/unit/test_methods_registry.py `
+py -3.11 -m pytest tests/unit/viewer/test_viewer_boundary.py tests/unit/viewer/test_viewer_v3.py `
+                   tests/unit/viewer/test_viewer_corpus.py tests/unit/chunking/test_methods_registry.py `
                    tests/integration/test_frozen_corpus_viewer.py
 
 # chat_rag

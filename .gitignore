@@ -7,7 +7,10 @@ __pycache__/
 venv/
 kkbfaaliyetraporu2024.pdf
 .pytest-tmp/
-*.egg-info/
 .tmp/
 data/raw/*.pdf
 logs/
+
+# setuptools build output
+build/
+*.egg-info/

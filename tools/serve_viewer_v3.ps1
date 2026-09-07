@@ -2,7 +2,7 @@
 Viewer v3 sunucusunu, RAG Console'un .env dosyasindaki anahtarlari BU surece
 yukleyerek baslatir.
 
-Neden var: amsc.viewer_server anahtari calisma aninda os.environ'dan okur ve
+Neden var: amsc.viewer.server anahtari calisma aninda os.environ'dan okur ve
 (bilerek) hicbir .env dosyasi yuklemez. chat_rag/.env'i yalnizca konsolun
 kendi sureci (python-dotenv ile) okur; viewer sunucusu ayri bir surec oldugu
 icin anahtari goremez. Bu script degerleri yalnizca baslattigi surecin
@@ -61,7 +61,7 @@ if ($NoServe) { exit 0 }
 
 $chunkRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 Set-Location $chunkRoot
-$serverArgs = @("-3.11", "-m", "amsc.viewer_server",
+$serverArgs = @("-3.11", "-m", "amsc.viewer.server",
     "--viewer", $Viewer, "--config", $Config, "--port", $Port)
 # PowerShell bos stringi native cagrida dusurur; --console-url degersiz
 # kalmasin diye yalnizca dolu bir deger varsa eklenir.

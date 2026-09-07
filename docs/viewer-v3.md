@@ -2,7 +2,7 @@
 
 Viewer tek bir soruya odaklanır: *bir doküman seçilen yöntemle nerede
 kesiliyor, ikinci bir yöntem aynı içeriği nereden farklı kesiyor?* Salt-okur
-bir builder (`amsc.viewer_v3`) ve kendi template'idir; backend'e, pipeline'a
+bir builder (`amsc.viewer.build`) ve kendi template'idir; backend'e, pipeline'a
 ve API sözleşmelerine dokunmaz.
 
 ## Deneyim
@@ -50,7 +50,7 @@ ve API sözleşmelerine dokunmaz.
   paketleyicisindeki minimal telemetriyle (`variants[m].seconds`) kaydedilir;
   eski analizlerde süre "—" olarak görünür.
 * **Yerleşik korpus** (build'e gömülü dokümanlar) her zaman listelenir; sayfa
-  `amsc.viewer_server` üzerinden sunuluyorsa RAG Console'un bilgi tabanları da
+  `amsc.viewer.server` üzerinden sunuluyorsa RAG Console'un bilgi tabanları da
   `/api/workspace` ve `/api/live-document` ile aynı listeye katılır. Konsol
   kapalıysa bu bir durumdur, hata değildir.
 * **Yöntemler hard-code edilmez**: yalnız o dokümanın gerçekten paketlenmiş
@@ -102,23 +102,23 @@ ve API sözleşmelerine dokunmaz.
 ## Üretim ve sunum
 
 ```powershell
-py -3.11 -m amsc.viewer_v3 `
+py -3.11 -m amsc.viewer.build `
   --benchmark kkb-2024=artifacts/chunk-benchmark-v5/kkb-2024 --benchmark kkb-2022=artifacts/chunk-benchmark-v5/kkb-2022 `
   --deep kkb-2024=artifacts/deep-analysis/kkb-2024-final --deep kkb-2022=artifacts/deep-analysis/kkb-2022-final `
   --deep arcelik-2024=artifacts/holdout-arcelik-2024/deep-final --label "arcelik-2024=Arçelik 2024 (holdout)" `
   --output artifacts/viewer-v3/index.html
 
-py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v3/index.html --config configs/rag-poc.yaml
+py -3.11 -m amsc.viewer.server --viewer artifacts/viewer-v3/index.html --config configs/rag-poc.yaml
 ```
 
 `index.html` dosya olarak açıldığında yerleşik korpusla tam çalışır; canlı
 bilgi tabanları yalnız sunucuyla gelir. Builder, sayfanın yanına `catalog.json`
-yazar (`generator: amsc.viewer_v3`), böylece sunucunun chat motoru v2'deki gibi
+yazar (`generator: amsc.viewer.build`), böylece sunucunun chat motoru v2'deki gibi
 aynı kataloğu okur.
 
 ## Veri sözleşmesi
 
-Doküman payload'ı **birebir** `viewer_corpus.load_corpus` çıktısıdır — gömülü
+Doküman payload'ı **birebir** `viewer.corpus.load_corpus` çıktısıdır — gömülü
 dokümanlar build sırasında, canlı dokümanlar çalışma anında `/api/live-document`
 ile aynı şekli alır; sayfada ikinci bir okuyucu yoktur. Sınır nedenleri
 (`rs`), birim dilimleri (`seg`), üyelik (`m`) ve Deep karar kayıtları (`dec`)

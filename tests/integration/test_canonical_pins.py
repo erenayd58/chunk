@@ -140,7 +140,7 @@ def test_a_repaired_manifest_pins_the_canonical_beside_it(name):
 
 @pytest.mark.parametrize("name", sorted(REPAIRED))
 def test_a_repaired_manifest_records_the_profile_its_filename_claims(name):
-    from amsc.prepare_full_checkpoint import CANONICAL_PROFILES
+    from amsc.canonical.prepare import CANONICAL_PROFILES
 
     manifest = load_manifest(repaired(name))
     recorded = manifest["canonical_profile"]
@@ -205,7 +205,7 @@ def test_every_repinned_gold_set_names_a_canonical_that_still_matches(relative):
 
     assert gold["source_units_sha256"] == sha256(units), (
         f"{Path(relative).name} is pinned to a canonical that has since "
-        "changed; re-pin it with amsc.gold_repin before scoring against it"
+        "changed; re-pin it with amsc.research.gold.repin before scoring against it"
     )
 
 
