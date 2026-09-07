@@ -29,6 +29,10 @@ TEMPLATE = r"""<!DOCTYPE html>
   --sans:"Bahnschrift","Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif;
   --serif:Georgia,"Iowan Old Style",Cambria,"Times New Roman",serif;
   --r:2px; --barh:58px;
+  /* The width the method lane asks for before the bar starts wrapping. Not a
+     method count -- a lane this wide always shows chips worth reading, and
+     scrolls to the rest. */
+  --chipsw:240px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans)}
@@ -46,13 +50,24 @@ select{font:inherit;color:inherit;border:1px solid var(--line2);border-radius:va
 .cm.bl{bottom:-7px;left:-7px}.cm.br{bottom:-7px;right:-7px}
 
 /* ---- top bar ------------------------------------------------------------ */
-#bar{position:sticky;top:0;z-index:40;height:var(--barh);display:flex;align-items:center;gap:14px;
-  padding:0 20px;background:var(--paper);border-bottom:1px solid var(--line)}
+/* The bar carries an unbounded number of things: one chip per registered
+   chunking method, and everything else is fixed. So it is laid out as a row
+   that may wrap -- the fixed groups (brand, breadcrumb, tabs, navigation)
+   never shrink and never clip, and the one open-ended group (the method
+   chips) takes the space that is left and scrolls inside it. Four methods
+   or fourteen, nothing is pushed off the edge and nothing overlaps; when
+   even the fixed groups no longer fit on one line, the bar becomes two.
+   `--barh` stays the *minimum* height, so a bar that does not wrap is the
+   same 58px it always was. */
+#bar{position:sticky;top:0;z-index:40;min-height:var(--barh);display:flex;align-items:center;
+  flex-wrap:wrap;align-content:center;row-gap:6px;column-gap:14px;
+  padding:6px 20px;background:var(--paper);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:.14em;
-  white-space:nowrap;text-transform:uppercase}
+  white-space:nowrap;text-transform:uppercase;flex:none}
 .brand em{font-style:normal;font-weight:600;font-size:10px;letter-spacing:.08em;color:var(--mut);
   border:1px solid var(--line2);padding:2px 6px;border-radius:var(--r)}
-.path{display:flex;align-items:center;gap:4px;min-width:0;padding-left:14px;border-left:1px solid var(--line)}
+.path{display:flex;align-items:center;gap:4px;min-width:0;flex:0 1 auto;
+  padding-left:14px;border-left:1px solid var(--line)}
 .pick{display:flex;flex-direction:column;gap:2px;padding:4px 10px;border-radius:var(--r);min-width:0}
 .pick:hover:not(:disabled){background:var(--field)}
 .pick .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
@@ -61,17 +76,29 @@ select{font:inherit;color:inherit;border:1px solid var(--line2);border-radius:va
 .pick.unset .v{color:var(--accent)}
 .pick:disabled .v{color:var(--faint);font-weight:500}
 .sep{color:var(--line2);font-size:14px}
-#chips{display:flex;align-items:center;gap:6px;margin-left:8px;flex-wrap:nowrap}
+/* The one group whose size the registry decides. It takes what is left of
+   the row and scrolls horizontally inside it, so a chip is always reachable
+   and never overlaps its neighbours. Growing is also what keeps the right-hand
+   group at the right edge. The basis is the width the lane asks for while the
+   bar decides its lines: when that no longer fits, the group *after* the lane
+   moves to a second row rather than anything being clipped. */
+#chips{display:flex;align-items:center;gap:6px;flex:1 1 var(--chipsw);min-width:0;
+  flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
+  overscroll-behavior-x:contain}
+#chips::-webkit-scrollbar{height:5px}
+#chips::-webkit-scrollbar-thumb{background:var(--line2);border-radius:var(--r)}
 .chip{display:flex;align-items:baseline;gap:6px;padding:6px 12px;border:1px solid var(--line2);border-radius:var(--r);
-  font-size:12px;font-weight:600;color:var(--ink2);white-space:nowrap;background:var(--paper)}
+  font-size:12px;font-weight:600;color:var(--ink2);white-space:nowrap;background:var(--paper);flex:none}
 .chip:hover{background:var(--field)}
 .chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
 .chip .ord{font-size:10px;font-weight:700;color:#fff;background:var(--accent);border-radius:var(--r);
   width:14px;height:14px;line-height:14px;text-align:center;align-self:center}
 .chip .note{font-size:10px;font-weight:500;color:var(--mut);font-style:italic}
-#bar .right{margin-left:auto;display:flex;align-items:center;gap:12px}
-#nav{display:flex;align-items:center;gap:6px;white-space:nowrap}
-#nav .grp{display:flex;align-items:center;gap:4px}
+#bar .right{margin-left:auto;display:flex;align-items:center;flex-wrap:wrap;
+  justify-content:flex-end;row-gap:6px;column-gap:12px;flex:none}
+#nav{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;
+  row-gap:6px;column-gap:6px;white-space:nowrap}
+#nav .grp{display:flex;align-items:center;gap:4px;flex:none}
 #nav button{padding:6px 10px;border:1px solid var(--line2);border-radius:var(--r);color:var(--ink2);
   font-size:12px;background:var(--paper)}
 #nav button:hover:not(:disabled){background:var(--field)}
@@ -79,7 +106,8 @@ select{font:inherit;color:inherit;border:1px solid var(--line2);border-radius:va
 #nav .lbl{font-size:10px;color:var(--mut);letter-spacing:.12em;text-transform:uppercase}
 #nav .vr{width:1px;height:22px;background:var(--line);margin:0 6px}
 #dPos{font-size:12px;color:var(--mut);min-width:44px;text-align:center;font-variant-numeric:tabular-nums}
-#tabs{display:flex;margin-left:12px;border:1px solid var(--line2);border-radius:var(--r);overflow:hidden}
+#tabs{display:flex;margin-left:12px;border:1px solid var(--line2);border-radius:var(--r);
+  overflow:hidden;flex:none}
 #tabs button{padding:7px 16px;font-size:12.5px;font-weight:600;color:var(--ink2);background:var(--paper)}
 #tabs button + button{border-left:1px solid var(--line2)}
 #tabs button.on{background:var(--accent);color:#fff}
@@ -90,6 +118,23 @@ select{font:inherit;color:inherit;border:1px solid var(--line2);border-radius:va
 #pill:hover{background:var(--field)}
 #pill .dot{width:7px;height:7px;background:var(--faint)}
 #pill.on .dot{background:var(--ok)}
+/* Narrower desktops and laptops: the fixed groups give up padding before
+   anything is allowed to wrap, and the document name gives up width before
+   the controls do. Nothing here counts methods. */
+@media (max-width:1500px){
+  .pick .v{max-width:170px}
+  #tabs button{padding:7px 12px}
+  #tabs{margin-left:8px}
+}
+@media (max-width:1180px){
+  #bar{column-gap:10px;padding:6px 14px}
+  .path{padding-left:10px}
+  .pick{padding:4px 7px}
+  .pick .v{max-width:120px}
+  #tabs button{padding:7px 9px;font-size:12px}
+  #pill{padding:7px 9px}
+  #nav button{padding:6px 8px}
+}
 
 /* ---- menus -------------------------------------------------------------- */
 #layer{position:fixed;inset:0;z-index:60}
@@ -434,7 +479,6 @@ button.qminisrc:hover{background:var(--field);color:var(--ink)}
     <button class="pick unset" id="kbBtn"><span class="k">Bilgi tabanı</span><span class="v">Seç</span></button>
     <span class="sep">/</span>
     <button class="pick" id="docBtn" disabled><span class="k">Doküman</span><span class="v">—</span></button>
-    <div id="chips" hidden></div>
   </nav>
   <div id="tabs" hidden>
     <button data-t="home">Genel</button>
@@ -443,6 +487,12 @@ button.qminisrc:hover{background:var(--field);color:var(--ink)}
     <button data-t="debug">Debug</button>
     <button data-t="bench">Benchmark</button>
   </div>
+  <!-- The method chips are a bar-level group of their own, not part of the
+       breadcrumb, and they come after the screen tabs: their number is
+       whatever the registry holds, so this is the one group that takes the
+       leftover width. Everything before it keeps its place whatever the
+       method count is; everything after it is pushed to the right edge. -->
+  <div id="chips" hidden></div>
   <div class="right">
   <button id="pill" hidden><span class="dot"></span><span id="pillTxt"></span></button>
   <div id="nav" hidden>
