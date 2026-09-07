@@ -1,0 +1,20 @@
+# Frozen corpora and golden outputs travel byte for byte.
+#
+# The canonical units, the evaluation runs and the v1/v2/v3 golden chunk files
+# are compared by sha256 (`data/kkb-2024.units.sha256`, the per-run
+# `metrics.json` hashes in `test_failure_analysis_frozen.py`, the canonical
+# pins) or line by line against a regenerated run. Git for Windows checks out
+# with `core.autocrlf=true` by default, which rewrites LF to CRLF on the way
+# into the working tree -- changing exactly the bytes those guards hash.
+#
+# The committed blobs are correct and their recorded hashes match them. This
+# only stops the checkout from altering them on the way out: `-text` means the
+# working tree gets the blob verbatim, on every platform.
+#
+# Without this, a fresh clone on Windows fails twelve guards --
+# test_v1/v2/v3_chunker's byte-for-byte goldens, test_failure_analysis_frozen,
+# test_canonical_pins and test_retrieval_gold_frozen -- while the same clone on
+# Linux passes, which is the worst shape a reproducibility failure can take.
+data/** -text
+evaluation/** -text
+tests/fixtures/** -text
