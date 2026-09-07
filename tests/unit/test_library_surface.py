@@ -175,7 +175,7 @@ def test_the_console_api_is_a_subset_of_the_product_surface():
     assert surface.DISPATCHED <= PRODUCT
     assert surface.classify("amsc.deep_arm") == "product"
     assert surface.classify("chunk_benchmark") == "research"
-    assert surface.classify("viewer_v2") == "legacy"
+    assert surface.classify("legacy_chat_rag") == "legacy"
     assert surface.classify("viewer_server") == "service"
     assert surface.console_may_import("amsc.viewer_corpus")
     assert not surface.console_may_import("amsc.chunk_benchmark")

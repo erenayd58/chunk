@@ -309,7 +309,7 @@ def expand_context(
 # --------------------------------------------------------------------------
 
 #: The earlier research arm (``amsc.agentic_chunker``), which is not a
-#: registered product method but whose trees the Viewer v2 still reads.
+#: registered product method but whose trees the research benchmark reads.
 LEGACY_AGENTIC_KIND = "agentic_structure_llm"
 
 

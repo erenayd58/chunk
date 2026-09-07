@@ -1,10 +1,9 @@
-# Viewer v3 — parçalama davranışını gösteren ürün sayfası
+# Viewer — parçalama davranışını gösteren ürün sayfası
 
-Viewer v3, Viewer v2 ile **aynı verileri ve aynı API'leri** okuyan, ama tek bir
-soruya odaklanmış ayrı bir ürün deneyimidir: *bir doküman seçilen yöntemle
-nerede kesiliyor, ikinci bir yöntem aynı içeriği nereden farklı kesiyor?*
-Viewer v2'ye, backend'e, pipeline'a ve API sözleşmelerine dokunmaz; ikinci bir
-salt-okur builder (`amsc.viewer_v3`) ve kendi template'idir.
+Viewer tek bir soruya odaklanır: *bir doküman seçilen yöntemle nerede
+kesiliyor, ikinci bir yöntem aynı içeriği nereden farklı kesiyor?* Salt-okur
+bir builder (`amsc.viewer_v3`) ve kendi template'idir; backend'e, pipeline'a
+ve API sözleşmelerine dokunmaz.
 
 ## Deneyim
 
@@ -109,7 +108,6 @@ py -3.11 -m amsc.viewer_v3 `
   --deep arcelik-2024=artifacts/holdout-arcelik-2024/deep-final --label "arcelik-2024=Arçelik 2024 (holdout)" `
   --output artifacts/viewer-v3/index.html
 
-# Aynı sunucu, farklı sayfa; Viewer v2 kurulumuna dokunulmaz:
 py -3.11 -m amsc.viewer_server --viewer artifacts/viewer-v3/index.html --config configs/rag-poc.yaml
 ```
 
@@ -120,9 +118,9 @@ aynı kataloğu okur.
 
 ## Veri sözleşmesi
 
-Doküman payload'ı **birebir** `viewer_v2.load_corpus` çıktısıdır — gömülü
+Doküman payload'ı **birebir** `viewer_corpus.load_corpus` çıktısıdır — gömülü
 dokümanlar build sırasında, canlı dokümanlar çalışma anında `/api/live-document`
 ile aynı şekli alır; sayfada ikinci bir okuyucu yoktur. Sınır nedenleri
 (`rs`), birim dilimleri (`seg`), üyelik (`m`) ve Deep karar kayıtları (`dec`)
-v2'nin ürettiği alanlardan okunur; hiçbir değer yeniden hesaplanmaz ya da
+okuyucunun ürettiği alanlardır; hiçbir değer yeniden hesaplanmaz ya da
 uydurulmaz.

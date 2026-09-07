@@ -2,8 +2,8 @@
 
 Two things are proved here. First, that the registry is the one place a
 method's identity lives and that every consumer reads it: the Viewer
-builders, the Viewer v2 reader's arm gate, the benchmark's dispatch and
-config validation, the relation deriver. Second -- the proof that matters --
+builder, the reader's arm gate, the benchmark's dispatch and config
+validation, the relation deriver. Second -- the proof that matters --
 that a *fifth* method added through the intended path (write a partition,
 register it) reaches all of them with no other edit, and that unregistering
 it makes it unknown everywhere again. The fifth method is the shipped
@@ -36,14 +36,14 @@ from types import SimpleNamespace
 import pytest
 
 from amsc import chunk_relations, deep_arm, hybrid_chunker, markdown_chunker, methods
-from amsc import structural_chunker, viewer_v2, viewer_v3
+from amsc import structural_chunker, viewer_corpus, viewer_v3
 from amsc.chunk_benchmark import ArmConfig, TokenBudget, run_arm
 from amsc.example_chunker import FIXED_WINDOW, partition_fixed_window
 from amsc.models import RawDocumentUnit
 
 from conftest import StaticBoundaryEmbedder
 from _chunk_fixtures import heading, unit, words
-from test_viewer_v2 import make_tree
+from _viewer_fixtures import make_tree
 
 BUDGET = dict(min_tokens=50, target_tokens=150, soft_max_tokens=160, hard_max_tokens=1000)
 
@@ -321,7 +321,7 @@ def test_a_registered_method_reaches_every_consumer_with_no_other_edit(fifth, tm
     assert data["methodMeta"]["fixed-window"] == {"kind": "fixed_window", "deep": False, "baseline": None,
                                                   "needsEmbedder": False, "usesModel": False, "benchmarkArm": False}
 
-    # The Viewer v2 reader's arm gate: an arm packaged under its kind is read.
+    # The reader's arm gate: an arm packaged under its kind is read.
     tree = make_tree(tmp_path)
     # The fixture tree's canonical, read row by row: its ``order`` values are
     # not unique (a fixture shortcut), which the strict loader refuses.
@@ -333,8 +333,8 @@ def test_a_registered_method_reaches_every_consumer_with_no_other_edit(fifth, tm
     rows = partition_fixed_window(units, counter=COUNTER, budget=BUDGET).rows
     packaged = deep_arm.package_arm(rows, units=units, output_dir=tmp_path / "fw", counter=COUNTER)
     assert packaged["chunk_count"] == len(rows)
-    assert viewer_v2.ARM_KINDS["fixed-window"] == "fixed_window"
-    payload = viewer_v2.load_corpus(tree, tmp_path, extra_arm_dirs={"fixed-window": tmp_path / "fw"})
+    assert viewer_corpus.ARM_KINDS["fixed-window"] == "fixed_window"
+    payload = viewer_corpus.load_corpus(tree, tmp_path, extra_arm_dirs={"fixed-window": tmp_path / "fw"})
     assert payload["arms"]["fixed-window"]["kind"] == "fixed_window"
     assert len(payload["arms"]["fixed-window"]["chunks"]) == len(rows)
     assert all(chunk["rs"] for chunk in payload["arms"]["fixed-window"]["chunks"]), "boundary reasons are read"
@@ -394,7 +394,7 @@ def test_once_unregistered_the_method_is_unknown_everywhere(tmp_path):
     tree = make_tree(tmp_path)
     (tmp_path / "fw").mkdir()
     with pytest.raises(ValueError, match="unknown arm 'fixed-window'"):
-        viewer_v2.load_corpus(tree, tmp_path, extra_arm_dirs={"fixed-window": tmp_path / "fw"})
+        viewer_corpus.load_corpus(tree, tmp_path, extra_arm_dirs={"fixed-window": tmp_path / "fw"})
     output = tmp_path / "v3" / "index.html"
     viewer_v3.build_viewer({}, output, root=tmp_path)
     assert "fixed-window" not in _payload(output.read_text(encoding="utf-8"))["methodOrder"]

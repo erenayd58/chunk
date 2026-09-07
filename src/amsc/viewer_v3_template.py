@@ -3,7 +3,7 @@
 Kept apart from :mod:`amsc.viewer_v3` so the loader reads like Python and the
 page reads like a page. ``__VIEWER_DATA__`` is replaced with the JSON payload
 at build time; nothing else is templated. The page consumes the
-``viewer_v2.load_corpus`` document shape unchanged -- embedded documents at
+``viewer_corpus.load_corpus`` document shape unchanged -- embedded documents at
 build time, live documents at runtime through the existing server relays --
 and renders one thing above all: where chunks start and end, on the document
 itself.

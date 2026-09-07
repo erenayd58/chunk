@@ -1,20 +1,17 @@
-"""The Viewer boundary in this repository: one reader, two pages, no artifacts.
-
-After Phase 6 the Viewer is three layers with one direction of dependency:
+"""The Viewer boundary in this repository: one reader, one page, no artifacts.
 
     amsc.methods          which methods exist, what each one is
         |
     amsc.viewer_corpus    the reader: artifact trees -> one payload shape
         |                 (also what chat_rag's packager calls)
         +-- amsc.viewer_v3   the product page          (built by start-demo)
-        +-- amsc.viewer_v2   the research/fallback page
         |
-    amsc.viewer_server    the service: serves a page, relays the console
+    amsc.viewer_server    the service: serves the page, relays the console
 
-These tests pin the parts of that a refactor can quietly undo: that the pages
-do not read each other, that the reader is genuinely shared rather than
-copied, that the product build needs nothing but tracked source, and that no
-generated Viewer output is in version control.
+These tests pin the parts of that a refactor can quietly undo: that the reader
+is genuinely shared rather than copied, that the page builder is the only
+thing that knows about a template, that the product build needs nothing but
+tracked source, and that no generated Viewer output is in version control.
 """
 
 from __future__ import annotations
@@ -27,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from amsc import viewer_corpus, viewer_v2, viewer_v3
+from amsc import viewer_corpus, viewer_v3
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -40,68 +37,44 @@ def _payload(html_text: str) -> dict:
         r'<script id="viewer-data" type="application/json">(.*?)</script>', html_text, re.S
     )
     assert match, "the page must embed its data in the viewer-data script tag"
-    return json.loads(match.group(1).replace("<\\/", "</"))
+    return json.loads(match.group(1).replace(r"<\/", "</"))
 
 
 # ------------------------------------------------------------ one reader
 
 
-def test_the_reader_is_shared_not_copied():
-    """Both pages call the same objects, so a change reaches both at once."""
-    assert viewer_v2.load_corpus is viewer_corpus.load_corpus
+def test_the_page_calls_the_shared_reader_rather_than_a_copy():
     assert viewer_v3.load_corpus is viewer_corpus.load_corpus
-    assert viewer_v2.catalog is viewer_corpus.catalog
     assert viewer_v3.catalog is viewer_corpus.catalog
-    # The compatibility re-exports on the v2 module are the reader's own
-    # objects too: callers that still import them cannot drift.
-    for name in ("ARM_KINDS", "ARM_ORDER", "ARM_LABELS", "display_html", "heading_plain"):
-        assert getattr(viewer_v2, name) is getattr(viewer_corpus, name), name
-
-
-def test_neither_page_reads_the_other():
-    """The pages are siblings over the reader, not a chain.
-
-    Viewer v3 importing Viewer v2 is how the 230 KB v2 template ended up being
-    loaded by everything that touched a payload, the RAG console included.
-    """
-    v3_source = (REPO / "src" / "amsc" / "viewer_v3.py").read_text(encoding="utf-8")
-    assert "viewer_v2" not in v3_source.replace("Viewer v2", "").replace(
-        ":mod:`amsc.viewer_v2`", ""
-    ), "viewer_v3 must not import viewer_v2"
-
-    result = subprocess.run(
-        [sys.executable, "-c",
-         "import amsc.viewer_v3, sys; "
-         "print(','.join(sorted(m for m in sys.modules if 'viewer_v2' in m)))"],
-        capture_output=True, text=True, check=True,
-    )
-    assert result.stdout.strip() == "", (
-        f"building Viewer v3 pulled in Viewer v2 modules: {result.stdout.strip()}"
-    )
 
 
 def test_the_reader_renders_no_page():
     """The reader is a data layer: it must not know about a template."""
     source = (REPO / "src" / "amsc" / "viewer_corpus.py").read_text(encoding="utf-8")
     assert "TEMPLATE" not in source
-    assert "viewer_v2_template" not in source and "viewer_v3_template" not in source
+    assert "viewer_v3_template" not in source
     assert not hasattr(viewer_corpus, "build_viewer")
 
 
+def test_the_reader_states_no_method_name_of_its_own():
+    """Method identity is the registry's. A second table here is how the
+    Viewer and the console came to call one method two different things."""
+    from amsc import methods
+
+    assert viewer_corpus.ARM_LABELS is methods.LABELS
+    assert viewer_corpus.ARM_KINDS is methods.KINDS
+    assert tuple(viewer_corpus.PRODUCT_ARM_ORDER) == tuple(methods.ORDER)
+
+
 def test_the_catalog_names_the_build_that_wrote_it(tmp_path):
-    """One catalog writer, two builders -- and the file says which one ran."""
-    from test_viewer_v2 import make_tree
+    from _viewer_fixtures import make_tree
 
     tree = make_tree(tmp_path)
-    viewer_v2.build_viewer({"doc": tree}, tmp_path / "v2" / "index.html", root=tmp_path)
     viewer_v3.build_viewer({"doc": tree}, tmp_path / "v3" / "index.html", root=tmp_path)
 
-    v2 = json.loads((tmp_path / "v2" / "catalog.json").read_text(encoding="utf-8"))
-    v3 = json.loads((tmp_path / "v3" / "catalog.json").read_text(encoding="utf-8"))
-    assert v2["generator"] == "amsc.viewer_v2"
-    assert v3["generator"] == "amsc.viewer_v3"
-    # Same writer, so the rest is the same document index.
-    assert v2["documents"] == v3["documents"]
+    index = json.loads((tmp_path / "v3" / "catalog.json").read_text(encoding="utf-8"))
+    assert index["generator"] == "amsc.viewer_v3"
+    assert "doc" in index["documents"]
 
 
 # -------------------------------------------------- the product build

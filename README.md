@@ -248,9 +248,7 @@ nasıl çalıştırıldığı ve sorun giderme `../chat_rag/README.md` ile
 - [Viewer mimarisi](docs/viewer-architecture.md) — iki depo arasında Viewer
   sahipliği, build girdileri/çıktıları, paketleme yaşam döngüsü, başarısız bir
   paketin teşhisi
-- [Viewer v3](docs/viewer-v3.md) — ürün sayfasının deneyimi ve veri sözleşmesi
-- [Viewer v2](docs/viewer-v2-poc.md) — uyumluluk/araştırma sayfası (ürün
-  sayfası v3'tür)
+- [Viewer](docs/viewer-v3.md) — ürün sayfasının deneyimi ve veri sözleşmesi
 
 **Karar kaydı ve arka plan**
 

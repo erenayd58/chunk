@@ -3,21 +3,18 @@
 The product page: the one ``start-demo.ps1`` builds and serves. It is a
 **page builder only** -- every document payload it embeds, and every payload
 it receives at runtime for a live document, is read by
-:mod:`amsc.viewer_corpus`, the reader both Viewer pages and the RAG
-console's packaging worker share. Viewer v2 (:mod:`amsc.viewer_v2`) is a
-second page over that same reader, kept for the research build; nothing
-here touches it, the pipeline or any API.
+:mod:`amsc.viewer_corpus`, the reader it shares with the RAG console's
+packaging worker.
 
 The page answers one question before all others: *where does a chunk start,
 where does it end, and how do two methods cut the same content differently?*
 Everything else (ids, strategies, decision records) is behind progressive
 disclosure.
 
-Build and serve (the existing server takes any viewer path; Viewer v2 keeps
-its own build untouched). With no trees at all it builds the product shell --
-a page that carries no corpus of its own and reads every document from the
-RAG console at runtime, which is the only build a fresh clone can make,
-because the frozen research trees are not in version control:
+With no trees at all it builds the product shell: a page carrying no corpus
+of its own that reads every document from the RAG console at runtime. That
+is the only build a fresh clone can make, because the frozen research trees
+are not in version control.
 
     py -3.11 -m amsc.viewer_v3 --output artifacts/viewer-v3/index.html
 
@@ -66,7 +63,6 @@ def build_viewer(
 ) -> Path:
     """Build the single-file Viewer v3 for the given trees.
 
-    Same inputs as the v2 build (minus the research-only ``--agentic`` slot):
     ``benchmarks`` maps a document id to a frozen chunk-benchmark tree,
     ``deep`` to a packaged Deep Analysis tree. Both may be empty, which builds
     the product shell: no embedded corpus, every document read live from the
@@ -121,7 +117,7 @@ def build_viewer(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(document, encoding="utf-8", newline="\n")
     if write_catalog:
-        index = catalog(docs, benchmarks, deep, {}, Path(root), generator="amsc.viewer_v3")
+        index = catalog(docs, benchmarks, deep, Path(root), generator="amsc.viewer_v3")
         (output.parent / "catalog.json").write_text(
             json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",

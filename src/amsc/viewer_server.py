@@ -366,9 +366,9 @@ def serve_in_thread(server: ThreadingHTTPServer) -> threading.Thread:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m amsc.viewer_server",
-        description="Serve the Viewer v2 HTML with a live RAG chat backend",
+        description="Serve the Viewer page with a live RAG chat backend",
     )
-    parser.add_argument("--viewer", type=Path, default=Path("artifacts/viewer-v2/index.html"))
+    parser.add_argument("--viewer", type=Path, default=Path("artifacts/viewer-v3/index.html"))
     parser.add_argument("--catalog", type=Path, help="defaults to catalog.json beside the viewer")
     parser.add_argument("--config", type=Path, default=Path("configs/rag-poc.yaml"))
     parser.add_argument("--root", type=Path, default=Path("."))

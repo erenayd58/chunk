@@ -8,7 +8,7 @@ every arm, so asking one question across Markdown / Hybrid / Structure-only /
 Agentic compares the chunkers and nothing else. Chunking happened at ingest;
 nothing here calls the proposer, the verifier or the boundary judge.
 
-The catalog is written by :mod:`amsc.viewer_v2` beside the HTML, so the
+The catalog is written by :mod:`amsc.viewer_v3` beside the HTML, so the
 chat serves exactly the arms the viewer shows. Providers come from a plain
 YAML config that names models, endpoints and the environment variables the
 keys are read from -- never the keys. Every response is a JSON-serialisable

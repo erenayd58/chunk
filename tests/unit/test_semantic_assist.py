@@ -24,7 +24,7 @@ from amsc.semantic_assist import (
     eligible_sections,
 )
 from amsc.structural_chunker import chunk_units as structural_chunk_units
-from amsc.viewer_v2 import build_viewer
+from amsc.viewer_v3 import build_viewer
 
 from conftest import StaticBoundaryEmbedder
 from _chunk_fixtures import WhitespaceCounter, heading, unit, words
@@ -180,7 +180,7 @@ def test_the_key_never_reaches_generated_artifacts(monkeypatch, tmp_path):
     sentinel = "sk-or-SENTINEL-NEVER-PERSIST"
     monkeypatch.setenv(OPENROUTER_API_KEY_ENV, sentinel)
 
-    from test_viewer_v2 import make_tree
+    from _viewer_fixtures import make_tree
 
     tree = make_tree(tmp_path)
     viewer = tmp_path / "out" / "index.html"

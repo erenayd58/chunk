@@ -10,8 +10,6 @@ Who reads it:
 
 * :mod:`amsc.viewer_v3` -- the product page. Embeds one payload per document
   at build time, and receives the same shape at runtime for a live document.
-* :mod:`amsc.viewer_v2` -- the earlier page, kept as a research/fallback
-  build over the same payloads.
 * ``chat_rag`` (``components/viewer/analysis.py``) -- the console's packaging
   worker calls :func:`load_corpus` over a *live* document's own canonical and
   packaged arms, so a document uploaded to the console reaches the Viewer in
@@ -24,28 +22,23 @@ Inputs, per document:
   canonical) -- optional;
 * a packaged ``amsc.deep_run`` tree (``arm/``, ``standard/``,
   ``boundary-decisions.json``) -- optional, adds Deep Analysis;
-* the earlier ``amsc.agentic_chunker`` research tree -- optional, provenance
-  only, and mutually exclusive with the packaged Deep tree for one document;
 * ``extra_arm_dirs`` -- any further method packaged by ``amsc.deep_arm``,
   which is how a live document's Markdown/Hybrid/Standard arms arrive.
 
-Nothing is recomputed and nothing upstream is touched: this module is a pure
-reader that verifies every tree's canonical pin. Chunk text is not embedded;
-it is reconstructed from the canonical unit texts through the mapping
-segments.
+Nothing is recomputed and nothing upstream is touched: a pure reader that
+verifies every tree's canonical pin. Chunk text is not embedded; it is
+reconstructed from the canonical unit texts through the mapping segments.
 
 Every derived value is deterministic. **Boundary reasons** are restricted to
 what the artifacts record: a section change, a label seam, a size split, a
 markdown overlap; the Deep arm additionally carries the decision story
-``amsc.deep_arm`` derived (origin of each final cut, the smells a moved cut
-removed, verifier verdicts). **The differences filter** is defined over
-consecutive content units (headings excluded, because two arms leave them
-out of ``unit_ids``): a pair is a difference point when the three frozen
-arms disagree on whether a chunk boundary falls between the two units.
+``amsc.deep_arm`` derived. **The differences filter** is defined over
+consecutive content units (headings excluded, because two arms leave them out
+of ``unit_ids``): a pair is a difference point when the three frozen arms
+disagree on whether a chunk boundary falls between the two units.
 
-Method identity -- which methods exist, what they are called, which engine
-each is -- is never decided here. It is read from :mod:`amsc.methods`, the
-one registry, so a method added there is readable here with no edit.
+Method identity is never decided here -- it is read from :mod:`amsc.methods`,
+so a method added there is readable here with no edit.
 """
 
 from __future__ import annotations
@@ -60,18 +53,11 @@ from typing import Any, Mapping, Sequence
 from . import methods
 from .chunk_relations import continuation_groups, derive_continuations
 
-#: The frozen benchmark's three arms, in the benchmark's order, and the four
-#: product methods -- both read from the registry so this reader cannot
-#: disagree with the builders and the console about what a method is called.
+#: Method identity is the registry's, never restated here: the benchmark's
+#: three arms in its own order, every product method, and one name per method.
 ARM_ORDER = methods.benchmark_arms()
 PRODUCT_ARM_ORDER = methods.ORDER
-
-ARM_LABELS = {
-    "markdown": "Markdown",
-    "hybrid": "Hybrid",
-    "structure-only": "Structure-only",
-    "agentic": "Agentic Chunker",
-}
+ARM_LABELS = methods.LABELS
 
 DOC_LABELS = {"kkb-2024": "KKB 2024", "kkb-2022": "KKB 2022", "arcelik-2024": "Arçelik 2024"}
 
@@ -379,74 +365,6 @@ def _load_arm_dir(
     return arm, chunks_raw
 
 
-def _load_agentic_arm(
-    agentic_dir: Path, expected_sha: str, units_by_id: Mapping[str, dict]
-) -> tuple[dict, dict]:
-    """The earlier research arm, read from an ``amsc.agentic_chunker`` tree.
-
-    Reduced contract: chunks + mapping + judge summary + boundary-diff are
-    required; retrieval / query-results / structural quality / timing are
-    optional (they exist only after ``amsc.agentic_benchmark`` has run).
-    The tree must pin the same canonical as the benchmark tree, and a
-    page-sliced smoke tree is refused rather than shown beside
-    full-document arms.
-    """
-    agentic_dir = Path(agentic_dir)
-    resolved = _load_json(agentic_dir / "resolved-config.json")
-    manifest = _load_json(agentic_dir / "manifest.json")
-    if resolved.get("pages"):
-        raise ValueError(
-            f"{agentic_dir} is a page-sliced smoke tree; the viewer refuses "
-            "to show it beside full-document arms"
-        )
-    if manifest.get("canonical_sha256") != expected_sha:
-        raise ValueError(
-            f"{agentic_dir} was built from a different canonical corpus than "
-            "the benchmark tree; the viewer refuses to pair them"
-        )
-    kind = "agentic_structure_llm"
-    arm, _chunks_raw = _load_arm_dir(
-        agentic_dir / "agentic", kind=kind, units_by_id=units_by_id, require_retrieval=False
-    )
-    summary = _load_json(agentic_dir / "judge" / "summary.json")
-    diff = _load_json(agentic_dir / "boundary-diff.json")
-    chunks = arm["chunks"]
-
-    # LLM boundary attribution -- recorded in the audit, so the viewer may
-    # show it (unlike hybrid, whose benchmark records no attribution). The
-    # window's boundary is the cut after ``chosen_after_unit_id``; the chunk
-    # that STARTS at that boundary carries the flag.
-    consulted: dict[str, dict] = {}
-    for window in diff.get("windows") or []:
-        after = _base(window["chosen_after_unit_id"])
-        moved = bool(window["final_boundary_moved"])
-        reason = None
-        if moved:
-            for decision in window.get("decisions") or []:
-                if (
-                    _base(decision.get("cut_after_unit_id", "")) == after
-                    and decision.get("effective") == "SPLIT"
-                ):
-                    reason = decision.get("reason_code")
-                    break
-        consulted[after] = {"m": 1 if moved else 0, "rc": reason, "fb": window.get("fallback")}
-    for index in range(1, len(chunks)):
-        previous = chunks[index - 1]
-        if not previous["u"]:
-            continue
-        flag = consulted.get(_base(previous["u"][-1]))
-        if flag is not None:
-            chunks[index]["llm"] = flag
-
-    meta = {
-        "mode": manifest.get("mode"),
-        "model": manifest.get("model_id"),
-        "summary": summary,
-        "diff": diff.get("summary") or {},
-    }
-    return arm, meta
-
-
 def _compact_story(story: Mapping[str, Any]) -> dict:
     sections = []
     for section in story.get("sections") or []:
@@ -503,7 +421,7 @@ def _load_deep_arm(
 ) -> tuple[dict, dict | None, dict, dict]:
     """The Deep Analysis arm from a packaged ``amsc.deep_run`` tree.
 
-    Returns (agentic arm, standard arm or None, deep meta, compact story).
+    Returns (deep arm, standard arm or None, deep meta, compact story).
     """
     deep_dir = Path(deep_dir)
     arm_dir = deep_dir / "arm"
@@ -698,7 +616,6 @@ ARM_KINDS = methods.KINDS
 def load_corpus(
     benchmark_dir: Path | None,
     root: Path,
-    agentic_dir: Path | None = None,
     deep_dir: Path | None = None,
     label: str | None = None,
     extra_arm_dirs: Mapping[str, Path] | None = None,
@@ -717,9 +634,6 @@ def load_corpus(
             "a document needs a benchmark tree, a packaged deep tree, or a canonical "
             "with at least one packaged arm"
         )
-    if agentic_dir is not None and deep_dir is not None:
-        raise ValueError("--agentic and --deep cannot both fill the fourth arm of one document")
-
     config: dict = {}
     manifest: dict = {}
     summary: dict = {}
@@ -802,7 +716,6 @@ def load_corpus(
     budgets = dict(config.get("tokens") or {})
     deep_meta: dict | None = None
     story: dict | None = None
-    agentic_meta: dict | None = None
     if deep_dir is not None:
         deep_arm, standard_arm, deep_meta, story = _load_deep_arm(Path(deep_dir), digest, units_by_id)
         arms["agentic"] = deep_arm
@@ -826,13 +739,6 @@ def load_corpus(
         for chunk in std_chunks:
             if chunk["u"]:
                 chunk["si"] = story["sectionOf"].get(_base(chunk["u"][0]))
-    elif agentic_dir is not None:
-        # The fourth arm rides in ``arms`` so every arm-indexed renderer works
-        # unchanged, but it never enters ARM_ORDER: the frozen dashboard
-        # tables and the three-arm difference definition stay untouched, and
-        # a build without an agentic tree is byte-identical to today's.
-        agentic_arm, agentic_meta = _load_agentic_arm(Path(agentic_dir), digest, units_by_id)
-        arms["agentic"] = agentic_arm
 
     # Arms packaged over the same canonical by the live workspace. Read with
     # the reduced contract: no retrieval, because a document with no gold set
@@ -905,8 +811,6 @@ def load_corpus(
     }
     if story is not None:
         result["story"] = story
-    if agentic_meta is not None:
-        result["agenticMeta"] = agentic_meta
     return result
 
 
@@ -956,7 +860,6 @@ def catalog(
     docs: Mapping[str, dict],
     benchmarks: Mapping[str, Path],
     deep: Mapping[str, Path],
-    agentic: Mapping[str, Path],
     root: Path,
     generator: str = "amsc.viewer_corpus",
 ) -> dict:
@@ -990,12 +893,6 @@ def catalog(
                 "label": ARM_LABELS["agentic"],
                 "chunks": _relative(Path(deep[doc]) / "arm" / "chunks.jsonl", root),
             }
-        elif doc in agentic:
-            arms["agentic"] = {
-                "kind": "agentic_structure_llm",
-                "label": ARM_LABELS["agentic"],
-                "chunks": _relative(Path(agentic[doc]) / "agentic" / "chunks.jsonl", root),
-            }
         documents[doc] = {
             "label": data["label"],
             "units": units if isinstance(units, str) else str(units),
@@ -1007,7 +904,6 @@ def catalog(
     build = {
         "benchmarks": {doc: _relative(path, root) for doc, path in benchmarks.items()},
         "deep": {doc: _relative(path, root) for doc, path in deep.items()},
-        "agentic": {doc: _relative(path, root) for doc, path in agentic.items()},
         "labels": {doc: data["label"] for doc, data in docs.items()},
         "document_order": list(docs),
     }

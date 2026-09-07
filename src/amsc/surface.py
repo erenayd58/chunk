@@ -1,64 +1,25 @@
 """What in this package is product, what is research, and what may import what.
 
-`amsc` grew as a research package and became a product dependency along the
-way, so the two live in one flat namespace. Rather than move seventy-odd
-modules -- which would break thirty documented ``python -m amsc.<module>``
-entry points and the module names written into artifacts -- the boundary is
-declared here and enforced by tests.
+`amsc` holds a product dependency and a research package in one flat
+namespace. Moving seventy-odd modules apart would break thirty documented
+``python -m amsc.<module>`` entry points and the module names written into
+artifacts, so the boundary is declared here and enforced against the real
+import graph by ``tests/unit/test_library_surface.py``.
 
-The five statuses
------------------
+**The one rule: nothing reachable from an entry point may be research, legacy
+or unused.** A module that is *not* reachable from one must be declared below,
+so a new research module cannot arrive unclassified.
 
-``product``
-    Supported. On the path the RAG console and the Viewer actually run.
-    *Derived*, not listed: every module reachable by a module-level import
-    from :data:`ENTRY_POINTS`. A new internal helper is product by simply
-    being imported by one, and needs no edit here.
-``service``
-    The Viewer's own server process (``python -m amsc.viewer_server``).
-    Product code, but it runs beside the console rather than inside it, and
-    ``chat_rag`` never imports it. It is listed separately because it
-    legitimately spans both worlds: its BM25 index deliberately uses the
-    frozen benchmark's Turkish fold, so that a question asked in the Viewer is
-    tokenised exactly as the benchmark tokenised it.
-``research``
-    Experiments, benchmarks, the frozen evaluator's runners, and the
-    preparation tools around them. Still maintained, still runnable, still
-    has real callers -- but nothing on the product path may import it.
-``legacy``
-    Kept only so an existing import path or an existing comparison keeps
-    working. Not to be built on.
-``unused``
-    No importer anywhere in either repository, and no entry point. A deletion
-    candidate. Empty as of Phase 8, which deleted the one module that had the
-    status; it stays declared so the next such module has somewhere to sit
-    while the deletion is decided.
+``product`` is *derived*, never listed: whatever :data:`ENTRY_POINTS` reaches
+by a module-level import. ``service`` is the Viewer's own server process --
+product code, but it runs beside the console rather than inside it, and it is
+separate because it legitimately spans both worlds (its BM25 index uses the
+frozen benchmark's Turkish fold, so a Viewer question is tokenised exactly as
+the benchmark tokenised it). ``research`` is maintained, runnable and off the
+product path. ``legacy`` is kept only so an existing comparison keeps working.
+``unused`` has no importer anywhere and no entry point: a deletion candidate.
 
-The one rule
-------------
-
-**Nothing reachable from an entry point may be research, legacy or unused.**
-
-That is the whole invariant, and it is checked by
-``tests/unit/test_library_surface.py`` against the real import graph, not
-against a list. A module that is *not* reachable from an entry point must be
-declared below, so a new research module cannot quietly arrive unclassified.
-
-Where new code goes
--------------------
-
-* a new **product** module: write it, import it from something already on the
-  product path, and add it to :data:`CONSOLE_API` only if ``chat_rag`` itself
-  needs to import it;
-* a new **research** module: write it and add its name to :data:`RESEARCH`;
-* a new **chunking method**: it is neither. Write the module (copy
-  :mod:`amsc.example_chunker`, importing its types from
-  :mod:`amsc.chunk_method`), then import its ``ChunkMethod`` into
-  :mod:`amsc.methods` and add it to ``_BUILTIN`` -- ``docs/adding-a-chunker.md``.
-  That import makes it product by reachability, so it needs no entry here.
-  Only a method the registry loads *on demand* rather than at import (the
-  three built-ins, whose engines are also research entry points) goes in
-  :data:`DISPATCHED`.
+``docs/library-surface.md`` says where new code goes.
 """
 
 from __future__ import annotations
@@ -168,30 +129,18 @@ LEGACY = frozenset({
     #: chunker, used as a benchmark candidate. Not this product's code, and
     #: not a claim about KKB's production chunker.
     "legacy_chat_rag",
-    #: Viewer v2: the earlier page, kept for the research build with its
-    #: ``--agentic`` provenance arm and as a manual fallback. Viewer v3 is the
-    #: product page. See ``docs/viewer-architecture.md``.
-    "viewer_v2",
-    "viewer_v2_template",
 })
 
 #: No importer anywhere in either repository, no entry point, not documented.
-#: Empty since Phase 8 deleted ``parent_expansion``, the only entry it ever
-#: had. The status stays: it is where a module goes when the evidence says
-#: nothing reaches it and the deletion is a separate decision.
-#: Evidence is in ``tests/unit/test_library_surface.py``.
+#: Where a module goes when the evidence says nothing reaches it and the
+#: deletion is a separate decision. Evidence lives in
+#: ``tests/unit/test_library_surface.py``, which checks the claim.
 UNUSED: frozenset[str] = frozenset()
 
 #: Product modules with a research heritage, and exactly what the product uses
-#: from each. These are the ones to be careful with: the module as a whole is
-#: not a product API, only the named symbols are.
-#:
-#: Phase 8 emptied two of the four entries the right way round -- by moving the
-#: product infrastructure out (``provider_calls``) rather than by declaring the
-#: research modules product -- which took ``agentic_chunker`` and
-#: ``llm_boundary_judge`` off the path entirely. The two that remain are here
-#: because what product uses of them is deliberately shared, not accidentally
-#: reached.
+#: from each. The ones to be careful with: the module as a whole is not a
+#: product API, only the named symbols are, and each is shared deliberately
+#: rather than reached by accident.
 MIXED: dict[str, str] = {
     "evaluation":
         "the frozen boundary/chunk evaluator. Product uses only the percentile "

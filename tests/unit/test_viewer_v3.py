@@ -1,8 +1,8 @@
-"""Viewer v3 -- a separate product page over the same fixture data.
+"""The Viewer product page, over the shared fixture tree.
 
-Built from the exact synthetic tree Viewer v2's tests use, and held to the
-product contract: its own output, the v2 corpus shape unchanged, no method
-list hard-coded into the page, and no effect whatsoever on a v2 build.
+Held to the product contract: its own output, the reader's payload shape
+unchanged, no method list hard-coded into the page, and a shell build that a
+clean checkout can make.
 """
 
 from __future__ import annotations
@@ -10,9 +10,8 @@ from __future__ import annotations
 import json
 import re
 
-from test_viewer_v2 import make_tree
+from _viewer_fixtures import make_tree
 
-from amsc import viewer_v2
 from amsc.viewer_v3 import METHOD_LABELS, build_viewer, main
 
 
@@ -44,7 +43,7 @@ def test_the_build_writes_its_own_page_and_catalog(tmp_path):
     assert "doc" in catalog["documents"]
 
 
-def test_the_payload_is_the_v2_corpus_shape_unchanged(tmp_path):
+def test_the_payload_is_the_reader_shape_unchanged(tmp_path):
     data = _payload(_build(tmp_path).read_text(encoding="utf-8"))
     doc = data["docs"]["doc"]
     for key in ("units", "arms", "pages", "meta", "label"):
@@ -93,16 +92,6 @@ def test_the_build_is_deterministic(tmp_path):
     # Same tree content, byte-identical page apart from nothing at all.
     assert first == (tmp_path / "v3" / "index.html").read_bytes()
     assert second_out.read_bytes() == first
-
-
-def test_building_v3_leaves_a_v2_build_byte_identical(tmp_path):
-    tree = make_tree(tmp_path)
-    before = tmp_path / "v2-before.html"
-    viewer_v2.build_viewer({"doc": tree}, before, root=tmp_path, write_catalog=False)
-    _build(tmp_path)
-    after = tmp_path / "v2-after.html"
-    viewer_v2.build_viewer({"doc": tree}, after, root=tmp_path, write_catalog=False)
-    assert before.read_bytes() == after.read_bytes()
 
 
 def test_writing_into_evaluation_is_refused(tmp_path):

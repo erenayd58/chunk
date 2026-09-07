@@ -138,7 +138,7 @@ MEASURE = """
 @pytest.fixture(scope="module")
 def page_file(tmp_path_factory):
     """The real page, built from the same synthetic tree the v3 tests use."""
-    from test_viewer_v2 import make_tree
+    from _viewer_fixtures import make_tree
 
     root = tmp_path_factory.mktemp("layout")
     tree = make_tree(root)

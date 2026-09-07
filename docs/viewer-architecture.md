@@ -26,12 +26,11 @@ amsc.methods            the registry: which methods exist, what each one is
 amsc.viewer_corpus      the reader: artifact trees -> one payload shape
     |                   load_corpus() and catalog(). Renders no page.
     +-- amsc.viewer_v3      the product page   (built and served by start-demo)
-    +-- amsc.viewer_v2      the research page  (compatibility, see below)
     |
 amsc.viewer_server      the service: serves a page, relays the console
 ```
 
-`viewer_corpus` is the whole cross-repository contract. Both pages read it, and
+`viewer_corpus` is the whole cross-repository contract. The page reads it, and
 so does `chat_rag`'s packaging worker — which is why a live document and a
 frozen benchmark document have exactly the same shape and the page needs no
 second reader.
@@ -160,19 +159,16 @@ network stubbed out entirely.
 The per-document build lock is deliberately *not* the state lock: a build holds
 its lock for minutes and a status poll must not queue behind it.
 
-## V2 / V3 status
+## What else is in the Viewer's neighbourhood
 
 | piece | status | why |
 |---|---|---|
-| `amsc.viewer_corpus` | **load-bearing, shared** | the reader both pages and the console use. Was inside `viewer_v2.py`; that is why everything touching a payload used to import the v2 page |
-| `amsc.viewer_v2` + `viewer_v2_template` | **compatibility** | the research build with the `--agentic` provenance arm, and a manual fallback page. Not on the product path, not served by `start-demo`. Page builder only |
-| `amsc.chunk_viewer` | **load-bearing, research** | the per-run inspector `amsc.chunk_benchmark` writes into every benchmark tree. Older than both pages, unrelated to the product path |
-| `viewer_v3` importing `viewer_v2` | **removed** | it was importing a private `_catalog` and pulling a 230 KB template into every consumer of a payload |
+| `amsc.viewer_corpus` | **load-bearing, shared** | the reader the page, the server and the console all use. Method identity is `amsc.methods`'; this module restates none of it |
+| `amsc.chunk_viewer` | **load-bearing, research** | the per-run inspector `amsc.chunk_benchmark` writes into every benchmark tree. Older than the product page and unrelated to it |
 
-Nothing was deleted. The v2 names callers still reach for
-(`ARM_KINDS`, `load_corpus`, `display_html`, …) stay importable from
-`amsc.viewer_v2` as re-exports of the reader's own objects, and a test asserts
-they are the *same objects*, so they cannot fork.
+There is one page. A second builder over this same reader existed until it
+was removed; nothing in the product served it, and the `--agentic` provenance
+arm only it could show had no caller.
 
 ## Releasing a change that crosses both repos
 
@@ -267,7 +263,6 @@ The page finds it by the registry's `deep` flag, never by its name.
 | `chunk/src/amsc/viewer_corpus.py` | the payload reader — the cross-repo contract |
 | `chunk/src/amsc/viewer_v3.py` + `viewer_v3_template.py` | the product page and its build |
 | `chunk/src/amsc/viewer_server.py` | the service the browser talks to |
-| `chunk/src/amsc/viewer_v2.py` + `viewer_v2_template.py` | the research/fallback page |
 | `chat_rag/components/viewer/analysis.py` | packaging lifecycle and state |
 | `chat_rag/components/viewer/methods.py` | this deployment's view of the registry |
 | `chat_rag/app.py` (`/api/demo/*`) | the console API the Viewer server relays |
@@ -279,8 +274,8 @@ The page finds it by the registry's `deep` flag, never by its name.
 ```powershell
 # chunk
 py -3.11 -m pytest tests/unit/test_viewer_boundary.py tests/unit/test_viewer_v3.py `
-                   tests/unit/test_viewer_v2.py tests/unit/test_methods_registry.py `
-                   tests/integration/test_viewer_v2_build.py
+                   tests/unit/test_viewer_corpus.py tests/unit/test_methods_registry.py `
+                   tests/integration/test_frozen_corpus_viewer.py
 
 # chat_rag
 py -3.11 -m pytest tests/unit/test_viewer_boundary.py tests/unit/test_viewer_analysis.py `

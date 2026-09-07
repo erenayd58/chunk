@@ -4,21 +4,17 @@ A chunking method has an identity that travels a long way: the wire id a
 console sends and the Viewer names an arm by (``structure-only``), the engine
 kind a packaged ``mapping.json`` declares and the boundary-reason reader keys
 on (``structure_first``), the product name and one-line summary every screen
-shows (``Standard``), and a handful of capabilities that decide how each layer
-treats it -- does it need a sentence-embedding model, may it consult a
-language model, is it one of the frozen benchmark's arms, may a budget cut of
-its be arbitrated rather than greedy. Before this module those facts were
-declared five times over: in the Viewer v3 builder, the Viewer v2 reader, the
-chunk benchmark, the relation deriver and the console's own catalogue, each
-with its own tuple, each agreeing by convention and pinned together by a test
-in the other repository. Adding a method meant finding all of them.
+shows (``Standard``), and the capabilities that decide how each layer treats
+it -- does it need a sentence-embedding model, may it consult a language
+model, is it one of the frozen benchmark's arms, may a budget cut of its be
+arbitrated rather than greedy.
 
-Now there is one :class:`ChunkMethod` per method and one ordered registry.
-Everything that used to keep a list reads it from here: the Viewer builders
-take their order, labels, summaries and kinds from it; the benchmark
-dispatches an arm's ``kind`` through :func:`partition`; the relation deriver
-asks it which kinds arbitrate their cuts; the console builds its catalogue
-over it. A method registered here is known to all of them at once.
+One :class:`ChunkMethod` per method, one ordered registry, and every consumer
+reads it: the Viewer builder takes its order, labels, summaries and kinds from
+here; the benchmark dispatches an arm's ``kind`` through :func:`partition`;
+the relation deriver asks which kinds arbitrate their cuts; the console builds
+its catalogue over it. A method registered here is known to all of them at
+once.
 
 Two kinds of method
 -------------------
@@ -53,18 +49,15 @@ Adding a method
 3. Test it.
 
 Nothing else. The Viewer lists it (the served page reads this registry at
-request time, so no rebuild), the packager accepts it, the console offers
-it, the benchmark can dispatch it. Registration is explicit and at import
-time on purpose: no directory is scanned and no name is guessed, so what is
-offered is exactly what somebody wrote down. :func:`register` and
-:func:`unregister` exist for a test that wants to prove that path without
-leaving a method behind.
+request time, so no rebuild), the packager accepts it, the console offers it,
+the benchmark can dispatch it. Registration is explicit and at import time on
+purpose: no directory is scanned and no name is guessed, so what is offered is
+exactly what somebody wrote down.
 
-The built-in partitions below are written the other way round -- a thin
-wrapper here, the engine imported inside it -- because they predate the
-registry and their engines are also research entry points that must not be
-loaded to learn a method's name. A new method needs neither the wrapper nor
-the lazy import.
+The built-in partitions below wrap their engine and import it lazily, because
+those engines are also research entry points that must not be loaded merely to
+learn a method's name. A new method needs neither the wrapper nor the lazy
+import.
 """
 
 from __future__ import annotations
