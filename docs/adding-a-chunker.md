@@ -12,7 +12,10 @@ liste de yoktur; sınırın tamamı `docs/viewer-architecture.md`'de.
 
 ## Üç adım
 
-Dokunulan dosya: **uygulama + tek kayıt satırı + test.**
+Dokunulan dosya: **uygulama + tek kayıt satırı + test.** Üçü de aynı yerdedir:
+yöntem modülü `src/amsc/chunking/`, kayıt `src/amsc/chunking/registry.py`,
+test `tests/unit/chunking/`. Paketin tamamının haritası
+[package-layout.md](package-layout.md)'dedir.
 
 1. **Yöntem modülünü yazın.** Girdi canonical birimler, çıktı yapısal
    satır şeması: `chunk_id`, `text`, `unit_ids`, `token_count`, `pages`,
