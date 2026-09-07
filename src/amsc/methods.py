@@ -72,7 +72,7 @@ from __future__ import annotations
 import threading
 from collections.abc import Mapping, Sequence
 from typing import Any, Callable, Iterator, Optional
-
+from .pairwise_chunker import PAIRWISE
 # The types a method module needs live in a leaf module so that a method can
 # import them and this module can import the method. Re-exported here: every
 # caller that reads ``methods.ChunkMethod`` keeps working.
@@ -215,7 +215,7 @@ DEEP = ChunkMethod(
 #: The methods the library ships, in the order the Viewer lists them. This
 #: tuple is the registration: import a method's ``ChunkMethod`` from its
 #: module and add it here. Nothing else in the library has to learn its name.
-_BUILTIN: tuple[ChunkMethod, ...] = (MARKDOWN, HYBRID, STANDARD, DEEP)
+_BUILTIN: tuple[ChunkMethod, ...] = (MARKDOWN, HYBRID, STANDARD, DEEP, PAIRWISE)
 
 
 # --------------------------------------------------------------------------
