@@ -52,6 +52,7 @@ from ...quality import chunks as chunk_quality
 from . import inspector as chunk_viewer
 from ...chunking import registry
 from ...embedding.cache import FileEmbeddingCache
+from ...retrieval.folds import FOLDS as _FOLDS
 from ...chunking.mapping import (
     base_unit_id,
     map_chunks,
@@ -88,32 +89,11 @@ LABELS = {
     "structure-only": "Structure-only",
 }
 
-#: Reproduces ``chat_rag.components.retriever.bm25_only_retriever``'s production
-#: fold. A reversible character fold applied identically to documents at index
-#: time and to the query at search time, so a query typed without Turkish
-#: diacritics still matches. Deliberately not stemming.
-_TURKISH_FOLD = str.maketrans(
-    {
-        "ç": "c", "Ç": "c",
-        "ğ": "g", "Ğ": "g",
-        "ı": "i", "I": "i", "İ": "i", "i": "i",
-        "ö": "o", "Ö": "o",
-        "ş": "s", "Ş": "s",
-        "ü": "u", "Ü": "u",
-        "â": "a", "Â": "a", "î": "i", "Î": "i", "û": "u", "Û": "u",
-    }
-)
-
-
-def fold_turkish(text: str) -> str:
-    return text.translate(_TURKISH_FOLD).lower()
-
-
-def identity_fold(text: str) -> str:
-    return text
-
-
-FOLDS = {"turkish_diacritics_v1": fold_turkish, "none": identity_fold}
+#: The folds a benchmark configuration may name. Re-exported rather than
+#: defined: the recorded numbers on this page were produced with exactly the
+#: fold :mod:`amsc.retrieval.folds` holds, and the Viewer's own index reads it
+#: from there too, so the two cannot drift into tokenising differently.
+FOLDS = _FOLDS
 
 
 # ---------------------------------------------------------------------------

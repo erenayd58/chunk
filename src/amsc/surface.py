@@ -14,10 +14,10 @@ so a new research module cannot arrive unclassified.
 
 ``product`` is *derived*, never listed: whatever :data:`ENTRY_POINTS` reaches
 by a module-level import. ``service`` is the Viewer's own server process --
-product code, but it runs beside the console rather than inside it, and it is
-separate because it legitimately spans both worlds (its BM25 index uses the
-frozen benchmark's Turkish fold, so a Viewer question is tokenised exactly as
-the benchmark tokenised it). ``research`` is maintained, runnable and off the
+product code, but it runs beside the console rather than inside it. It used to
+carry the Viewer's whole retrieval engine with it; the Viewer is a screen of
+the console now, so the engine is console API and what stays a service is the
+transport that still serves this repository's frozen corpus. ``research`` is maintained, runnable and off the
 product path; every module under ``amsc.research`` is research by where it
 lives, and this module says so rather than letting the package name imply it.
 ``legacy`` is kept only so an existing comparison keeps working. ``unused``
@@ -67,6 +67,16 @@ CONSOLE_API = frozenset({
     "tables.view",
     # the Viewer
     "viewer.corpus",            # the payload reader the Viewer and console share
+    # The Viewer's retrieval engine. It answers a question over one document's
+    # *analysis arms* -- the packaged rows of each chunking method -- which is
+    # what makes "same question, four chunkers, side by side" a thing anyone
+    # can ask. That comparison is the Viewer's reason to exist, and since the
+    # Viewer became a screen of the console rather than a second server, the
+    # console is what runs it.
+    "viewer.chat.session",      # the engine: catalog, indexes, ask, compare
+    "viewer.chat.index",        # one arm's BM25 + dense index
+    "viewer.chat.context",      # the context budget and its expansion
+    "viewer.chat.answer",       # the grounded-answer provider
 })
 
 #: Product modules loaded **on demand** by :mod:`amsc.chunking.registry` when a
@@ -97,13 +107,15 @@ ENTRY_POINTS = CONSOLE_API | DISPATCHED | frozenset({
     "surface",           # this module
 })
 
-#: The Viewer's server process. See the ``service`` status above.
+#: The Viewer's own server process. See the ``service`` status above.
+#:
+#: One module, and it is the transport alone: the page it served is now a
+#: screen of the console, and the engine behind that page is
+#: :data:`CONSOLE_API`. What is left here is a standalone way to serve the
+#: frozen benchmark corpus out of this repository, which the console has no
+#: copy of and does not want one.
 SERVICE = frozenset({
     "viewer.server",
-    "viewer.chat.session",
-    "viewer.chat.index",
-    "viewer.chat.context",
-    "viewer.chat.answer",
 })
 
 #: Research: experiments, benchmarks, the frozen evaluator's runners and the

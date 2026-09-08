@@ -118,8 +118,10 @@ import put research back on the product path*. So both stay:
 
 * `DISPATCHED` names product modules the registry imports **inside a function**
   — invisible to the tree and to a reader, deliberate in the declaration;
-* `SERVICE` separates the Viewer's server process from the console's surface
-  even though both live under `amsc/viewer/`;
+* `SERVICE` separates the Viewer's server *transport* from the console's
+  surface even though both live under `amsc/viewer/` — the engine that used to
+  be behind it is console API now, because the Viewer is a screen of the
+  console rather than a second server;
 * `MIXED` names a product module whose *symbols* are the API rather than the
   module, which no directory can express;
 * `CONSOLE_API` is a cross-repository contract, not a layout.
@@ -129,10 +131,11 @@ import put research back on the product path*. So both stay:
 * `quality.evaluation`'s two percentile helpers are shared on purpose and
   pinned by a test; extracting them would need that contract restated, not
   removed.
-* `viewer.chat.index` (Viewer service) reads the frozen benchmark's Turkish
-  fold table from `research.benchmark.chunkers` by design, so the Viewer's chat
-  tokenises exactly as the benchmark did. This is why `service` is its own
-  status rather than part of `product`.
+* the Turkish fold `viewer.chat.index` tokenises with **is** the one the
+  frozen benchmark used — that agreement is the point, and it used to be a
+  product module reading a research one. It lives in `retrieval.folds` now and
+  `research.benchmark.chunkers` re-exports it, so the direction of the edge
+  matches the direction of the dependency and the two still cannot drift.
 * `deep.arm` imports `research.benchmark.agentic` **inside a function**, to
   write a comparison summary when one is asked for. It is the one product →
   research edge left, it is deferred, and the graph test allows it because it

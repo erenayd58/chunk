@@ -2,9 +2,10 @@
 
 Dense + lexical + reciprocal-rank fusion, built on the same deterministic
 pieces the retrieval benchmark uses -- :class:`DeterministicHybridIndex`
-for the fusion and tie-breaks, the benchmark's Turkish diacritic fold for
-BM25 -- so a ranking is a pure function of (chunks, model, question) and two
-arms are compared under one retriever. Nothing here re-ranks, expands the
+for the fusion and tie-breaks, :data:`amsc.retrieval.folds.FOLDS` for BM25 --
+so a ranking is a pure function of (chunks, model, question), two arms are
+compared under one retriever, and a live document is tokenised exactly as the
+frozen benchmark tokenised its own. Nothing here re-ranks, expands the
 query or calls a generative model.
 """
 
@@ -16,7 +17,7 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from ...research.benchmark.chunkers import FOLDS
+from ...retrieval.folds import FOLDS
 from ...retrieval.embeddings import CachedEmbeddings
 from ...retrieval.pipeline import DeterministicHybridIndex, RetrievalDocument, RetrievalHit
 
