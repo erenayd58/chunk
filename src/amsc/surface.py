@@ -73,10 +73,12 @@ CONSOLE_API = frozenset({
     # can ask. That comparison is the Viewer's reason to exist, and since the
     # Viewer became a screen of the console rather than a second server, the
     # console is what runs it.
+    # ``viewer.chat.answer`` is deliberately absent: the console configures the
+    # engine and never builds an answer provider itself, so that module is
+    # product by being reached from the session rather than by being named.
     "viewer.chat.session",      # the engine: catalog, indexes, ask, compare
-    "viewer.chat.index",        # one arm's BM25 + dense index
+    "viewer.chat.index",        # one arm's retrieval settings and its index
     "viewer.chat.context",      # the context budget and its expansion
-    "viewer.chat.answer",       # the grounded-answer provider
 })
 
 #: Product modules loaded **on demand** by :mod:`amsc.chunking.registry` when a
