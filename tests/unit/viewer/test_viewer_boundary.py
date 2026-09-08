@@ -4,14 +4,19 @@
         |
     amsc.viewer.corpus    the reader: artifact trees -> one payload shape
         |                 (also what chat_rag's packager calls)
-        +-- amsc.viewer.build   the product page          (built by start-demo)
-        |
-    amsc.viewer.server    the service: serves the page, relays the console
+        +-- amsc.viewer.build   this repository's own page over its frozen
+                                benchmark corpus, read from disk
+
+There was a third: ``amsc.viewer.server``, an HTTP server on ``:8765`` that
+served that page and relayed the RAG console's ``/api/demo/*`` routes for a
+live document. The Viewer is a screen of the console now, over ``/api/v1``, and
+Step 13 removed the relay and the server. What is left here builds a page, and
+nothing in either repository starts a second process.
 
 These tests pin the parts of that a refactor can quietly undo: that the reader
 is genuinely shared rather than copied, that the page builder is the only
-thing that knows about a template, that the product build needs nothing but
-tracked source, and that no generated Viewer output is in version control.
+thing that knows about a template, that the build needs nothing but tracked
+source, and that no generated Viewer output is in version control.
 """
 
 from __future__ import annotations
@@ -147,6 +152,9 @@ def test_the_viewer_sources_that_are_tracked_are_the_ones_a_build_needs():
     """The inputs of the product build, named, so a move is noticed."""
     tracked = set(_versioned())
     for required in ("src/amsc/viewer/corpus.py", "src/amsc/viewer/build.py",
-                     "src/amsc/viewer/template.py", "src/amsc/viewer/server.py",
+                     "src/amsc/viewer/template.py",
                      "src/amsc/chunking/registry.py", "src/amsc/chunking/method.py"):
         assert required in tracked, required
+    assert "src/amsc/viewer/server.py" not in tracked, (
+        "the Viewer's own server is gone; the Viewer is a screen of the console"
+    )

@@ -1110,7 +1110,7 @@ function renderQuery(st) {
   const arms = qArmOptions();
   let out;
   if (!SERVED)
-    out = `<div class="qnote">Canlı soru-cevap, sayfa <b>viewer_server</b> üzerinden sunulduğunda çalışır.` +
+    out = `<div class="qnote">Canlı soru-cevap RAG Console'un Viewer ekranındadır; bu sayfa dondurulmuş külliyatı gösterir.` +
       (gold.length ? " Aşağıdaki ölçüm soruları çevrimdışı görülebilir." : "") + `</div>`;
   else if (S.q.busy)
     out = S.q.prog
@@ -1419,7 +1419,7 @@ function renderHome(st) {
         `<span class="schip ${rdy ? "ok" : "wait"}">${rdy ? "hazır" : "bekliyor"}</span></button>`;
     }).join("");
   } else {
-    kbRows += `<div class="hquiet">Canlı bilgi tabanları, sayfa viewer_server üzerinden açıldığında listelenir.</div>`;
+    kbRows += `<div class="hquiet">Canlı bilgi tabanları RAG Console'dadır; bu sayfa bu deponun dondurulmuş külliyatını gösterir.</div>`;
   }
 
   const pool = [];
@@ -2065,7 +2065,7 @@ function kbMenuHtml() {
       }
     }
   } else {
-    h += `<div class="sect">RAG Console</div><div class="quiet">Canlı bilgi tabanları, sayfa <i>viewer_server</i> üzerinden açıldığında listelenir.</div>`;
+    h += `<div class="sect">RAG Console</div><div class="quiet">Canlı bilgi tabanları RAG Console'dadır; bu sayfa bu deponun dondurulmuş külliyatını gösterir.</div>`;
   }
   return h;
 }

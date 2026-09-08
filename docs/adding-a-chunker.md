@@ -126,10 +126,11 @@ o katmanın adı nereden okuduğunu söyler — hiçbirine elle yazılmaz:
 | Katman | Nasıl öğreniyor | Sonuç |
 |---|---|---|
 | Kütüphane | `methods.partition(key, …)` | yöntem canonical birimler üzerinde koşar |
-| Konsol arka ucu (`chat_rag`) | `components/viewer/methods.py`, `amsc.chunking.registry`'i okur ve yalnız *bu makinede çalışabilir mi*, sıra ve varsayılan bilgisini ekler | `GET /api/demo/methods` yöntemi (ya da neden çalışamadığını) döner |
+| Konsol arka ucu (`chat_rag`) | `components/viewer/methods.py`, `amsc.chunking.registry`'i okur ve yalnız *bu makinede çalışabilir mi*, sıra ve varsayılan bilgisini ekler | `GET /api/v1/meta/chunking-methods` yöntemi (ya da neden çalışamadığını) döner |
 | Konsol ön yüzü | yükleme formu yöntem listesini aynı uçtan çeker | yükleme sırasında seçilebilir olur |
 | Paketleyici | `components/viewer/analysis.py` seçilen her yöntemi tek canonical üzerinde koşturur | `artifacts/viewer-live/<doc>/variants/<key>/` |
-| Viewer v3 | sayfa açılışta kendi sunucusundan `GET /api/methods` çeker; kayıt **o an** ne diyorsa onu listeler. Gömülü (derleme zamanı) kopya yalnız dosyadan açılan sayfa için yedektir | **sayfayı yeniden derlemeye gerek yok**; kolon olarak seçilebilir, kendi rengiyle çizilir |
+| Ürünün Viewer ekranı (`chat_rag/frontend`) | çalışma anında `GET /api/v1/meta/chunking-methods` çeker; kayıt **o an** ne diyorsa onu listeler | **hiçbir şeyi yeniden derlemeye gerek yok**; kolon olarak seçilebilir, kendi rengiyle çizilir |
+| Bu deponun kendi sayfası (`amsc.viewer.build`) | kaydı derleme anında gömer | dondurulmuş külliyatı görmek için sayfayı yeniden derleyin |
 | Viewer okuyucusu | `amsc.viewer.corpus` kolu `kind`'ıyla kabul eder | payload'da kol olarak taşınır |
 | Benchmark | benchmark konfigürasyonunda bir kolun `kind`'ı olarak yazılabilir | dondurulmuş kol kümesi değişmeden karşılaştırmaya girer |
 | Debug / karşılaştırma | Viewer'ın Debug sekmesi ve ayrışma gezinmesi kolları genel olarak işler | sınırların nerede ayrıştığı görünür |
@@ -145,15 +146,14 @@ tekrarlanmaz.
 
 ## Viewer neden yeniden derlenmiyor?
 
-Viewer sayfası bir derleme çıktısıdır ve kaydı derleme anında gömer. Eskiden
-bu, kayda eklenen yeni bir yöntemin sayfada görünmesi için birinin
+Eskiden Viewer bir derleme çıktısıydı ve kaydı derleme anında gömerdi; kayda
+eklenen yeni bir yöntemin görünmesi, birinin
 `python -m amsc.viewer.build` çalıştırmasını hatırlamasına bağlıydı — kimsenin
 hata vermediği, yalnız yöntemin görünmediği sessiz bir adım.
 
-Artık sayfa sunulduğunda açılışta `GET /api/methods` çağırır
-(`amsc.viewer.server`), yanıtı gömülü kopyanın üzerine yazar ve değişmişse
-yeniden çizer. Sunucu kaydı `amsc.chunking.registry`'ten okur, yani kütüphanede kayıtlı
-olan neyse odur. Sonuç:
+Artık ürünün Viewer'ı konsolun bir ekranıdır ve yöntem listesini çalışma
+anında `GET /api/v1/meta/chunking-methods` ile çeker. O uç `amsc.chunking.registry`'i
+okur, yani kütüphanede kayıtlı olan neyse odur. Sonuç:
 
 * **sunulan sayfa** (ürünün kullandığı yol, `start-demo.ps1`) her zaman
   günceldir, sayfa ne zaman derlenmiş olursa olsun;

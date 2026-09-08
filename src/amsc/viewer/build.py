@@ -1,35 +1,30 @@
-"""Viewer v3 -- the chunking inspection product page.
+"""Viewer v3 -- this repository's own page over its frozen benchmark corpus.
 
-The product page: the one ``start-demo.ps1`` builds and serves. It is a
-**page builder only** -- every document payload it embeds, and every payload
-it receives at runtime for a live document, is read by
+A **page builder only**: every document payload it embeds is read by
 :mod:`amsc.viewer.corpus`, the reader it shares with the RAG console's
-packaging worker.
+packaging worker, so the page and the console are looking at one shape.
 
 The page answers one question before all others: *where does a chunk start,
 where does it end, and how do two methods cut the same content differently?*
 Everything else (ids, strategies, decision records) is behind progressive
 disclosure.
 
-With no trees at all it builds the product shell: a page carrying no corpus
-of its own that reads every document from the RAG console at runtime. That
-is the only build a fresh clone can make, because the frozen research trees
-are not in version control.
-
-    py -3.11 -m amsc.viewer.build --output artifacts/viewer-v3/index.html
-
-Adding trees embeds them, which is what the research build does:
+**This is not the product's Viewer.** That is a screen of the RAG console,
+built in ``chat_rag/frontend/app/viewer/``, reading ``/api/v1`` for a live
+document. What is here reads *this* repository's frozen research trees, which
+the console has no copy of and does not want one, and it is opened as a file:
+the HTTP server that used to serve it (and relay the console for a live
+document) went with the console's Flask surface in Step 13.
 
     py -3.11 -m amsc.viewer.build `
       --benchmark kkb-2024=artifacts/chunk-benchmark-v5/kkb-2024 `
       --deep kkb-2024=artifacts/deep-analysis/kkb-2024-final `
       --output artifacts/viewer-v3/index.html
 
-    py -3.11 -m amsc.viewer.server --viewer artifacts/viewer-v3/index.html --config configs/rag-poc.yaml
-
-Opened as a file, the page shows the embedded corpus; served, it also lists
-the RAG console's knowledge bases through the server's existing
-``/api/workspace`` and ``/api/live-document`` relays.
+With no trees at all it builds an empty shell, which is the only build a fresh
+clone can make -- the frozen research trees are not in version control -- and
+is what the tests use to check that the build reads the registry rather than a
+list of its own.
 """
 
 from __future__ import annotations
@@ -65,24 +60,20 @@ def build_viewer(
 
     ``benchmarks`` maps a document id to a frozen chunk-benchmark tree,
     ``deep`` to a packaged Deep Analysis tree. Both may be empty, which builds
-    the product shell: no embedded corpus, every document read live from the
-    console. The per-document payload is
-    exactly ``viewer_corpus.load_corpus`` output, so a live document fetched
-    at runtime through ``/api/live-document`` has the same shape as an
-    embedded one and the page needs no second reader.
+    an empty shell. The per-document payload is exactly
+    ``viewer_corpus.load_corpus`` output -- the same reader the RAG console's
+    packager calls, which is what keeps one payload shape across both
+    repositories.
     """
     deep = dict(deep or {})
     labels = dict(labels or {})
     documents = list(benchmarks) + [doc for doc in deep if doc not in benchmarks]
     # No documents is a legitimate build, and the only one a clean checkout can
     # make: the frozen benchmark and Deep trees are git-ignored research output
-    # that cannot be committed, so requiring one of them left the product's own
-    # page buildable on exactly one machine. Nothing the page needs for a live
-    # document comes from an embedded one -- the method order, labels and
-    # summaries below are build-time constants, and every corpus-driven view
-    # reads ``DATA.docOrder``, which is then simply empty. Served, the page
-    # lists the console's knowledge bases and fetches their payloads over the
-    # server's existing relays, which is what the product uses it for.
+    # that cannot be committed, so requiring one of them left this page
+    # buildable on exactly one machine. The method order, labels and summaries
+    # below are build-time constants read from the registry, and every
+    # corpus-driven view reads ``DATA.docOrder``, which is then simply empty.
     output = Path(output)
     if "evaluation" in output.parts:
         raise ValueError("refusing to write the viewer into evaluation/ (frozen)")

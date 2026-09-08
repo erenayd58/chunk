@@ -14,8 +14,7 @@ ve API sözleşmelerine dokunmaz.
   eklenenler** (canlı dokümanlar, `hazır · işleniyor · kuyrukta · hata`
   çipleriyle; hazır olana tıklamak doğrudan İncele'ye götürür; konsol yoksa
   yerine yerleşik dokümanlar listelenir) ve oturumun **Son sorguları**. Hiçbir
-  sayı uydurulmaz: her hücre gömülü payload'dan ya da `/api/workspace`
-  totals'ından okunur; konsola ulaşılamıyorsa bu bir durum olarak yazılır.
+  sayı uydurulmaz: her hücre gömülü payload'dan okunur.
 * Üstteki kompakt seçim çubuğu sırayı taşır: *Bilgi tabanı › Doküman ›
   Yöntemler*; sekmeler *Genel · İncele · Sorgu · Debug · Benchmark*.
 * **Debug sekmesi** tek soruyu cevaplar: *bu sınır neden böyle oluştu, sistem
@@ -49,10 +48,10 @@ ve API sözleşmelerine dokunmaz.
   maliyet) sunulur. Yeni yüklemelerde her yöntemin işleme süresi konsol
   paketleyicisindeki minimal telemetriyle (`variants[m].seconds`) kaydedilir;
   eski analizlerde süre "—" olarak görünür.
-* **Yerleşik korpus** (build'e gömülü dokümanlar) her zaman listelenir; sayfa
-  `amsc.viewer.server` üzerinden sunuluyorsa RAG Console'un bilgi tabanları da
-  `/api/workspace` ve `/api/live-document` ile aynı listeye katılır. Konsol
-  kapalıysa bu bir durumdur, hata değildir.
+* **Yerleşik korpus** (build'e gömülü dokümanlar) listelenir. Canlı bilgi
+  tabanları bu sayfada değil, RAG Console'un kendi Viewer ekranındadır: Step 13
+  bu deponun `:8765` sunucusunu ve konsola giden `/api/demo/*` aktarmalarını
+  kaldırdı (`chat_rag/docs/legacy-removal.md`).
 * **Yöntemler hard-code edilmez**: yalnız o dokümanın gerçekten paketlenmiş
   kolları (canlı dokümanlarda `live.methods` içinde `ready` olanlar) sunulur.
   Ürün adları: Markdown, Hybrid, Standard, Deep Analysis.
@@ -108,19 +107,19 @@ py -3.11 -m amsc.viewer.build `
   --deep arcelik-2024=artifacts/holdout-arcelik-2024/deep-final --label "arcelik-2024=Arçelik 2024 (holdout)" `
   --output artifacts/viewer-v3/index.html
 
-py -3.11 -m amsc.viewer.server --viewer artifacts/viewer-v3/index.html --config configs/rag-poc.yaml
 ```
 
-`index.html` dosya olarak açıldığında yerleşik korpusla tam çalışır; canlı
-bilgi tabanları yalnız sunucuyla gelir. Builder, sayfanın yanına `catalog.json`
-yazar (`generator: amsc.viewer.build`), böylece sunucunun chat motoru v2'deki gibi
-aynı kataloğu okur.
+`index.html` dosya olarak açılır ve yerleşik korpusla tam çalışır. Builder,
+sayfanın yanına `catalog.json` yazar (`generator: amsc.viewer.build`); bu
+katalog `amsc.viewer.chat` motorunun okuduğu kataloğun aynısıdır — motoru
+artık konsol kendi süreci içinde koşturur.
 
 ## Veri sözleşmesi
 
-Doküman payload'ı **birebir** `viewer.corpus.load_corpus` çıktısıdır — gömülü
-dokümanlar build sırasında, canlı dokümanlar çalışma anında `/api/live-document`
-ile aynı şekli alır; sayfada ikinci bir okuyucu yoktur. Sınır nedenleri
+Doküman payload'ı **birebir** `viewer.corpus.load_corpus` çıktısıdır — bu
+sayfadaki gömülü dokümanlar build sırasında, konsolun Viewer ekranındaki canlı
+dokümanlar `GET /api/v1/documents/<id>/analysis/payload` ile aynı şekli alır;
+iki depoda tek okuyucu vardır. Sınır nedenleri
 (`rs`), birim dilimleri (`seg`), üyelik (`m`) ve Deep karar kayıtları (`dec`)
 okuyucunun ürettiği alanlardır; hiçbir değer yeniden hesaplanmaz ya da
 uydurulmaz.

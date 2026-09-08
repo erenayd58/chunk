@@ -364,35 +364,36 @@ def test_a_registered_method_reaches_every_consumer_with_no_other_edit(fifth, tm
     assert chunk_relations._arbitrates(chunk_relations.LEGACY_AGENTIC_KIND)
 
 
-def test_a_page_built_before_the_method_existed_still_lists_it_when_served(fifth, tmp_path):
-    """The Viewer exposure rule: no manual rebuild.
+def test_a_built_page_carries_the_registry_as_it_was_when_it_was_built(fifth, tmp_path):
+    """The exposure rule, and where it now lives.
 
     A built page carries the registry as it was at build time -- that is all a
-    file opened from disk can have. Served, it asks the server for the registry
-    as it is *now*, so a method registered after the page was built is listed
-    without anyone remembering ``python -m amsc.viewer.build``. Proved from both
-    ends: the stale page really is stale, and the route really is current.
-    """
-    from amsc.viewer import server as viewer_server
+    file opened from disk can have, and it is why a method registered after the
+    build is missing from it. This page used to be served by this repository's
+    own Viewer server, which re-read the registry at boot and handed the page
+    the current list; the Viewer is a screen of the RAG console now, and its
+    method chips come from ``GET /api/v1/meta/chunking-methods`` at run time,
+    so nothing has to be rebuilt for a new chunker to appear
+    (``chat_rag/tests/unit/test_chunker_extension.py`` holds that end).
 
+    What is checked here is the half this repository still owns: the build
+    reads the registry rather than a list of its own, so a page built *now*
+    carries the method registered *now*.
+    """
     methods.unregister(FIXED_WINDOW.key)          # build the page without it
-    output = tmp_path / "v3" / "index.html"
-    viewer_v3.build_viewer({}, output, root=tmp_path)
+    stale = tmp_path / "before" / "index.html"
+    viewer_v3.build_viewer({}, stale, root=tmp_path)
     methods.register(FIXED_WINDOW)                # ...then register it
 
-    embedded = _payload(output.read_text(encoding="utf-8"))
-    assert "fixed-window" not in embedded["methodOrder"], "the built page is stale, as expected"
+    embedded = _payload(stale.read_text(encoding="utf-8"))
+    assert "fixed-window" not in embedded["methodOrder"], "a built page is a snapshot"
 
-    served = viewer_server.method_registry_payload()
-    assert served["order"] == list(methods.ORDER) and served["order"][-1] == "fixed-window"
-    assert served["labels"] == dict(methods.LABELS)
-    assert served["summaries"] == dict(methods.SUMMARIES)
-    assert served["meta"] == methods.meta()
-
-    # The page asks for it, and prefers what it gets over what it was built with.
-    page = output.read_text(encoding="utf-8")
-    assert '"/api/methods"' in page and "refreshMethods" in page
-    assert "DATA.methodOrder = m.order" in page
+    fresh = tmp_path / "after" / "index.html"
+    viewer_v3.build_viewer({}, fresh, root=tmp_path)
+    rebuilt = _payload(fresh.read_text(encoding="utf-8"))
+    assert rebuilt["methodOrder"] == list(methods.ORDER)
+    assert rebuilt["methodOrder"][-1] == "fixed-window"
+    assert rebuilt["methodLabels"]["fixed-window"] == FIXED_WINDOW.label
 
 
 def test_once_unregistered_the_method_is_unknown_everywhere(tmp_path):

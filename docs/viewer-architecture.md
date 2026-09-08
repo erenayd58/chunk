@@ -8,7 +8,7 @@ want to trace two repositories first. Practical only; the product story is in
 
 | | `chunk` (this repo) | `chat_rag` (the console) |
 |---|---|---|
-| owns | chunking methods, the payload reader, the Viewer pages, the Viewer's own server | the documents, their ingest, the packaging lifecycle, the console API |
+| owns | chunking methods, the payload reader, this repository's own page over its frozen corpus, and the retrieval engine behind *Sorgu* | the documents, their ingest, the packaging lifecycle, the `/api/v1` contract and **the Viewer screen the product uses** |
 | holds no | product state — no uploads, no per-document status | copy of a chunker, a method list or a payload shape |
 | the seam | `amsc.chunking.registry` (method identity) and `amsc.viewer.corpus` (payload shape) | reads both; states neither |
 
@@ -21,14 +21,22 @@ agree, the console reads `amsc`.
 ```
 amsc.chunking.registry            the registry: which methods exist, what each one is
     |                   (Phase 5 -- the single source of method identity;
-    |                    served live at /api/methods, so a page built earlier
-    |                    still lists a method registered later)
+    |                    the console projects it at
+    |                    GET /api/v1/meta/chunking-methods, read at run time,
+    |                    so a new method needs no rebuild of anything)
 amsc.viewer.corpus      the reader: artifact trees -> one payload shape
     |                   load_corpus() and catalog(). Renders no page.
-    +-- amsc.viewer.build      the product page   (built and served by start-demo)
+    +-- amsc.viewer.build      this repository's page over its frozen trees
     |
-amsc.viewer.server      the service: serves a page, relays the console
+amsc.viewer.chat        the retrieval engine behind *Sorgu*, run by the console
 ```
+
+**There used to be a fourth: `amsc.viewer.server`**, an HTTP server on `:8765`
+that served the page, ran that engine and relayed the console's `/api/demo/*`
+routes for a live document. Step 12 made the Viewer a screen of the console
+over `/api/v1` and moved the engine to console API; Step 13 removed the relay
+and the server. Nothing in either repository starts a second process
+(`chat_rag/docs/legacy-removal.md`).
 
 `viewer.corpus` is the whole cross-repository contract. The page reads it, and
 so does `chat_rag`'s packaging worker — which is why a live document and a
@@ -50,13 +58,13 @@ py -3.11 -m amsc.viewer.build --output artifacts/viewer-v3/index.html
 | outputs | `artifacts/viewer-v3/index.html` and `catalog.json` beside it |
 | owner of the optional inputs | the research runs (`amsc.research.benchmark.chunkers`, `amsc.deep.run`). They are git-ignored and a fresh clone has none |
 
-With no trees this is the **product shell**: a page with no embedded corpus that
-reads every document live from the console. That is the only build a clean
-checkout can make, and it is what the product uses.
-`chat_rag/start-demo.ps1` runs exactly this command when
-`artifacts/viewer-v3/index.html` is missing, so a fresh clone needs no manual
-build step. A page that is already there is served as it is — that is how a
-research build with embedded trees survives a restart.
+With no trees this builds an **empty shell**, which is the only build a clean
+checkout can make and is what the tests use to check that the build reads the
+registry rather than a list of its own. It is **not** the product's Viewer:
+that is a screen of the console (`chat_rag/frontend/app/viewer/`), reading
+`/api/v1`, and nothing in `chat_rag` builds or serves this page. What is here
+is for looking at *this* repository's frozen benchmark corpus, which the
+console has no copy of.
 
 **Nothing generated is in version control.** `artifacts/` is git-ignored here,
 `artifacts/viewer-live/` in `chat_rag`. Two tests hold that line:
@@ -72,39 +80,23 @@ and its `chat_rag` counterpart.
 
 ## Where Viewer v3 gets its data
 
-Two sources, one shape.
+One source per page, and one shape for both.
 
 ```
-embedded (build time)   frozen research trees -> viewer.corpus.load_corpus -> DATA.docs
-live (runtime)          the RAG console, through the Viewer's own server
+this repository's page   frozen research trees -> viewer.corpus.load_corpus -> DATA.docs
+the product's Viewer     a live document       -> the same reader, in the console
 ```
 
-The browser only ever talks to `amsc.viewer.server` (default `:8765`). It never
-addresses the console, so there is no CORS grant and no console address in the
-page.
+The page built here is opened as a file, over the trees embedded in it at build
+time. The product's Viewer is a screen of the console and asks the console:
 
-```
-browser
-  |
-  +-- GET  /                          the built page
-  +-- GET  /api/methods               the method registry, as it is NOW
-  +-- GET  /api/workspace             -> console GET  /api/demo/workspace
-  +-- GET  /api/live-document?doc=    -> console GET  /api/demo/viewer-analysis/<id>/payload
-  +-- POST /api/live-prepare          -> console POST /api/demo/viewer-analysis/<id>
-  +-- POST /api/retrieve|chat|compare    local ChatEngine; on an unseen live
-                                         document it first pulls the rows from
-                                         console GET .../chunks and indexes them
-  +-- GET  /api/health, /api/docs, /api/chunk   this process's own catalog
-```
-
-So there is one path per question:
-
-| the page needs | it asks | authoritative source |
+| the screen needs | it asks | authoritative source |
 |---|---|---|
-| available documents | `/api/workspace` | the console's `DocumentTracker` + analysis states |
-| methods and their metadata | `/api/methods` at boot, falling back to the embedded `methodOrder/methodLabels/methodSummaries/methodMeta` | `amsc.chunking.registry` — live when served, build-time when the page is opened as a file; `/api/demo/methods` for availability on this machine |
-| chunk boundaries, units, pages | `/api/live-document` (or the embedded payload) | `viewer.corpus.load_corpus` |
-| chunk rows to retrieve over | `/api/retrieve` → console `.../chunks` | the packaged `chunks.jsonl` |
+| available documents | `GET /api/v1/documents` | the console's ledger, each row carrying its `analysis` block |
+| methods and their metadata | `GET /api/v1/meta/chunking-methods` | `amsc.chunking.registry`, read at run time, plus availability on this machine |
+| chunk boundaries, units, pages | `GET /api/v1/documents/<id>/analysis/payload` | `viewer.corpus.load_corpus` |
+| chunk rows to retrieve over | `GET /api/v1/documents/<id>/analysis/methods/<m>/chunks` | the packaged `chunks.jsonl` |
+| one question through several methods | `POST /api/v1/analysis-queries` | `amsc.viewer.chat`, run in the console's process |
 | comparison / debug / benchmark | the same payload | one payload, several views |
 
 ## What runs after ingest (the packaging lifecycle)
@@ -130,7 +122,7 @@ analysis._build(key)
    |    viewer.corpus.load_corpus(...)  ->  viewer-payload.json   <- PUBLICATION
    |    status=ready | failed
    v
-browser reads it through /api/demo/viewer-analysis/<id>/payload
+the Viewer screen reads it through GET /api/v1/documents/<id>/analysis/payload
 ```
 
 Identity is the **content hash**, not the upload id: the same PDF uploaded twice
@@ -209,19 +201,18 @@ and product order); and the packager runs it over the canonical like any
 other. Held end to end by
 `chunk/tests/unit/chunking/test_methods_registry.py::test_a_registered_method_reaches_every_consumer_with_no_other_edit`.
 
-**And no rebuild.** The build embeds the registry, which used to mean a new
-method was invisible until somebody remembered `python -m amsc.viewer.build` — a
-step with no error message, only a missing column. A served page now asks
-`amsc.viewer.server` for `GET /api/methods` at boot and prefers that answer,
-so what the page lists is what the library has registered *now*. The embedded
-copy remains the fallback for a page opened as a file (a research build with
-no server), and an older server without the route changes nothing. Held by
-`test_methods_registry.py::test_a_page_built_before_the_method_existed_still_lists_it_when_served`
-and, from the console side,
-`chat_rag/tests/unit/test_chunker_extension.py::test_the_viewer_is_told_about_it_without_a_page_rebuild`.
+**And no rebuild.** A new method used to be invisible in the Viewer until
+somebody remembered `python -m amsc.viewer.build` — a step with no error
+message, only a missing column. The product's Viewer is a screen of the console
+now and reads `GET /api/v1/meta/chunking-methods` at run time, so registering
+the method is the whole of exposing it. Held by
+`chat_rag/tests/unit/test_chunker_extension.py::test_the_viewer_is_told_about_it_without_a_rebuild_of_anything`
+and, from this side,
+`test_methods_registry.py::test_a_built_page_carries_the_registry_as_it_was_when_it_was_built`.
 
-Rebuilding the page is still what you do when the *template* changes — the
-page is the template, and no route can serve that.
+This repository's own page is still a snapshot: it embeds the registry at build
+time, because that is all a file opened from disk can carry. Rebuild it when a
+method or the *template* changes.
 
 **Deep Analysis is the one exception**, and only where it has to be: it is an
 orchestration over a baseline partition, so it carries extra status (which model
@@ -231,9 +222,10 @@ The page finds it by the registry's `deep` flag, never by its name.
 ## Debugging a failed package
 
 1. **What does the console think?**
-   `GET /api/demo/viewer-analysis/<doc_id>` — `status`, `error`, `methods` (per
-   variant), `ready_methods`, `failed_methods`. A `failed` here with a working
-   `/payload` means a *rebuild* failed and the last good analysis is still up.
+   `GET /api/v1/documents/<doc_id>/analysis` — `status`, `error`,
+   `selected_methods`, `ready_methods`, `failed_methods`, and `content` for the
+   shared analysis. A `failed` here with a working `/analysis/payload` means a
+   *rebuild* failed and the last good analysis is still up.
 2. **What is on disk?**
    `chat_rag/artifacts/viewer-live/<key>/` — `state.json` (with a `traceback`
    when the worker caught it), `units.jsonl` (the canonical), `run/` (the Deep
@@ -241,18 +233,18 @@ The page finds it by the registry's `deep` flag, never by its name.
    file means nothing was ever published.
 3. **Which method?** `state.json` → `methods.<key>.error`. One variant failing
    leaves the others `ready`; the document stays open on what worked.
-4. **Retry** with `POST /api/demo/viewer-analysis/<doc_id>` (re-queues) or
-   `POST .../methods {"methods": [...]}` (adds variants). Neither re-parses the
-   PDF: the canonical is on disk.
+4. **Retry** with `POST /api/v1/documents/<doc_id>/analysis` (re-queues) or
+   `POST .../analysis/methods {"methods": [...]}` (adds variants). Neither
+   re-parses the PDF: the canonical is on disk.
 5. **Common causes.** No canonical and no way to recover one — a document
    ingested before this packaging existed, whose parser-cache entry is gone.
    Hybrid unavailable — the sentence-embedding model is not downloaded on this
-   machine; `GET /api/demo/methods` says so with the reason.
-6. **The logs.** `chat_rag/logs/` (`ViewerAnalysis`) for the worker;
-   `viewer.err.log` under the launcher's log directory for the Viewer server.
-7. **The page shows nothing.** Check `/api/workspace` through the Viewer server,
-   not the console: an unreachable console is a rendered state
-   (`connected: false` with a reason), not an error.
+   machine; `GET /api/v1/meta/chunking-methods` says so with the reason.
+6. **The logs.** `chat_rag/logs/` (`ViewerAnalysis`) for the worker.
+7. **The screen shows nothing.** It reads `GET /api/v1/documents`, so start
+   there: a document with no `analysis.ready_methods` has nothing to open yet,
+   and `GET /api/v1/documents/<id>/analysis/payload` answers **409**
+   `not_ready` with the state rather than an empty page.
 
 ## The files to know
 
@@ -262,13 +254,13 @@ The page finds it by the registry's `deep` flag, never by its name.
 | `chunk/src/amsc/chunking/method.py` | the `ChunkMethod` / `PartitionResult` types — a leaf module, so a method module can import them and the registry can import the method |
 | `chat_rag/tools/promote_chunk_pin.py` | moves the `amsc-poc` pin to a chunk commit and checks it holds |
 | `chunk/src/amsc/viewer/corpus.py` | the payload reader — the cross-repo contract |
-| `chunk/src/amsc/viewer/build.py` + `viewer/template.py` | the product page and its build |
-| `chunk/src/amsc/viewer/server.py` | the service the browser talks to |
+| `chunk/src/amsc/viewer/build.py` + `viewer/template.py` | this repository's own page over its frozen trees, and its build |
+| `chunk/src/amsc/viewer/chat/` | the retrieval engine behind *Sorgu*, run by the console |
 | `chat_rag/components/viewer/analysis.py` | packaging lifecycle and state |
 | `chat_rag/components/viewer/methods.py` | this deployment's view of the registry |
-| `chat_rag/app.py` (`/api/demo/*`) | the console API the Viewer server relays |
-| `chat_rag/start-demo.ps1` | builds the shell if missing, starts both processes |
-| `chunk/tools/serve_viewer_v3.ps1` | serves the Viewer **alone**, with `chat_rag/.env`'s keys loaded into that one process. `start-demo.ps1` starts both processes; this is the case it does not cover, and `amsc.viewer.server` deliberately reads no `.env` of its own |
+| `chat_rag/frontend/app/viewer/` + `components/viewer/` | **the product's Viewer**: five screens over `/api/v1` |
+| `chat_rag/interfaces/http/v1/routers/documents.py` | the analysis routes the screen reads |
+| `chat_rag/start-demo.ps1` | starts the backend and the console — two processes, no third |
 
 ## Tests that hold this
 

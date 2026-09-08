@@ -196,16 +196,17 @@ def test_the_product_path_reaches_no_research_or_legacy_module():
     )
 
 
-def test_the_product_path_reaches_no_viewer_service_module():
-    """The console runs beside the Viewer's server, never inside it.
+def test_the_product_path_reaches_no_separately_hosted_module():
+    """Whatever runs beside the console must not be reachable from inside it.
 
-    Reaching ``viewer.chat.index`` from the console would drag the frozen
-    benchmark's BM25 fold table -- and with it the whole chunk benchmark --
-    onto the ingest path.
+    ``SERVICE`` is empty today -- the Viewer's own server was its one member
+    and went with the Viewer's move into the console -- so this is vacuous and
+    is kept because the category is: the next module declared there needs this
+    to be true of it on the day it arrives.
     """
     leaked = sorted(PRODUCT & surface.SERVICE)
     assert leaked == [], "\n".join(
-        ["the console surface reached the Viewer service:"]
+        ["the console surface reached a separately hosted module:"]
         + [f"  {_why(name, ROOTS, EAGER)}" for name in leaked]
     )
 
@@ -261,7 +262,10 @@ def test_the_console_api_is_a_subset_of_the_product_surface():
     assert surface.classify("amsc.deep.arm") == "product"
     assert surface.classify("research.benchmark.chunkers") == "research"
     assert surface.classify("research.legacy_chat_rag") == "legacy"
-    assert surface.classify("viewer.server") == "service"
+    assert surface.SERVICE == frozenset(), (
+        "nothing runs beside the console any more; the category is kept so the "
+        "next one that does is declared"
+    )
     assert surface.console_may_import("amsc.viewer.corpus")
     assert not surface.console_may_import("amsc.research.benchmark.chunkers")
 

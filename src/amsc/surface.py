@@ -13,11 +13,12 @@ or unused.** A module that is *not* reachable from one must be declared below,
 so a new research module cannot arrive unclassified.
 
 ``product`` is *derived*, never listed: whatever :data:`ENTRY_POINTS` reaches
-by a module-level import. ``service`` is the Viewer's own server process --
-product code, but it runs beside the console rather than inside it. It used to
-carry the Viewer's whole retrieval engine with it; the Viewer is a screen of
-the console now, so the engine is console API and what stays a service is the
-transport that still serves this repository's frozen corpus. ``research`` is maintained, runnable and off the
+by a module-level import. ``service`` is a process that runs beside the console
+rather than inside it -- product code, separately hosted. It is empty: the one
+module in it was the Viewer's own server, which carried the Viewer's whole
+retrieval engine, and both went as the Viewer became a screen of the console
+(the engine to :data:`CONSOLE_API` in Step 12, the transport to nothing in
+Step 13). ``research`` is maintained, runnable and off the
 product path; every module under ``amsc.research`` is research by where it
 lives, and this module says so rather than letting the package name imply it.
 ``legacy`` is kept only so an existing comparison keeps working. ``unused``
@@ -109,16 +110,17 @@ ENTRY_POINTS = CONSOLE_API | DISPATCHED | frozenset({
     "surface",           # this module
 })
 
-#: The Viewer's own server process. See the ``service`` status above.
+#: A process that runs *beside* the console rather than inside it. Empty, and
+#: kept as a declared category rather than deleted so the next one is
+#: classified when it arrives.
 #:
-#: One module, and it is the transport alone: the page it served is now a
-#: screen of the console, and the engine behind that page is
-#: :data:`CONSOLE_API`. What is left here is a standalone way to serve the
-#: frozen benchmark corpus out of this repository, which the console has no
-#: copy of and does not want one.
-SERVICE = frozenset({
-    "viewer.server",
-})
+#: It held one module: ``viewer.server``, the Viewer's own HTTP server on
+#: ``:8765``. That server served a built page and relayed the RAG console's
+#: ``/api/demo/*`` routes for a live document. The Viewer became a screen of
+#: the console in Step 12 -- the engine behind it moved to :data:`CONSOLE_API`
+#: -- and Step 13 removed the relay it called and the server with it. Nothing
+#: in either repository starts a second process now.
+SERVICE: frozenset[str] = frozenset()
 
 #: Research: experiments, benchmarks, the frozen evaluator's runners and the
 #: preparation tools around them. Real callers, real value, off the product
