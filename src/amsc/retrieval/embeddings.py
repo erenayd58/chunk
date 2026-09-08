@@ -28,6 +28,7 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -203,6 +204,38 @@ class SentenceTransformerEmbeddingProvider:
         return _normalise(vectors)
 
 
+#: How many times a publish that lost a race is retried before the destination
+#: is inspected. Windows refuses to rename over a file another reader has open;
+#: that is contention, and it is over in microseconds.
+_PUBLISH_ATTEMPTS = 5
+_PUBLISH_BACKOFF_SECONDS = 0.01
+
+
+def _publish(temporary: Path, destination: Path) -> None:
+    """Rename a finished temporary onto its key, atomically.
+
+    Written here rather than shared with the boundary cache on purpose: the two
+    embedding caches are deliberately separate interfaces in separate
+    namespaces, and coupling them so they could share ten lines would be the
+    one edge this package is not allowed to grow.
+
+    A cache entry is keyed by the hash of its own text, so a destination that
+    is already there holds the bytes this call was going to write: losing the
+    race is a success by another hand, not a failure.
+    """
+    for attempt in range(_PUBLISH_ATTEMPTS):
+        try:
+            os.replace(temporary, destination)
+            return
+        except PermissionError:
+            if attempt + 1 < _PUBLISH_ATTEMPTS:
+                time.sleep(_PUBLISH_BACKOFF_SECONDS)
+                continue
+            if destination.exists():
+                return
+            raise
+
+
 def model_slug(model_id: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", model_id).strip("_") or "model"
 
@@ -253,11 +286,28 @@ class CachedEmbeddings:
         if self.cache_dir is None:
             return
         path = self.cache_dir / f"{key}.npy"
-        # numpy appends ".npy" to any other suffix, so the temporary name
-        # must already end in it for the rename below to find the file.
-        temporary = self.cache_dir / f"{key}.tmp.npy"
-        np.save(temporary, vector.astype(np.float32))
-        os.replace(temporary, path)
+        # Ensured on every write, not once at construction: this object
+        # outlives that guarantee and its directory is a *cache*, which an
+        # operator clearing disk or a container reset may remove underneath
+        # it. When it had gone, every write failed against a temporary file
+        # that had never been created.
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        # A name of this writer's own. It used to be `{key}.tmp.npy`, which
+        # two writers of one key share: the first rename consumed it and the
+        # second failed with "no such file" -- a temporary that really did
+        # vanish before it could be used. numpy appends ".npy" to any other
+        # suffix, so the name must already end in it.
+        handle = tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".npy", dir=self.cache_dir, delete=False
+        )
+        temporary = Path(handle.name)
+        try:
+            with handle:
+                np.save(handle, vector.astype(np.float32))
+            _publish(temporary, path)
+        finally:
+            # A no-op once the publish consumed it.
+            temporary.unlink(missing_ok=True)
 
     def embed(self, texts: Sequence[str]) -> np.ndarray:
         """Vectors for ``texts`` in order; only cache misses reach the provider."""
