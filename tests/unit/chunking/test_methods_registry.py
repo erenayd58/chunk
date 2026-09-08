@@ -44,7 +44,7 @@ from amsc.chunking import structural as structural_chunker
 from amsc.viewer import corpus as viewer_corpus
 from amsc.viewer import build as viewer_v3
 from amsc.research.benchmark.chunkers import ArmConfig, TokenBudget, run_arm
-from amsc.chunking.example import FIXED_WINDOW, partition_fixed_window
+from amsc.chunking.example import FIXED_WINDOW, fixed_window
 from amsc.document.models import RawDocumentUnit
 
 from conftest import StaticBoundaryEmbedder
@@ -286,14 +286,20 @@ def fifth():
         methods.unregister(FIXED_WINDOW.key)
 
 
-def test_the_example_partition_is_predictable():
+def test_the_example_partition_is_predictable(fifth):
+    """The template method, run the way every caller runs one.
+
+    It returns chunks -- text and the units it packed -- and the framework
+    derives the row. The eight fields below are what a method that declares no
+    capabilities of its own produces, which is the shape every screen reads.
+    """
     units = [heading("h-1", "A", 1)]
     for index in range(1, 6):
         units.append(unit(f"p-{index}", words(10, f"a{index}"), order=index + 1, section=("A",)))
     units.append(heading("h-2", "B", 7))
     units.append(unit("p-6", words(10, "b1"), order=8, section=("B",)))
 
-    result = partition_fixed_window(units, counter=COUNTER, budget=BUDGET)
+    result = methods.partition("fixed-window", units, counter=COUNTER, budget=BUDGET)
 
     assert [row["unit_ids"] for row in result.rows] == [["p-1", "p-2", "p-3"], ["p-4", "p-5"], ["p-6"]]
     assert result.rows[0]["chunk_id"] == "doc:fw-chunk-0001"
@@ -302,7 +308,8 @@ def test_the_example_partition_is_predictable():
                                    "section_paths", "heading", "split_strategies"}
     # The target is a ceiling too: two 100-word units do not share a window.
     big = section_of(words(100, "x"), words(100, "y"))
-    assert [row["unit_ids"] for row in partition_fixed_window(big, counter=COUNTER, budget=BUDGET).rows] == [["p-1"], ["p-2"]]
+    big_rows = methods.partition("fixed-window", big, counter=COUNTER, budget=BUDGET).rows
+    assert [row["unit_ids"] for row in big_rows] == [["p-1"], ["p-2"]]
 
 
 def _payload(html_text: str) -> dict:
@@ -315,7 +322,7 @@ def test_a_registered_method_reaches_every_consumer_with_no_other_edit(fifth, tm
     # The registry's own views.
     assert "fixed-window" in methods.ORDER and methods.ORDER[-1] == "fixed-window"
     assert methods.LABELS["fixed-window"] == "Sabit Pencere"
-    assert methods.get("fixed-window").partition is partition_fixed_window
+    assert methods.get("fixed-window").partition is fixed_window
     assert methods.benchmark_arms() == ("markdown", "hybrid", "structure-only"), "the frozen arm set is a contract, not a list"
 
     # The Viewer v3 builder: the shell build lists it, with its capabilities.
@@ -336,7 +343,7 @@ def test_a_registered_method_reaches_every_consumer_with_no_other_edit(fifth, tm
         for line in (tmp_path / "data" / "doc.units.v3.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    rows = partition_fixed_window(units, counter=COUNTER, budget=BUDGET).rows
+    rows = methods.partition("fixed-window", units, counter=COUNTER, budget=BUDGET).rows
     packaged = deep_arm.package_arm(rows, units=units, output_dir=tmp_path / "fw", counter=COUNTER)
     assert packaged["chunk_count"] == len(rows)
     assert viewer_corpus.ARM_KINDS["fixed-window"] == "fixed_window"
@@ -349,7 +356,7 @@ def test_a_registered_method_reaches_every_consumer_with_no_other_edit(fifth, tm
     arm = ArmConfig(kind="fixed_window")
     config = SimpleNamespace(arms={"structure-only": arm}, tokens=TokenBudget(**BUDGET))
     bench_rows, diagnostics, spans = run_arm("structure-only", config, units, COUNTER, boundary_embedder=None)
-    assert bench_rows == rows and diagnostics == {"max_units": 3} and spans is None
+    assert bench_rows == rows and diagnostics == {} and spans is None
 
     # The relation deriver: its cuts are greedy, because it declared no arbitration.
     assert chunk_relations._arbitrates("fixed_window") is False

@@ -9,7 +9,8 @@ src/amsc/
 ├── document/          the canonical document: schema, file format, tokens
 ├── canonical/         PDF → canonical document
 │   └── refine/          the per-signal repairs the preparer composes
-├── chunking/          the chunking methods and the one registry
+├── chunking/          the chunking methods, the contract and the one registry
+│   └── plugins/       one file per method, imported by discovery
 │   └── adaptive/        the frozen V1–V4 semantic lineage
 ├── deep/              Deep Analysis — an orchestration, not a partition
 ├── quality/           how good is this parse, this boundary, these chunks
@@ -33,7 +34,7 @@ src/amsc/
 
 | question | answer |
 |---|---|
-| where do I add a chunking method? | `amsc/chunking/` — see [adding-a-chunker.md](adding-a-chunker.md) |
+| where do I add a chunking method? | `amsc/chunking/plugins/` — one file, auto-discovered; see [adding-a-chunker.md](adding-a-chunker.md) |
 | where is the method registry? | `amsc/chunking/registry.py`, the only one |
 | where does Deep Analysis live? | `amsc/deep/` — selector, proposer, verifier, pipeline, arm, run |
 | where are the document/canonical primitives? | `amsc/document/` (schema, IO, tokens); `amsc/canonical/` builds them from a PDF |

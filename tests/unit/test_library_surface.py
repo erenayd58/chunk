@@ -141,10 +141,38 @@ def _why(target: str, roots, graph) -> str:
     return " <- ".join(chain)
 
 
-PRODUCT = _reach(surface.ENTRY_POINTS, EAGER)
+#: Chunking plugins are entry points by construction: the discovery module
+#: imports the whole directory, so a file dropped there is loaded whether or
+#: not anything names it. Listing them here rather than in ``surface`` is what
+#: keeps "a new chunker is one new file" true -- and they are *roots*, not
+#: exceptions, so whatever a plugin imports is still held to the one rule.
+PLUGINS = frozenset(
+    name for name in MODULES if surface.is_plugin("amsc." + name)
+)
+ROOTS = surface.ENTRY_POINTS | PLUGINS
+PRODUCT = _reach(ROOTS, EAGER)
 
 
 # ------------------------------------------------------------- the invariant
+
+
+def test_a_chunking_plugin_needs_no_declaration():
+    """The extension path, stated as a surface rule.
+
+    A file dropped into ``amsc/chunking/plugins/`` is product code without
+    anyone editing ``surface.py``: it is an entry point because discovery
+    imports the directory. What it is *not* is a hiding place -- being a root
+    means everything it imports is walked, so a plugin that reached a research
+    module would fail the rule above like anything else.
+    """
+    assert PLUGINS, "the plugin package is empty; discovery has nothing to find"
+    assert PLUGINS <= PRODUCT
+    for name in PLUGINS:
+        assert surface.classify("amsc." + name) == "product", name
+        assert name not in surface.DECLARED, f"{name} needs no declaration"
+    assert not surface.is_plugin("amsc.chunking.example"), (
+        "the template ships outside the plugin directory, unregistered"
+    )
 
 
 def test_the_graph_was_actually_built():
@@ -164,7 +192,7 @@ def test_the_product_path_reaches_no_research_or_legacy_module():
     forbidden = sorted(PRODUCT & (surface.RESEARCH | surface.LEGACY | surface.UNUSED))
     assert forbidden == [], "\n".join(
         ["product code reached modules it must not:"]
-        + [f"  {_why(name, surface.ENTRY_POINTS, EAGER)}" for name in forbidden]
+        + [f"  {_why(name, ROOTS, EAGER)}" for name in forbidden]
     )
 
 
@@ -178,7 +206,7 @@ def test_the_product_path_reaches_no_viewer_service_module():
     leaked = sorted(PRODUCT & surface.SERVICE)
     assert leaked == [], "\n".join(
         ["the console surface reached the Viewer service:"]
-        + [f"  {_why(name, surface.ENTRY_POINTS, EAGER)}" for name in leaked]
+        + [f"  {_why(name, ROOTS, EAGER)}" for name in leaked]
     )
 
 
@@ -345,7 +373,7 @@ def test_importing_the_console_surface_loads_no_research_module():
     )
 
 
-@pytest.mark.parametrize("entry", sorted(surface.ENTRY_POINTS))
+@pytest.mark.parametrize("entry", sorted(surface.ENTRY_POINTS | PLUGINS))
 def test_every_entry_point_imports(entry):
     """The declared surface is importable -- no stale name, no broken module."""
     __import__(f"amsc.{entry}")

@@ -1,7 +1,7 @@
 """The Viewer v3 top bar, measured in a browser.
 
 The bar carries one chip per *registered* chunking method, and the registry is
-open: a method is added by writing a module and naming it in ``_BUILTIN``.
+open: a method is added by dropping a module into ``amsc/chunking/plugins/``.
 Every other group on the bar is fixed -- the brand, the knowledge-base and
 document pickers, the five screen tabs, the difference walker and the page
 picker -- so the only group that can grow without bound is the method lane.

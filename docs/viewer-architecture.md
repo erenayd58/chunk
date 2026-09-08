@@ -196,9 +196,10 @@ fallback is what made the old dependency invisible in the first place.
 
 Nothing Viewer-specific. Following `docs/adding-a-chunker.md`:
 
-1. write the method module (partition + its `ChunkMethod`, types imported from
-   `amsc.chunking.method`);
-2. import that `ChunkMethod` into `src/amsc/chunking/registry.py` and add it to `_BUILTIN`;
+1. write `src/amsc/chunking/plugins/<yöntem>.py`: a partition returning
+   `Chunk` objects, with `@chunker(...)` above it (types imported from
+   `amsc.chunking.contract`);
+2. there is no step 2 — the file is the registration;
 3. write a test.
 
 From there: the page keys behaviour off `methodMeta` flags (`deep`, `baseline`)

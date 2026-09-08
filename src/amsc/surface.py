@@ -77,8 +77,19 @@ DISPATCHED = frozenset({
     "chunking.hybrid",
 })
 
+#: The auto-discovered chunking plugin directory. Every module under it is an
+#: entry point by construction: :mod:`amsc.chunking.discovery` imports the
+#: directory, so a file dropped there is loaded whether or not anything names
+#: it. Declaring the *package* rather than each file is what lets a new
+#: chunker be one new file -- and because each is an entry point, whatever a
+#: plugin imports is still held to the one rule.
+PLUGIN_PACKAGE = "chunking.plugins"
+
 #: Every module the product path may start from. The product surface is
-#: whatever these reach; nothing else has to be listed.
+#: whatever these reach; nothing else has to be listed. Plugin modules are
+#: entry points too -- see :data:`PLUGIN_PACKAGE` -- and are added to this set
+#: by ``tests/unit/test_library_surface.py``, which is the one place that
+#: knows which files exist.
 ENTRY_POINTS = CONSOLE_API | DISPATCHED | frozenset({
     "viewer.build",      # the Viewer product page and its build
     "chunking.example",  # the documented template for a new chunking method
@@ -172,6 +183,11 @@ def _name(module: str) -> str:
     return module[len("amsc."):] if module.startswith("amsc.") else module
 
 
+def is_plugin(module: str) -> bool:
+    """Whether this module is an auto-discovered chunking plugin."""
+    return _name(module).startswith(PLUGIN_PACKAGE + ".")
+
+
 def classify(module: str) -> Status:
     """The status of one ``amsc`` submodule, by its dotted path.
 
@@ -182,6 +198,8 @@ def classify(module: str) -> Status:
     *undeclared* research module from passing as product.
     """
     name = _name(module)
+    if is_plugin(module):
+        return "product"
     if name in SERVICE:
         return "service"
     if name in RESEARCH:

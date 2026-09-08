@@ -94,15 +94,16 @@ took both of those off the product path entirely.
   dotted name to `RESEARCH` in `surface.py`. Two tests will ask you to if you
   forget: the completeness check, and the one that says the package and the
   declaration must agree.
-* **a new chunking method** — neither. Write the module in `amsc/chunking/`
-  (copy `example.py`; its types come from `chunking/method.py`, a leaf module
-  that imports nothing else, which is what lets `chunking/registry.py` import
-  your module without a cycle), then import its `ChunkMethod` into the registry
-  and add it to `_BUILTIN` ([adding-a-chunker.md](adding-a-chunker.md)). That
-  import makes it product by reachability, so nothing is declared here. Only a
-  method the registry loads *on demand* rather than at import — the three
-  built-ins, whose engines are also research entry points — goes in
-  `DISPATCHED`.
+* **a new chunking method** — neither. Drop the module into
+  `amsc/chunking/plugins/` (copy `chunking/example.py`; its types come from
+  `chunking/contract.py`) and that is the whole registration
+  ([adding-a-chunker.md](adding-a-chunker.md)). A plugin needs no declaration
+  here: `surface.PLUGIN_PACKAGE` says the directory is auto-discovered, so
+  every module under it is an **entry point** — product by construction, and
+  still walked, so a plugin that reached a research module fails the one rule
+  like anything else. Only a module the registry loads *on demand* rather than
+  at import — the engines behind the shipped methods, which are also research
+  entry points — goes in `DISPATCHED`.
 * **something the product and a benchmark both need** — put it in the product
   module that owns the concept and re-export it from the research module, not
   the other way round. That is how `normalize_unit_ids_for_retrieval` came to
